@@ -1,0 +1,160 @@
+﻿@model List<SOF1022_NHOM1_SD2003_Ver2.Models.DTOs.NotificationDto>
+@{
+    ViewData["Title"] = "Thông báo của tôi";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">@ViewData["Title"]</h2>
+                <button type="button" class="btn btn-outline-primary" id="markAllReadBtn">Đánh dấu đã đọc tất cả</button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    @if (Model != null && Model.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var notification in Model)
+                            {
+                                <div class="list-group-item notification-item @(notification.IsRead ? "" : "unread")" data-id="@notification.Id">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 @(notification.IsRead ? "" : "fw-bold")">@notification.Title</h6>
+                                            <p class="mb-2 text-muted">@notification.Message</p>
+                                            <small class="text-muted">@notification.CreatedDate.ToString("dd/MM/yyyy HH:mm")</small>
+                                            @if (!string.IsNullOrEmpty(notification.CreatedBy))
+                                            {
+                                                <small class="text-muted"> • bởi @notification.CreatedBy</small>
+                                            }
+                                        </div>
+                                        <div class="ms-3">
+                                            @if (!string.IsNullOrEmpty(notification.Link))
+                                            {
+                                                <a href="@notification.Link" class="btn btn-sm btn-outline-primary" onclick="markAsRead(@notification.Id)">Xem chi tiết</a>
+                                            }
+                                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="deleteNotification(@notification.Id)">Xóa</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#dee2e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+                            </svg>
+                            <p class="text-muted mt-3">Bạn chưa có thông báo nào.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .notification-item.unread {
+        background-color: #e8f4fd;
+        border-left: 4px solid #0d6efd;
+    }
+
+    .notification-item {
+        transition: background-color 0.2s;
+    }
+
+    .notification-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        function markAsRead(notificationId) {
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch('/Notifications/MarkAsRead', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const item = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                    if (item) {
+                        item.classList.remove('unread');
+                        const title = item.querySelector('h6');
+                        if (title) {
+                            title.classList.remove('fw-bold');
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error marking notification as read:', error));
+        }
+
+        async function deleteNotification(notificationId) {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Xác nhận',
+                text: 'Bạn có chắc muốn xóa thông báo này?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Huỷ'
+            });
+            if (!isConfirmed) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch('/Notifications/Delete', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const item = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                    if (item) {
+                        item.remove();
+                        // Check if all notifications are deleted
+                        if (document.querySelectorAll('.notification-item').length === 0) {
+                            location.reload();
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error deleting notification:', error));
+        }
+
+        document.getElementById('markAllReadBtn').addEventListener('click', function() {
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            fetch('/Notifications/MarkAllAsRead', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelectorAll('.notification-item').forEach(item => {
+                        item.classList.remove('unread');
+                        const title = item.querySelector('h6');
+                        if (title) {
+                            title.classList.remove('fw-bold');
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('Error marking all as read:', error));
+        });
+    </script>
+}

@@ -1,0 +1,14 @@
+@using Microsoft.AspNetCore.Http
+
+@{
+    var role = Context.Session.GetString("Role");
+
+    if (role != null && role != "Reader")
+    {
+        Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_ReaderLayout.cshtml";
+    }
+}

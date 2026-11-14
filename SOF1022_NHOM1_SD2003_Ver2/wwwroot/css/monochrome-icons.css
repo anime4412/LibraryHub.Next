@@ -1,0 +1,141 @@
+/* ==========================================================================
+   MONOCHROME ICONS SYSTEM (HỆ THỐNG ICON ĐƠN SẮC TOÀN DIỆN)
+   Áp dụng đồng bộ cho toàn bộ giao diện Thư viện điện tử:
+   - FontAwesome, Bootstrap Icons, SVG
+   - Khử toàn bộ gradient màu sắc, bóng đổ màu mè
+   - Đảm bảo độ sắc nét, tương phản chuẩn và phong cách tối giản thanh lịch
+   ========================================================================== */
+
+/* 1. Tất cả các thẻ biểu tượng FontAwesome, Bootstrap Icons, SVG */
+i,
+i.bi, i[class*="bi-"],
+i.fa, i.fa-solid, i.fa-regular, i.fa-brands, i[class*="fa-"],
+.fa, .fa-solid, .fa-regular, .fa-brands,
+svg.bi, svg.feather, svg {
+    filter: grayscale(100%) !important;
+    color: currentColor !important;
+    fill: currentColor !important;
+}
+
+/* 2. Khử màu trên các class tiện ích màu khi gắn vào icon */
+i[class*="text-"],
+svg[class*="text-"],
+.fa-solid[class*="text-"],
+.fa-regular[class*="text-"],
+.bi[class*="text-"],
+i.text-primary, i.text-success, i.text-danger, i.text-warning, i.text-info, i.text-emerald, i.text-amber, i.text-purple {
+    color: currentColor !important;
+    filter: grayscale(100%) !important;
+}
+
+/* 3. Đối với icon trong thanh điều hướng, bảng, form */
+.navbar i,
+.nav-link i,
+.card-header i,
+.card-title i,
+.input-group-text i,
+.table i,
+.dropdown-item i,
+.modal-header i {
+    color: var(--text-primary, #1e293b) !important;
+    filter: grayscale(100%) !important;
+}
+
+/* Sidebar nền tối: Icon và chữ có độ tương phản sáng cao (#cbd5e1 / #ffffff) */
+.sidebar,
+.sidebar-nav a {
+    color: #cbd5e1 !important;
+}
+
+.sidebar i,
+.sidebar-nav i,
+.sidebar-nav a i,
+.sidebar-logo i {
+    color: inherit !important;
+    filter: grayscale(100%) !important;
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a.active {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.sidebar-nav a:hover i,
+.sidebar-nav a.active i {
+    color: #ffffff !important;
+}
+
+/* 4. Trong nút (Button), Badge, Link kế thừa màu chữ phần tử cha */
+.btn i,
+.badge i,
+a i,
+a:hover i,
+.btn:hover i {
+    color: inherit !important;
+    filter: grayscale(100%) !important;
+}
+
+/* 5. Đơn sắc hóa toàn bộ hộp biểu tượng (Icon Boxes / Cards / Badges) */
+.card-icon,
+.small-card i,
+.popular-icon,
+.favorite-icon,
+.rated-icon,
+.stat-card-icon,
+.info-item-icon,
+.feature-icon,
+.icon-box,
+.icon-circle,
+.logo-icon,
+.auth-form-icon,
+.bg-primary.card-icon,
+.bg-success.card-icon,
+.bg-warning.card-icon,
+.bg-danger.card-icon,
+.bg-info.card-icon {
+    background: #f1f5f9 !important;
+    background-image: none !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    filter: grayscale(100%) !important;
+}
+
+/* Dark mode cho hộp biểu tượng */
+[data-theme="dark"] .card-icon,
+[data-theme="dark"] .small-card i,
+[data-theme="dark"] .popular-icon,
+[data-theme="dark"] .favorite-icon,
+[data-theme="dark"] .rated-icon,
+[data-theme="dark"] .stat-card-icon,
+[data-theme="dark"] .info-item-icon,
+[data-theme="dark"] .feature-icon,
+[data-theme="dark"] .icon-box,
+[data-theme="dark"] .icon-circle,
+[data-theme="dark"] .logo-icon,
+[data-theme="dark"] .auth-form-icon {
+    background: #1e293b !important;
+    background-image: none !important;
+    color: #f8fafc !important;
+    border: 1px solid #334155 !important;
+    box-shadow: none !important;
+    filter: grayscale(100%) !important;
+}
+
+/* 6. Biểu tượng hình ảnh và logo SVG của bên thứ ba */
+img.icon,
+img[src*="/Icons/"],
+img[src*="/icons/"] {
+    filter: grayscale(100%) contrast(120%) !important;
+}
+
+/* 7. Trạng thái active cảm xúc: Trái tim khi đã bấm yêu thích */
+.action-btn[data-action="favorite"].active i,
+.floating-btn[data-action="favorite"].active i,
+.btn-favorite.active i,
+.favorite-btn.active i {
+    filter: none !important;
+    color: #E11D48 !important;
+}
+

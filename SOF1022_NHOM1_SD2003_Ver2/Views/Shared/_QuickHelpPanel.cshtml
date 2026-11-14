@@ -1,0 +1,80 @@
+﻿@using SOF1022_NHOM1_SD2003_Ver2.Models.ViewModels
+@using SOF1022_NHOM1_SD2003_Ver2.Services
+@inject IQuickHelpService QuickHelpService
+
+@{
+    var categories = QuickHelpService.GetCategories();
+}
+
+<div id="quickHelpPanel" class="quick-help-panel">
+    <button id="quickHelpToggle" class="quick-help-toggle" title="Trợ giúp nhanh">
+        <i class="fa-solid fa-circle-question"></i>
+    </button>
+    
+    <div class="quick-help-window" id="quickHelpWindow">
+        <div class="quick-help-header">
+            <h4><i class="fa-solid fa-lightbulb me-2"></i>Trợ giúp nhanh</h4>
+            <button class="quick-help-close" id="quickHelpClose">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="quick-help-body">
+            <div class="quick-help-search">
+                <input type="text" id="quickHelpSearch" placeholder="Tìm kiếm hướng dẫn..." />
+                <i class="fa-solid fa-search"></i>
+            </div>
+            
+            <div class="quick-help-categories" id="quickHelpCategories">
+                @foreach (var category in categories)
+                {
+                    <div class="quick-help-category" data-category="@category.Id">
+                        <div class="quick-help-category-header">
+                            <i class="fa-solid @category.Icon me-2"></i>
+                            <span>@category.Title</span>
+                        </div>
+                        
+                        <div class="quick-help-category-items">
+                            @foreach (var item in category.Items)
+                            {
+                                <div class="quick-help-item">
+                                    <div class="quick-help-question">
+                                        @item.Question
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </div>
+                                    <div class="quick-help-answer">
+                                        @Html.Raw(item.AnswerHtml.Replace("\n", "<br/>"))
+                                        
+                                        @if (!string.IsNullOrEmpty(item.ActionUrl))
+                                        {
+                                            <div class="quick-help-action mt-2">
+                                                <a href="@item.ActionUrl" class="btn btn-sm btn-brand-outline">
+                                                    @(item.ActionLabel ?? "Xem chi tiết")
+                                                    <i class="fa-solid fa-arrow-right ms-1"></i>
+                                                </a>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div class="quick-help-footer">
+            <div class="quick-help-no-results" id="quickHelpNoResults" style="display: none;">
+                <i class="fa-solid fa-search mb-2"></i>
+                <p>Không tìm thấy kết quả phù hợp</p>
+            </div>
+            
+            <div class="quick-help-contact" id="quickHelpContact">
+                <p class="mb-2">Cần giải đáp thông tin nhanh?</p>
+                <button id="quickHelpContactStaff" class="btn btn-sm btn-primary" onclick="const p=document.getElementById('quickHelpClose'); if(p) p.click(); const a=document.getElementById('aiChatToggle'); if(a) a.click();">
+                    <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Hỏi trợ lý AI thư viện
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

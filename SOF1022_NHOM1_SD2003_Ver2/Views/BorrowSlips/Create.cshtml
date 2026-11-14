@@ -1,0 +1,1075 @@
+@model SOF1022_NHOM1_SD2003_Ver2.Models.BorrowSlips
+
+@{
+    ViewData["Title"] = "Tạo phiếu mượn";
+    var books = ViewData["Books"] as List<SOF1022_NHOM1_SD2003_Ver2.Models.Books>;
+    var categories = ViewData["Categories"] as List<SOF1022_NHOM1_SD2003_Ver2.Models.Categories>;
+    var readers = ViewData["Readers"] as List<SOF1022_NHOM1_SD2003_Ver2.Models.Readers>;
+    var preSelectedBookId = ViewData["PreSelectedBookId"];
+    var preSelectedBookTitle = ViewData["PreSelectedBookTitle"] as string;
+    var userRole = ViewData["UserRole"] as string;
+    var isAdmin = userRole == "Admin" || userRole == "Librarian";
+    
+    var realAvailableCounts = ViewData["RealAvailableCounts"] as System.Collections.Generic.Dictionary<int, int> ?? new System.Collections.Generic.Dictionary<int, int>();
+    
+    int GetRealAvailableCount(int bookId, int totalQuantity)
+    {
+        var committed = realAvailableCounts.ContainsKey(bookId) ? realAvailableCounts[bookId] : 0;
+        return System.Math.Max(0, totalQuantity - committed);
+    }
+    
+    // Deserialize failed books from JSON
+    List<SOF1022_NHOM1_SD2003_Ver2.Models.DTOs.BorrowError>? failedBooks = null;
+    if (TempData["FailedBooksJson"] is string failedBooksJson)
+    {
+        try
+        {
+            failedBooks = System.Text.Json.JsonSerializer.Deserialize<List<SOF1022_NHOM1_SD2003_Ver2.Models.DTOs.BorrowError>>(failedBooksJson);
+        }
+        catch
+        {
+            failedBooks = null;
+        }
+    }
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+
+<style>
+    .book-card {
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .book-card .card-img-top {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .book-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+    }
+
+</style>
+
+<div id="borrowApp">
+    <!-- Error/Warning Alerts -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="container mt-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>
+                <strong>@TempData["Error"]</strong>
+                @if (failedBooks != null && failedBooks.Any())
+                {
+                    <div class="mt-3">
+                        <hr class="border-danger">
+                        <h6 class="mb-2"><i class="fa-solid fa-list me-2"></i>Chi tiết lỗi từng sách:</h6>
+                        <ul class="mb-0">
+                            @foreach (var error in failedBooks)
+                            {
+                                <li class="mb-2">
+                                    <strong>@error.BookTitle:</strong>
+                                    <div class="text-danger small">@error.Reason</div>
+                                    <div class="text-muted small"><i class="fa-solid fa-lightbulb me-1"></i>@error.Solution</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+                @if (TempData["UnpaidFineAmount"] != null)
+                {
+                    <div class="mt-3">
+                        <a href="/Fines/MyFines" class="btn btn-sm btn-danger">
+                            <i class="fa-solid fa-money-bill-wave me-1"></i> Xem và thanh toán phạt
+                        </a>
+                    </div>
+                }
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    }
+
+    @if (TempData["Warning"] != null)
+    {
+        <div class="container mt-3">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                <strong>@TempData["Warning"]</strong>
+                @if (failedBooks != null && failedBooks.Any())
+                {
+                    <div class="mt-3">
+                        <hr class="border-warning">
+                        <h6 class="mb-2"><i class="fa-solid fa-list me-2"></i>Sách không thể mượn:</h6>
+                        <ul class="mb-0">
+                            @foreach (var error in failedBooks)
+                            {
+                                <li class="mb-2">
+                                    <strong>@error.BookTitle:</strong>
+                                    <div class="text-warning small">@error.Reason</div>
+                                    <div class="text-muted small"><i class="fa-solid fa-lightbulb me-1"></i>@error.Solution</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="container mt-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i>
+                <strong>@TempData["Success"]</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    }
+    @if (isAdmin)
+    {
+        <div class="container" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+            <style>
+                @@media (max-width: 991px) {
+                    .container {
+                        padding-top: var(--section-gap-sm) !important;
+                        padding-bottom: var(--section-gap-sm) !important;
+                    }
+                }
+            </style>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h2 class="mb-0" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600;">
+                        <i class="fa-solid fa-file-signature text-primary me-2"></i>
+                        Tạo phiếu mượn sách (Quản trị viên)
+                    </h2>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#scanBarcodeModal">
+                        <i class="fa-solid fa-qrcode me-1"></i> Quét Barcode / QR
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <div class="card bg-light border-0 mb-3">
+                                <div class="card-body">
+                                    <h3 class="mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                        <i class="fa-solid fa-user-circle text-primary me-2"></i>
+                                        Chọn độc giả
+                                    </h3>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Tìm kiếm độc giả</label>
+                                        <select id="readerSelect" class="form-select select2" style="width: 100%;">
+                                            <option value="">-- Chọn độc giả --</option>
+                                            @if (readers != null)
+                                            {
+                                                @foreach (var reader in readers)
+                                                {
+                                                    <option value="@reader.Id" data-card="@reader.ReaderCode" data-phone="@reader.Phone">
+                                                        @reader.FullName (@reader.ReaderCode)
+                                                    </option>
+                                                }
+                                            }
+                                        </select>
+                                        <small class="text-muted">Tìm theo tên, số thẻ hoặc số điện thoại</small>
+                                    </div>
+                                    <div id="selectedReaderInfo" class="alert alert-info d-none">
+                                        <strong>Độc giả đã chọn:</strong>
+                                        <span id="selectedReaderName"></span><br>
+                                        <small>Số thẻ: <span id="selectedReaderCard"></span></small><br>
+                                        <small>SĐT: <span id="selectedReaderPhone"></span></small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <h3 class="mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                        <i class="fa-solid fa-calendar-check text-primary me-2"></i>
+                                        Thông tin phiếu
+                                    </h3>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Ngày mượn</label>
+                                        <input type="date"
+                                               name="borrowDate"
+                                               class="form-control"
+                                               value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                                               max="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                        <small class="text-muted">Admin có thể chỉnh sửa ngày mượn (không được chọn ngày tương lai)</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Hạn trả</label>
+                                        <input type="date"
+                                               name="dueDate"
+                                               class="form-control"
+                                               value="@DateTime.Now.AddDays(7).ToString("yyyy-MM-dd")" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Ghi chú</label>
+                                        <textarea name="note"
+                                                  rows="2"
+                                                  class="form-control"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-8">
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <h3 class="mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                        <i class="fa-solid fa-book text-primary me-2"></i>
+                                        Chọn sách
+                                    </h3>
+                                    
+                                    <!-- Search and Filter -->
+                                    <div class="card bg-white border mb-3">
+                                        <div class="card-body">
+                                            <form asp-action="Create" method="get" onsubmit="saveSelectedBooks()">
+                                                <div class="row g-2">
+                                                    <div class="col-md-4">
+                                                        <input type="text" class="form-control" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm tên sách, tác giả, ISBN..." />
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <select class="form-select" name="categoryId">
+                                                            <option value="">Tất cả danh mục</option>
+                                                            @if (categories != null)
+                                                            {
+                                                                @foreach (var cat in categories)
+                                                                {
+                                                                    <option value="@cat.Id" selected="@(ViewBag.CategoryId == cat.Id ? "selected" : null)">@cat.Name</option>
+                                                                }
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <select class="form-select" name="sortOrder">
+                                                            <option value="">Sắp xếp mặc định</option>
+                                                            <option value="new" selected="@(ViewBag.SortOrder == "new" ? "selected" : null)">Mới nhất</option>
+                                                            <option value="name_asc" selected="@(ViewBag.SortOrder == "name_asc" ? "selected" : null)">Tên A-Z</option>
+                                                            <option value="name_desc" selected="@(ViewBag.SortOrder == "name_desc" ? "selected" : null)">Tên Z-A</option>
+                                                            <option value="quantity_desc" selected="@(ViewBag.SortOrder == "quantity_desc" ? "selected" : null)">Số lượng nhiều nhất</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button type="submit" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1">
+                                                            <i class="fa-solid fa-filter"></i> Lọc
+                                                        </button>
+                                                    </div>
+                                                    <input type="hidden" name="selectedBooksData" id="selectedBooksData" />
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Selected Books -->
+                                    <div class="card bg-white border mb-3">
+                                        <div class="card-body">
+                                            <h3 class="mb-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                                <i class="fa-solid fa-list-check text-success me-2"></i>
+                                                Sách đã chọn (<span id="bookCount">0</span>)
+                                            </h3>
+                                            <div id="selectedBooks" class="selected-list" style="max-height: 150px; overflow-y: auto;">
+                                                <span class="text-muted small">Chưa chọn sách.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Book Grid -->
+                                    <div class="row">
+                                        @foreach (var book in books!)
+                                        {
+                                            var realCount = GetRealAvailableCount(book.Id, book.Quantity);
+                                            <div class="col-lg-4 col-md-6 mb-3 book-item">
+                                                <div class="card border h-100 @(realCount == 0 ? "opacity-50" : "") book-card"
+                                                     data-book-id="@book.Id"
+                                                     data-book-title="@book.Title"
+                                                     data-book-author="@(book.Author?.Name ?? "")"
+                                                     data-book-category="@(book.Category?.Name ?? "")"
+                                                     data-book-publisher="@(book.Publisher?.Name ?? "")"
+                                                     data-book-year="@book.PublishYear"
+                                                     data-book-pages="@book.PageCount"
+                                                     data-book-price="@book.Price.ToString("N0") VNĐ"
+                                                     data-book-description="@(book.Description ?? "")"
+                                                     data-book-image="@(book.CoverImage ?? "")"
+                                                     data-book-available="@realCount">
+                                                    <img src="@book.CoverImage" alt="@book.Title" class="card-img-top" style="height: 150px; object-fit: cover;" />
+                                                    <div class="card-body p-2">
+                                                        <h3 class="card-title text-truncate mb-1" title="@book.Title" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@book.Title</h3>
+                                                        <small class="text-muted d-block text-truncate mb-2">
+                                                            <i class="fa-solid fa-pen me-1"></i> @book.Author?.Name
+                                                        </small>
+                                                        @if (realCount > 0)
+                                                        {
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 mb-2">
+                                                                Còn @realCount quyển
+                                                            </span>
+                                                            <button type="button"
+                                                                    class="btn btn-sm btn-outline-primary w-100"
+                                                                    onclick="addBook(@book.Id, '@book.Title.Replace("'", "\\'")')">
+                                                                <i class="fa-solid fa-plus-circle me-1"></i> Chọn
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 mb-2">
+                                                                Hết sách
+                                                            </span>
+                                                            <a href="/Reservations/Create?bookId=@book.Id" class="btn btn-sm btn-warning w-100">
+                                                                <i class="fa-solid fa-calendar-plus me-1"></i> Đặt trước
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button type="button"
+                                                id="submitBtn"
+                                                onclick="submitBorrow()"
+                                                class="btn btn-primary btn-lg w-100 fw-bold"
+                                                disabled>
+                                            <i class="fa-solid fa-cloud-arrow-up me-2"></i> Tạo phiếu mượn
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="borrow-hero">
+            <div class="container text-center" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+                <style>
+                    @@media (max-width: 991px) {
+                        .borrow-hero .container {
+                            padding-top: var(--section-gap-sm) !important;
+                            padding-bottom: var(--section-gap-sm) !important;
+                        }
+                    }
+                </style>
+                <span class="badge bg-success px-4 py-2">
+                    <i class="bi bi-mortarboard-fill me-2"></i> Hệ thống quản lý thư viện
+                </span>
+                <h1 class="display-5 fw-bold mt-4" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 600; margin-bottom: 16px;">
+                    Tạo phiếu mượn sách
+                </h1>
+                <p class="text-secondary">
+                    Chọn các đầu sách muốn mượn từ kho lưu trữ.
+                </p>
+            </div>
+        </div>
+
+        <div class="container" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+            <style>
+                @@media (max-width: 991px) {
+                    .container:nth-of-type(3) {
+                        padding-top: var(--section-gap-sm) !important;
+                        padding-bottom: var(--section-gap-sm) !important;
+                    }
+                }
+            </style>
+            <!-- Borrow Quota Status Card -->
+            @{
+                var currentBorrowCount = ViewBag.CurrentBorrowCount ?? 0;
+                var maxBorrowBooks = ViewBag.MaxBorrowBooks ?? 10;
+                var remainingQuota = maxBorrowBooks - currentBorrowCount;
+                var isNearLimit = remainingQuota <= 2;
+                var isAtLimit = remainingQuota <= 0;
+            }
+            <div class="alert @(isAtLimit ? "alert-danger" : (isNearLimit ? "alert-warning" : "alert-info")) border-0 shadow-sm mb-4" style="background: @(isAtLimit ? "#FEF2F2" : (isNearLimit ? "#FFFBEB" : "#EFF6FF")); border: 1px solid @(isAtLimit ? "#FECACA" : (isNearLimit ? "#FDE68A" : "#BFDBFE")) !important;">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <i class="@(isAtLimit ? "fa-solid fa-circle-exclamation text-danger" : (isNearLimit ? "fa-solid fa-triangle-exclamation text-warning" : "fa-solid fa-chart-pie text-info")) fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="fw-bold mb-2" style="color: var(--text-primary); font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                            <i class="fa-solid fa-chart-simple me-2"></i>Hạn mức mượn: <span class="@(isAtLimit ? "text-danger" : (isNearLimit ? "text-warning" : "text-success"))">@currentBorrowCount / @maxBorrowBooks</span> cuốn sách
+                        </h3>
+                        <p class="mb-0" style="color: var(--text-secondary);">
+                            <i class="fa-solid fa-circle-info me-1"></i>Bạn có thể mượn tối đa @maxBorrowBooks cuốn sách cùng lúc. Khi trả sách, hạn mức sẽ ngay lập tức được giải phóng!
+                        </p>
+                        @if (isAtLimit)
+                        {
+                            <div class="mt-2">
+                                <strong class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Bạn đã đạt giới hạn mượn tối đa. Vui lòng trả bớt sách hoặc hủy phiếu chờ trước khi mượn mới.</strong>
+                            </div>
+                        }
+                        else if (isNearLimit)
+                        {
+                            <div class="mt-2">
+                                <strong class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Bạn chỉ còn mượn được thêm @remainingQuota cuốn sách.</strong>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="glass-card sticky-card">
+                        <h2 class="mb-4" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+                            <i class="bi bi-file-earmark-text-fill text-success me-2"></i> Thông tin phiếu
+                        </h2>
+
+                        <div class="form-scroll-area">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-person-fill me-1 text-secondary"></i> Người mượn
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       value="@ViewData["CurrentUserName"]"
+                                       readonly
+                                       style="background-color: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border-color); cursor: not-allowed;" />
+                                <small class="text-muted">
+                                    Tài khoản đăng nhập hiện tại
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar-event me-1 text-secondary"></i> Hạn trả
+                                </label>
+                                <input type="date"
+                                       name="dueDate"
+                                       class="form-control"
+                                       value="@DateTime.Now.AddDays(7).ToString("yyyy-MM-dd")" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-pencil-square me-1 text-secondary"></i> Ghi chú
+                                </label>
+                                <textarea name="note"
+                                          rows="2"
+                                          class="form-control"></textarea>
+                            </div>
+
+                            <hr class="border-secondary" />
+
+                            <h3 style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                <i class="bi bi-list-check text-success me-2"></i> Sách đã chọn
+                            </h3>
+
+                            <div id="selectedBooks" class="selected-list my-3">
+                                <span class="text-muted small">Chưa chọn sách.</span>
+                            </div>
+                        </div>
+
+                        <div class="card-footer-action pt-3">
+                            <div class="mb-3">
+                                <strong>
+                                    Tổng: <span id="bookCount" class="text-success fs-5 mx-1">0</span> cuốn
+                                </strong>
+                            </div>
+
+                            <button type="button"
+                                    id="submitBtn"
+                                    onclick="submitBorrow()"
+                                    class="btn btn-success w-100 py-3 fw-bold shadow-sm"
+                                    disabled>
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Tạo phiếu mượn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="glass-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="mb-0" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600;">
+                                <i class="bi bi-book-half text-success me-2"></i> Danh mục sách
+                            </h3>
+                            <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#scanBarcodeModal">
+                                <i class="bi bi-qr-code-scan me-1"></i> Quét Barcode / QR sách
+                            </button>
+                        </div>
+                        <!-- Advanced Filter Section -->
+                        <div class="card bg-white border-secondary mb-4" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                            <div class="card-body">
+                                <form asp-action="Create" method="get" onsubmit="saveSelectedBooks()">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-light border-secondary text-secondary">
+                                                    <i class="bi bi-search"></i>
+                                                </span>
+                                                <input type="text" class="form-control bg-white border-secondary text-dark" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm tên sách, tác giả..." />
+                                                <!-- TODO: Keep text-dark here because bg-white is a fixed light background that doesn't change with theme -->
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select bg-white border-secondary text-dark" name="categoryId">
+                                                <!-- TODO: Keep text-dark here because bg-white is a fixed light background that doesn't change with theme -->
+                                                <option value="">Tất cả danh mục</option>
+                                                @if (categories != null)
+                                                {
+                                                    @foreach (var cat in categories)
+                                                    {
+                                                        <option value="@cat.Id" selected="@(ViewBag.CategoryId == cat.Id ? "selected" : null)">@cat.Name</option>
+                                                    }
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select bg-white border-secondary text-dark" name="sortOrder">
+                                                <!-- TODO: Keep text-dark here because bg-white is a fixed light background that doesn't change with theme -->
+                                                <option value="">Sắp xếp mặc định</option>
+                                                <option value="new" selected="@(ViewBag.SortOrder == "new" ? "selected" : null)">Mới nhất</option>
+                                                <option value="name_asc" selected="@(ViewBag.SortOrder == "name_asc" ? "selected" : null)">Tên A-Z</option>
+                                                <option value="name_desc" selected="@(ViewBag.SortOrder == "name_desc" ? "selected" : null)">Tên Z-A</option>
+                                                <option value="quantity_desc" selected="@(ViewBag.SortOrder == "quantity_desc" ? "selected" : null)">Số lượng nhiều nhất</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="submit" class="btn btn-success w-100 fw-bold">
+                                                <i class="bi bi-filter me-2"></i>Lọc
+                                            </button>
+                                        </div>
+                                        <input type="hidden" name="selectedBooksData" id="selectedBooksDataReader" />
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+                            <h2 style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+                                <i class="bi bi-bookshelf text-success me-2"></i> Kho sách thư viện
+                            </h2>
+                        </div>
+
+                        <div class="row">
+                            @foreach (var book in books!)
+                            {
+                                <div class="col-lg-4 col-md-6 mb-4 book-item">
+                                    <div class="book-card @(book.AvailableQuantity == 0 ? "opacity-50" : "")"
+                                         data-book-id="@book.Id"
+                                         data-book-title="@book.Title"
+                                         data-book-author="@(book.Author?.Name ?? "")"
+                                         data-book-category="@(book.Category?.Name ?? "")"
+                                         data-book-publisher="@(book.Publisher?.Name ?? "")"
+                                         data-book-year="@book.PublishYear"
+                                         data-book-pages="@book.PageCount"
+                                         data-book-price="@book.Price.ToString("N0") VNĐ"
+                                         data-book-description="@(book.Description ?? "")"
+                                         data-book-image="@(book.CoverImage ?? "")">
+                                        <img src="@book.CoverImage" alt="@book.Title" />
+                                        <div class="p-3">
+                                            <h3 class="text-truncate" title="@book.Title" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                                @book.Title
+                                            </h3>
+                                            <small class="text-secondary d-block text-truncate">
+                                                <i class="bi bi-pen me-1"></i> @book.Author?.Name
+                                            </small>
+                                            <div class="mt-2">
+                                                @if (book.AvailableQuantity > 0)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                        Còn @book.AvailableQuantity quyển
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                                        Hết sách
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="mt-3">
+                                                @if (book.AvailableQuantity > 0)
+                                                {
+                                                    <button type="button"
+                                                            class="btn btn-outline-success w-100"
+                                                            onclick="addBook(@book.Id, '@book.Title.Replace("'", "\\'")')">
+                                                        <i class="bi bi-plus-circle me-1"></i> Chọn sách
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <a href="/Reservations/Create?bookId=@book.Id" class="btn btn-warning w-100">
+                                                        <i class="bi bi-calendar-plus me-1"></i> Đặt trước
+                                                    </a>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<form id="borrowForm" method="post" asp-action="Create">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="bookIds" id="bookIdsInput" />
+    <input type="hidden" name="readerId" id="readerIdInput" />
+</form>
+
+<style>
+    body {
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .borrow-hero {
+        background: linear-gradient(135deg, var(--bg-card), var(--bg-input));
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .glass-card {
+        background: var(--bg-card);
+        padding: 30px;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+
+    /* Tối ưu hóa khối dính thông minh */
+    .sticky-card {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Vùng chứa form có thể cuộn độc lập nếu danh sách sách quá dài */
+    .form-scroll-area {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    /* Tùy chỉnh thanh cuộn cho vùng form */
+    .form-scroll-area::-webkit-scrollbar {
+        width: 4px;
+    }
+    .form-scroll-area::-webkit-scrollbar-thumb {
+        background: var(--bg-input);
+        border-radius: 4px;
+    }
+
+    .form-control, .form-select {
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .form-control:focus, .form-select:focus {
+        background: var(--bg-input);
+        color: var(--text-primary);
+        border-color: var(--brand-base);
+        box-shadow: 0 0 0 .2rem rgba(34,197,94,.2);
+    }
+
+    .book-card {
+        position: relative;
+        background: var(--bg-input);
+        border-radius: 18px;
+        transition: .3s;
+        height: 100%;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+
+    .book-card:hover {
+        transform: translateY(-8px);
+        border-color: var(--brand-base);
+        box-shadow: 0 10px 25px rgba(34,197,94,.25);
+        z-index: 10;
+    }
+
+    .book-card img {
+        width: 100%;
+        height: 270px;
+        object-fit: cover;
+        border-radius: 18px 18px 0 0;
+    }
+
+    /* Khống chế cứng chiều cao danh sách sách đã chọn */
+    .selected-list {
+        max-height: 180px !important;
+        overflow-y: auto !important;
+        color: var(--text-secondary);
+    }
+
+    .search-box {
+        width: 280px;
+    }
+
+    .bg-success-subtle {
+        background-color: rgba(34, 197, 94, 0.15) !important;
+    }
+
+    /* Đảm bảo thanh cuộn cho danh sách sách đã chọn luôn hiển thị rõ */
+    .selected-list::-webkit-scrollbar {
+        width: 5px !important;
+    }
+
+    .selected-list::-webkit-scrollbar-thumb {
+        background: var(--brand-base) !important;
+        border-radius: 4px;
+    }
+
+    /* Phần footer ghim nút bấm cố định dưới cùng card */
+    .card-footer-action {
+        border-top: 1px solid var(--border-color);
+        background: var(--bg-card);
+    }
+
+    /* Select2 customization for admin mode */
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    let selectedBooks = [];
+    let selectedReaderId = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const preSelectedBookId = @Html.Raw(Json.Serialize(preSelectedBookId));
+        const preSelectedBookTitle = @Html.Raw(Json.Serialize(preSelectedBookTitle));
+        const isAdmin = @Html.Raw(Json.Serialize(isAdmin));
+
+        // Restore selected books from filter submission
+        const savedBooksData = @Html.Raw(Json.Serialize(ViewBag.SelectedBooksData));
+        if (savedBooksData) {
+            try {
+                const parsed = JSON.parse(savedBooksData);
+                if (Array.isArray(parsed)) {
+                    selectedBooks = parsed;
+                    render(); // Render the restored books
+                }
+            } catch (e) {
+                console.error('Error parsing saved books data:', e);
+            }
+        }
+
+        // Initialize Select2 for admin mode
+        if (isAdmin) {
+            $('#readerSelect').select2({
+                placeholder: "Tìm kiếm độc giả...",
+                allowClear: true,
+                width: '100%'
+            });
+
+            $('#readerSelect').on('select2:select', function(e) {
+                const data = e.params.data;
+                selectedReaderId = data.id;
+                const option = $(this).find('option:selected');
+                
+                $('#selectedReaderInfo').removeClass('d-none');
+                $('#selectedReaderName').text(data.text);
+                $('#selectedReaderCard').text(option.data('card'));
+                $('#selectedReaderPhone').text(option.data('phone'));
+            });
+
+            $('#readerSelect').on('select2:unselect', function() {
+                selectedReaderId = null;
+                $('#selectedReaderInfo').addClass('d-none');
+            });
+        }
+
+        if (preSelectedBookId && preSelectedBookTitle) {
+            selectedBooks.push({ id: preSelectedBookId, title: preSelectedBookTitle });
+            render();
+        }
+    });
+
+    function addBook(id, title) {
+        if (selectedBooks.some(x => x.id === id)) return;
+
+        selectedBooks.push({ id, title });
+        render();
+    }
+
+    function removeBook(id) {
+        selectedBooks = selectedBooks.filter(x => x.id !== id);
+        render();
+    }
+
+    function saveSelectedBooks() {
+        const adminInput = document.getElementById("selectedBooksData");
+        const readerInput = document.getElementById("selectedBooksDataReader");
+        
+        const booksJson = JSON.stringify(selectedBooks);
+        
+        if (adminInput) adminInput.value = booksJson;
+        if (readerInput) readerInput.value = booksJson;
+    }
+
+    function render() {
+        let html = "";
+        selectedBooks.forEach(b => {
+            html += `
+                <div class="mb-2 d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--bg-input); border: 1px solid var(--border-color);">
+                    <span class="text-truncate pe-2" style="max-width: 85%;">
+                        <i class="bi bi-book text-success me-2"></i>${b.title}
+                    </span>
+                    <button type="button" class="btn btn-sm text-danger border-0 p-0 bg-transparent" style="box-shadow: none;" onclick="removeBook(${b.id})">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+                </div>`;
+        });
+
+        if (selectedBooks.length === 0) {
+            html = `<span class="text-muted small">Chưa chọn sách.</span>`;
+        }
+
+        document.getElementById("selectedBooks").innerHTML = html;
+        document.getElementById("bookCount").innerText = selectedBooks.length;
+
+        validate();
+        
+        const container = document.getElementById("selectedBooks");
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function validate() {
+        const isAdmin = @Html.Raw(Json.Serialize(isAdmin));
+        const currentBorrowCount = @Html.Raw(Json.Serialize(ViewBag.CurrentBorrowCount ?? 0));
+        const maxBorrowBooks = @Html.Raw(Json.Serialize(ViewBag.MaxBorrowBooks ?? 10));
+        const remainingQuota = maxBorrowBooks - currentBorrowCount;
+        
+        let isValid = selectedBooks.length > 0;
+        
+        if (isAdmin) {
+            isValid = isValid && selectedReaderId !== null;
+        }
+        
+        // Check if user has enough quota
+        if (!isAdmin && selectedBooks.length > remainingQuota) {
+            isValid = false;
+        }
+        
+        document.getElementById("submitBtn").disabled = !isValid;
+    }
+
+    async function submitBorrow() {
+        if (selectedBooks.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn ít nhất một cuốn sách trước khi tạo phiếu!' });
+            return;
+        }
+
+        const isAdmin = @Html.Raw(Json.Serialize(isAdmin));
+        if (isAdmin && !selectedReaderId) {
+            Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn độc giả trước khi tạo phiếu!' });
+            return;
+        }
+
+        const form = document.getElementById("borrowForm");
+        const bookIds = selectedBooks.map(x => x.id);
+        
+        const existingInputs = form.querySelectorAll('input[name="bookIds"]');
+        existingInputs.forEach(input => input.remove());
+        
+        bookIds.forEach(id => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "bookIds";
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        if (isAdmin && selectedReaderId) {
+            const readerInput = document.getElementById("readerIdInput");
+            readerInput.value = selectedReaderId;
+        }
+        
+        form.submit();
+    }
+</script>
+
+<!-- Barcode / QR Scanner Modal -->
+<div class="modal fade" id="scanBarcodeModal" tabindex="-1" aria-labelledby="scanBarcodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="scanBarcodeModalLabel">
+                    <i class="fa-solid fa-qrcode me-2"></i>Quét mã Barcode / QR
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopScanner()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nhập hoặc quét mã qua máy quét barcode (USB):</label>
+                    <div class="input-group">
+                        <input type="text" id="manualScanInput" class="form-control" placeholder="Quét mã ISBN / Mã độc giả / CCCD..." autofocus />
+                        <button type="button" class="btn btn-primary" onclick="lookupScannedCode($('#manualScanInput').val())">
+                            <i class="fa-solid fa-magnifying-glass"></i> Tìm
+                        </button>
+                    </div>
+                    <small class="text-muted">Máy quét laser cầm tay chỉ cần quét vào ô trên và nhấn Enter.</small>
+                </div>
+
+                <div class="d-flex align-items-center my-3">
+                    <hr class="flex-grow-1" />
+                    <span class="px-2 text-muted small">HOẶC SỬ DỤNG CAMERA</span>
+                    <hr class="flex-grow-1" />
+                </div>
+
+                <div class="text-center mb-2">
+                    <button type="button" id="startCameraBtn" class="btn btn-outline-secondary btn-sm" onclick="startCameraScanner()">
+                        <i class="fa-solid fa-camera me-1"></i> Bật Camera quét mã
+                    </button>
+                    <button type="button" id="stopCameraBtn" class="btn btn-outline-danger btn-sm d-none" onclick="stopScanner()">
+                        <i class="fa-solid fa-video-slash me-1"></i> Dừng Camera
+                    </button>
+                </div>
+                <div id="cameraPreview" style="display:none; width: 100%; min-height: 250px; border-radius: 8px; overflow: hidden;" class="border"></div>
+
+                <div id="scanResultArea" class="mt-3 p-3 rounded d-none border"></div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="stopScanner()">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+    let html5QrScanner = null;
+
+    $('#manualScanInput').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            lookupScannedCode($(this).val());
+        }
+    });
+
+    $('#scanBarcodeModal').on('shown.bs.modal', function () {
+        $('#manualScanInput').focus();
+    });
+
+    $('#scanBarcodeModal').on('hidden.bs.modal', function () {
+        stopScanner();
+    });
+
+    function startCameraScanner() {
+        $('#cameraPreview').show();
+        $('#startCameraBtn').addClass('d-none');
+        $('#stopCameraBtn').removeClass('d-none');
+        
+        if (!html5QrScanner) {
+            html5QrScanner = new Html5Qrcode("cameraPreview");
+        }
+        
+        html5QrScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            (decodedText) => {
+                lookupScannedCode(decodedText);
+            },
+            (errorMessage) => {}
+        ).catch(err => {
+            console.warn("Camera start error: ", err);
+            $('#cameraPreview').html('<div class="alert alert-warning m-2 p-2 small">Không thể mở camera. Vui lòng kiểm tra quyền hoặc dùng máy quét USB/nhập mã.</div>');
+        });
+    }
+
+    function stopScanner() {
+        if (html5QrScanner && html5QrScanner.isScanning) {
+            html5QrScanner.stop().then(() => {
+                $('#cameraPreview').hide();
+                $('#startCameraBtn').removeClass('d-none');
+                $('#stopCameraBtn').addClass('d-none');
+            }).catch(err => console.error(err));
+        } else {
+            $('#cameraPreview').hide();
+            $('#startCameraBtn').removeClass('d-none');
+            $('#stopCameraBtn').addClass('d-none');
+        }
+    }
+
+    async function lookupScannedCode(code) {
+        if (!code || !code.trim()) return;
+        code = code.trim();
+        
+        const resultArea = $('#scanResultArea');
+        resultArea.removeClass('d-none alert-success alert-danger alert-info alert-warning').addClass('alert alert-info').html('<i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tra cứu: ' + code);
+
+        try {
+            const response = await fetch(`/api/BorrowSlipsApi/scan-lookup?code=${encodeURIComponent(code)}`);
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                resultArea.removeClass('alert-info').addClass('alert alert-danger').html(`<i class="fa-solid fa-circle-exclamation me-2"></i> ${data.message || 'Không tìm thấy kết quả!'}`);
+                return;
+            }
+
+            if (data.type === 'book') {
+                if (data.available <= 0) {
+                    resultArea.removeClass('alert-info').addClass('alert alert-warning').html(`
+                        <strong>${data.title}</strong><br>
+                        <small>Tác giả: ${data.author} | ISBN: ${data.isbn || 'N/A'}</small><br>
+                        <span class="badge bg-danger mt-2">Hết sách khả dụng (0/${data.total})</span>
+                    `);
+                } else {
+                    addBook(data.id, data.title);
+                    resultArea.removeClass('alert-info').addClass('alert alert-success').html(`
+                        <div class="d-flex align-items-center">
+                            <i class="fa-solid fa-check-circle fa-2x text-success me-3"></i>
+                            <div>
+                                <strong>Đã thêm vào phiếu:</strong> ${data.title}<br>
+                                <small class="text-muted">ISBN: ${data.isbn || 'N/A'} | Còn: ${data.available} cuốn</small>
+                            </div>
+                        </div>
+                    `);
+                    $('#manualScanInput').val('').focus();
+                }
+            } else if (data.type === 'reader') {
+                const isAdmin = @Html.Raw(Json.Serialize(isAdmin));
+                if (isAdmin) {
+                    $('#readerSelect').val(data.id).trigger('change');
+                    selectedReaderId = data.id;
+                    $('#selectedReaderInfo').removeClass('d-none');
+                    $('#selectedReaderName').text(`${data.name} (${data.code})`);
+                    $('#selectedReaderCard').text(data.code);
+                    $('#selectedReaderPhone').text(data.phone);
+                    
+                    resultArea.removeClass('alert-info').addClass('alert alert-success').html(`
+                        <div class="d-flex align-items-center">
+                            <i class="fa-solid fa-user-check fa-2x text-success me-3"></i>
+                            <div>
+                                <strong>Đã chọn độc giả:</strong> ${data.name} (${data.code})<br>
+                                <small class="text-muted">SĐT: ${data.phone}</small>
+                            </div>
+                        </div>
+                    `);
+                    $('#manualScanInput').val('').focus();
+                } else {
+                    resultArea.removeClass('alert-info').addClass('alert alert-info').text('Đã nhận diện độc giả: ' + data.name);
+                }
+            }
+        } catch (err) {
+            resultArea.removeClass('alert-info').addClass('alert alert-danger').html('<i class="fa-solid fa-triangle-exclamation me-2"></i> Lỗi kết nối khi quét mã!');
+        }
+    }
+</script>

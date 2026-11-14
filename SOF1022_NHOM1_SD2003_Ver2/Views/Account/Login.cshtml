@@ -1,0 +1,671 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Đăng nhập";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Đăng nhập - Thư viện điện tử</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/account.css?v=@DateTime.UtcNow.Ticks" rel="stylesheet" />
+
+    <style>
+        :root {
+            --auth-brand: #E0A527;
+            --auth-brand-hover: #C68F1E;
+            --auth-brand-ink: #2A1E06;
+            --auth-dark: #0F172A;
+            --auth-border: #CBD5E1;
+            --auth-input-bg: #FFFFFF;
+        }
+
+        body.auth-page {
+            min-height: 100vh;
+            background: radial-gradient(circle at 50% 10%, #FFFFFF 0%, #F5F2EA 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 16px;
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #1E293B;
+            box-sizing: border-box;
+        }
+
+        .auth-split-wrapper {
+            width: 100%;
+            max-width: 980px;
+            margin: 0 auto;
+            background: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+            border: 1px solid #E2E8F0;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1.18fr;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* Left Visual Brand Side */
+        .auth-side {
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #162438 100%) !important;
+            color: #FFFFFF !important;
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .auth-side-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .auth-side-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(224, 165, 39, 0.18);
+            border: 1.5px solid var(--auth-brand);
+            color: var(--auth-brand);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        .auth-side-brand-name {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #FFFFFF;
+        }
+
+        .auth-quote-wrapper {
+            margin: 40px 0;
+        }
+
+        .auth-quote-mark {
+            font-size: 42px;
+            color: var(--auth-brand);
+            line-height: 1;
+            margin-bottom: 8px;
+            opacity: 0.85;
+            font-family: 'Lora', Georgia, serif;
+        }
+
+        .auth-quote {
+            font-family: 'Lora', Georgia, serif;
+            font-size: 23px;
+            line-height: 1.45;
+            font-weight: 600;
+            color: #F8FAFC;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        .auth-quote-author {
+            font-size: 13.5px;
+            color: #94A3B8;
+            margin-top: 12px;
+            font-weight: 500;
+        }
+
+        /* VIP Card Strip */
+        .auth-library-card-strip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 18px 22px;
+            backdrop-filter: blur(10px);
+        }
+
+        .auth-card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--auth-brand);
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .auth-barcode {
+            display: flex;
+            gap: 3.5px;
+            margin-top: 10px;
+        }
+
+        .auth-barcode span {
+            width: 2px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 1px;
+        }
+
+        .auth-barcode span:nth-child(2n) {
+            background: rgba(255, 255, 255, 0.35);
+            width: 1px;
+        }
+
+        .auth-barcode span:nth-child(3n) {
+            width: 3.5px;
+            background: var(--auth-brand);
+        }
+
+        /* Right Form Side */
+        .auth-form-side {
+            background: #FFFFFF;
+            padding: 44px 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-form-header {
+            margin-bottom: 22px;
+        }
+
+        .auth-form-header h2 {
+            font-family: 'Lora', Georgia, serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: #0F172A;
+            margin: 0 0 6px;
+            letter-spacing: -0.01em;
+        }
+
+        .auth-form-header p {
+            font-size: 14px;
+            color: #64748B;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Demo Account Chips */
+        .demo-accounts-box {
+            background: #F8FAFC;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 22px;
+        }
+
+        .demo-chip-btn {
+            border: 1.5px solid #CBD5E1;
+            background: #FFFFFF;
+            color: #334155;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .demo-chip-btn:hover {
+            border-color: var(--auth-brand);
+            color: var(--auth-brand-ink);
+            background: #FFFDF7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Form Controls */
+        .form-label {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .input-group {
+            display: flex !important;
+            align-items: stretch !important;
+            width: 100% !important;
+        }
+
+        .input-group > .input-group-text:first-child {
+            background: #F1F5F9 !important;
+            border: 1.5px solid #CBD5E1 !important;
+            border-right: none !important;
+            color: #64748B !important;
+            border-top-left-radius: 10px !important;
+            border-bottom-left-radius: 10px !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            padding: 0 14px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+        }
+
+        .form-control {
+            height: 48px !important;
+            border-radius: 10px !important;
+            border: 1.5px solid #CBD5E1 !important;
+            background-color: #FFFFFF !important;
+            color: #0F172A !important;
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+            box-shadow: none !important;
+            transition: all 0.2s ease;
+        }
+
+        .input-group > .form-control:not(:first-child):not(:last-child) {
+            border-radius: 0 !important;
+            border: 1.5px solid #CBD5E1 !important;
+            border-left: none !important;
+            border-right: none !important;
+        }
+
+        .input-group > .form-control:not(:first-child):last-child {
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+            border-top-right-radius: 10px !important;
+            border-bottom-right-radius: 10px !important;
+            border: 1.5px solid #CBD5E1 !important;
+            border-left: none !important;
+        }
+
+        .form-control:focus {
+            outline: none !important;
+            border-color: var(--auth-brand) !important;
+            box-shadow: 0 0 0 3.5px rgba(224, 165, 39, 0.2) !important;
+        }
+
+        .input-group:focus-within .input-group-text {
+            border-color: var(--auth-brand) !important;
+            color: var(--auth-brand) !important;
+        }
+
+        .input-group > .btn-toggle-eye:last-child {
+            background: #F1F5F9 !important;
+            border: 1.5px solid #CBD5E1 !important;
+            border-left: none !important;
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+            border-top-right-radius: 10px !important;
+            border-bottom-right-radius: 10px !important;
+            color: #64748B !important;
+            padding: 0 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+            box-shadow: none !important;
+        }
+
+        .input-group > .btn-toggle-eye:last-child:hover {
+            color: #0F172A !important;
+            background: #E2E8F0 !important;
+        }
+
+        .btn-auth {
+            background: linear-gradient(135deg, #E0A527 0%, #D49015 100%) !important;
+            border: none !important;
+            color: #1E1702 !important;
+            font-weight: 700 !important;
+            font-size: 15.5px !important;
+            border-radius: 50px !important;
+            padding: 13px 24px !important;
+            box-shadow: 0 10px 25px rgba(224, 165, 39, 0.35) !important;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn-auth:hover {
+            background: linear-gradient(135deg, #ECC047 0%, #DFA01E 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(224, 165, 39, 0.45) !important;
+        }
+
+        .form-check-input {
+            width: 18px;
+            height: 18px;
+            border: 1.5px solid #CBD5E1 !important;
+            margin-top: 2px;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--auth-brand) !important;
+            border-color: var(--auth-brand) !important;
+        }
+
+        /* Social buttons */
+        .auth-provider-btn {
+            height: 44px;
+            border-radius: 12px;
+            border: 1.5px solid #CBD5E1 !important;
+            background: #FFFFFF;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .auth-provider-btn:hover {
+            border-color: var(--auth-brand) !important;
+            background: #F8FAFC;
+            color: #0F172A;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .auth-provider-btn.btn-fb {
+            background: #1877F2;
+            color: #FFFFFF;
+            border: none !important;
+        }
+
+        .auth-provider-btn.btn-fb:hover {
+            background: #166FE5;
+            color: #FFFFFF;
+        }
+
+        .auth-footer-links {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #64748B;
+        }
+
+        .auth-footer-links a {
+            color: var(--auth-brand);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .auth-home-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #64748B;
+            text-decoration: none;
+            margin-top: 14px;
+            transition: color 0.2s;
+        }
+
+        .auth-home-link:hover {
+            color: #0F172A;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @@media (max-width: 900px) {
+            .auth-split-wrapper {
+                grid-template-columns: 1fr;
+                max-width: 520px;
+            }
+            .auth-side {
+                padding: 32px 24px;
+            }
+            .auth-form-side {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+<body class="auth-page">
+
+    <div class="auth-split-wrapper">
+        <!-- Left Visual Side -->
+        <div class="auth-side">
+            <div>
+                <div class="auth-side-brand">
+                    <div class="auth-side-badge">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <span class="auth-side-brand-name">VERITAS • THƯ VIỆN ĐIỆN TỬ</span>
+                </div>
+
+                <div class="auth-quote-wrapper">
+                    <div class="auth-quote-mark">“</div>
+                    <p class="auth-quote">Một cuốn sách là một giấc mơ mà bạn cầm trong tay.</p>
+                    <div class="auth-quote-author">- Neil Gaiman</div>
+                </div>
+            </div>
+
+            <!-- Golden Library Card Strip -->
+            <div class="auth-library-card-strip">
+                <div class="auth-card-top-row">
+                    <span><i class="fa-solid fa-id-card me-1"></i> THẺ ĐỘC GIẢ ĐIỆN TỬ</span>
+                    <span>№ 000482</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center text-white-50 small">
+                    <span>Hệ thống quản lý mượn trả trực tuyến</span>
+                    <span class="badge bg-warning text-dark fw-bold px-2 py-0">VIP ACCESS</span>
+                </div>
+                <div class="auth-barcode">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Form Side -->
+        <div class="auth-form-side">
+            <div class="auth-form-header">
+                <h2>Chào mừng trở lại! 👋</h2>
+                <p>Vui lòng đăng nhập để mượn sách và đọc trực tuyến</p>
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success border-0 shadow-sm d-flex align-items-center gap-2 mb-3">
+                    <i class="fa-solid fa-circle-check fs-5"></i>
+                    <div>@TempData["Success"]</div>
+                </div>
+            }
+
+            @if (TempData["EmailNotConfirmed"] != null)
+            {
+                <div class="alert alert-warning border-0 shadow-sm mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-triangle-exclamation text-warning fs-5"></i>
+                        <strong>Tài khoản chưa được xác nhận email.</strong>
+                    </div>
+                    <form asp-action="ResendConfirmationEmail" asp-controller="Account" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="email" value="@TempData["EmailNotConfirmed"]" />
+                        <button type="submit" class="btn btn-sm btn-warning fw-semibold px-3 rounded-pill">
+                            <i class="fa-solid fa-paper-plane me-1"></i> Gửi lại email xác nhận
+                        </button>
+                    </form>
+                </div>
+            }
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div asp-validation-summary="All" class="alert alert-danger border-0 shadow-sm mb-3"></div>
+            }
+
+            <form asp-action="Login" asp-controller="Account" method="post">
+                @Html.AntiForgeryToken()
+
+                <!-- Demo Account Chips -->
+                <div class="demo-accounts-box">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <small class="text-secondary fw-semibold">
+                            <i class="fa-solid fa-wand-magic-sparkles text-warning me-1"></i> Bấm chọn tài khoản mẫu để tự động điền:
+                        </small>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="demo-chip-btn" onclick="fillAccount('admin@library.com', 'Admin@123', 'Quản trị viên (Admin)')" title="Email: admin@library.com | Mật khẩu: Admin@123">
+                            <i class="fa-solid fa-user-shield text-danger"></i> Admin
+                        </button>
+                        <button type="button" class="demo-chip-btn" onclick="fillAccount('quanly@library.com', 'Quanly@123', 'Quản lý (Manager)')" title="Email: quanly@library.com | Mật khẩu: Quanly@123">
+                            <i class="fa-solid fa-user-tie text-info"></i> Quản lý
+                        </button>
+                        <button type="button" class="demo-chip-btn" onclick="fillAccount('thuthu@library.com', 'Thuthu@123', 'Thủ thư (Librarian)')" title="Email: thuthu@library.com | Mật khẩu: Thuthu@123">
+                            <i class="fa-solid fa-book-bookmark text-success"></i> Thủ thư
+                        </button>
+                        <button type="button" class="demo-chip-btn" onclick="fillAccount('kho@library.com', 'Kho@123', 'Thủ kho (Warehouse)')" title="Email: kho@library.com | Mật khẩu: Kho@123">
+                            <i class="fa-solid fa-warehouse text-warning"></i> Thủ kho
+                        </button>
+                        <button type="button" class="demo-chip-btn" onclick="fillAccount('cskh@library.com', 'Cskh@123', 'CSKH (Support)')" title="Email: cskh@library.com | Mật khẩu: Cskh@123">
+                            <i class="fa-solid fa-headset text-secondary"></i> CSKH
+                        </button>
+                        <button type="button" class="demo-chip-btn" onclick="fillAccount('reader@library.com', 'Reader@123', 'Độc giả (Reader)')" title="Email: reader@library.com | Mật khẩu: Reader@123">
+                            <i class="fa-solid fa-user text-primary"></i> Độc giả
+                        </button>
+                    </div>
+                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <small class="text-muted" style="font-size: 11.5px;" id="accountHint">
+                            <i class="fa-solid fa-circle-info me-1 text-primary"></i>Mật khẩu chung mọi vai trò: <code>[TênRole]@@123</code> (ví dụ: <code>Admin@@123</code>, <code>Thuthu@@123</code>) hoặc <code>123456</code>.
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Email / Account ID -->
+                <div class="mb-3">
+                    <label class="form-label">Tài khoản / Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-regular fa-envelope"></i></span>
+                        <input type="text" id="loginIdentifier" name="email" class="form-control" placeholder="Email, mã nhân viên/độc giả hoặc vai trò" required autofocus />
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Nhập mật khẩu" required />
+                        <button type="button" class="btn-toggle-eye" onclick="togglePassword()" title="Hiện/ẩn mật khẩu">
+                            <i class="fa-regular fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" name="rememberMe" id="rememberMe" />
+                        <label class="form-check-label text-secondary small" for="rememberMe">Ghi nhớ đăng nhập</label>
+                    </div>
+                    <a asp-action="ForgotPassword" asp-controller="Account" class="text-decoration-none small text-warning fw-semibold">
+                        Quên mật khẩu?
+                    </a>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-auth w-100 shadow mb-3">
+                    <span>Đăng nhập ngay</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <!-- Social Divider -->
+            <div class="d-flex align-items-center my-2">
+                <hr class="flex-grow-1 m-0 text-muted opacity-25" />
+                <span class="mx-3 text-muted small fw-medium">hoặc đăng nhập bằng</span>
+                <hr class="flex-grow-1 m-0 text-muted opacity-25" />
+            </div>
+
+            <!-- Social Login Buttons -->
+            <div class="row g-2 mt-2">
+                <div class="col-sm-6">
+                    <a asp-action="GoogleLogin" asp-controller="Account" class="auth-provider-btn">
+                        <svg width="18" height="18" viewBox="0 0 48 48">
+                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                        </svg>
+                        <span>Google</span>
+                    </a>
+                </div>
+                <div class="col-sm-6">
+                    <a asp-action="FacebookLogin" asp-controller="Account" class="auth-provider-btn btn-fb">
+                        <i class="fa-brands fa-facebook-f fs-6"></i>
+                        <span>Facebook</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer Links -->
+            <div class="auth-footer-links">
+                Chưa có tài khoản độc giả? <a asp-action="Register" asp-controller="Account">Đăng ký ngay</a>
+                <br />
+                <a asp-controller="Home" asp-action="Index" class="auth-home-link">
+                    <i class="fa-solid fa-arrow-left"></i> Quay về trang chủ
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword() {
+            const password = document.getElementById("password");
+            const icon = document.getElementById("eyeIcon");
+            if (password.type === "password") {
+                password.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                password.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
+
+        function fillAccount(email, pwd, roleName) {
+            const idInput = document.getElementById("loginIdentifier");
+            const pwdInput = document.getElementById("password");
+            const hint = document.getElementById("accountHint");
+            if (idInput) {
+                idInput.value = email;
+                idInput.style.borderColor = "#E0A527";
+                idInput.focus();
+            }
+            if (pwdInput) {
+                pwdInput.value = pwd;
+                pwdInput.style.borderColor = "#E0A527";
+            }
+            if (hint && roleName) {
+                hint.innerHTML = `<i class="fa-solid fa-circle-check me-1 text-success"></i>Đã chọn <strong>${roleName}</strong> (${email}). Bấm <strong>Đăng nhập ngay</strong> để vào hệ thống.`;
+            }
+        }
+    </script>
+</body>
+</html>

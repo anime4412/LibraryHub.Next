@@ -1,0 +1,26 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.Readers
+
+@{
+    string avatarUrl = "";
+    string displayName = Model?.FullName ?? "User";
+    
+    if (Model != null && !string.IsNullOrEmpty(Model.Avatar))
+    {
+        avatarUrl = Model.Avatar;
+    }
+    else
+    {
+        // Generate avatar URL from FullName if no custom avatar
+        System.Text.StringBuilder avatarUrlBuilder = new();
+        avatarUrlBuilder.Append("https://ui-avatars.com/api/?name=");
+        avatarUrlBuilder.Append(System.Web.HttpUtility.UrlEncode(displayName));
+        avatarUrlBuilder.Append("&background=E0A527&color=fff&size=200");
+        avatarUrl = avatarUrlBuilder.ToString();
+    }
+}
+
+<img class="user-avatar-img rounded-circle" 
+     src="@avatarUrl" 
+     alt="@displayName" 
+     onerror="this.src='https://ui-avatars.com/api/?name=@System.Web.HttpUtility.UrlEncode(displayName)&background=E0A527&color=fff&size=200'" 
+     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />

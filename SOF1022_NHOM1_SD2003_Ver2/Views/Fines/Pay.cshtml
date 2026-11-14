@@ -1,0 +1,58 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.Fines
+
+@{
+    ViewData["Title"] = "Thanh toán tiền phạt";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;"><i class="fa-solid fa-cash-register me-2"></i>Xác nhận thanh toán tiền phạt</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fa-solid fa-info-circle me-2"></i>
+                        Vui lòng kiểm tra thông tin khoản phạt trước khi xác nhận thanh toán.
+                    </div>
+
+                    <dl class="row">
+                        <dt class="col-sm-4">Mã phạt:</dt>
+                        <dd class="col-sm-8">#@Model.Id</dd>
+
+                        <dt class="col-sm-4">Mã phiếu mượn:</dt>
+                        <dd class="col-sm-8">@(Model.BorrowSlips?.BorrowCode ?? "N/A")</dd>
+
+                        <dt class="col-sm-4">Độc giả:</dt>
+                        <dd class="col-sm-8">@(Model.BorrowSlips?.Readers?.FullName ?? "N/A")</dd>
+
+                        <dt class="col-sm-4">Sách:</dt>
+                        <dd class="col-sm-8">@(Model.Books?.Title ?? "N/A")</dd>
+
+                        <dt class="col-sm-4">Lý do:</dt>
+                        <dd class="col-sm-8">@(Model.Reason ?? "N/A")</dd>
+
+                        <dt class="col-sm-4">Ngày lập:</dt>
+                        <dd class="col-sm-8">@Model.CreatedDate.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                        <dt class="col-sm-4">Số tiền:</dt>
+                        <dd class="col-sm-8 fw-bold text-danger fs-5">@Model.Amount.ToString("N0") VNĐ</dd>
+                    </dl>
+
+                    <form asp-action="Pay" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-check me-2"></i>Xác nhận thanh toán
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

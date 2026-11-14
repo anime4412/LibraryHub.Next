@@ -1,0 +1,883 @@
+@model SOF1022_NHOM1_SD2003_Ver2.Models.ViewModels.HomeViewModel
+
+@{
+    ViewData["Title"] = "Thư viện điện tử";
+    Layout = "_ReaderLayout";
+    
+    var realAvailableCounts = ViewData["RealAvailableCounts"] as System.Collections.Generic.Dictionary<int, int> ?? new System.Collections.Generic.Dictionary<int, int>();
+    
+    int GetRealAvailableCount(int bookId, int totalQuantity)
+    {
+        var committed = realAvailableCounts.ContainsKey(bookId) ? realAvailableCounts[bookId] : 0;
+        return System.Math.Max(0, totalQuantity - committed);
+    }
+}
+
+<!-- Google Fonts: Geist & Newsreader -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300..500;1,6..72,300..500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="~/css/home-enhanced.css" asp-append-version="true" />
+
+<!-- Kệ Sách Tinh Hoa 3D Curved Shelf Section -->
+<section class="curved-vhs-archive-section" aria-label="Kệ Sách Tinh Hoa 3D">
+    <partial name="_VhsCurvedArchive" />
+</section>
+
+<!-- Library Highlights & Live Stats Strip (Taste-Soft Double-Bezel) -->
+<section class="library-stats-section py-5">
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+            <div class="col-6 col-lg-3">
+                <div class="double-bezel h-100">
+                    <div class="double-bezel-core stat-highlight-card">
+                        <div class="stat-highlight-icon bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-book-bookmark"></i>
+                        </div>
+                        <div class="stat-highlight-text">
+                            <div class="stat-highlight-number">@(Model.TotalBooks > 0 ? Model.TotalBooks.ToString("N0") : "5.200")<span class="stat-plus">+</span></div>
+                            <div class="stat-highlight-label">Đầu sách lưu trữ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="double-bezel h-100">
+                    <div class="double-bezel-core stat-highlight-card">
+                        <div class="stat-highlight-icon bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="stat-highlight-text">
+                            <div class="stat-highlight-number">@(Model.TotalReaders > 0 ? Model.TotalReaders.ToString("N0") : "1.450")<span class="stat-plus">+</span></div>
+                            <div class="stat-highlight-label">Độc giả tin dùng</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="double-bezel h-100">
+                    <div class="double-bezel-core stat-highlight-card">
+                        <div class="stat-highlight-icon bg-success-subtle text-success">
+                            <i class="fa-solid fa-hand-holding-heart"></i>
+                        </div>
+                        <div class="stat-highlight-text">
+                            <div class="stat-highlight-number">@(Model.TotalBorrow > 0 ? Model.TotalBorrow.ToString("N0") : "4.800")<span class="stat-plus">+</span></div>
+                            <div class="stat-highlight-label">Lượt mượn phục vụ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="double-bezel h-100">
+                    <div class="double-bezel-core stat-highlight-card">
+                        <div class="stat-highlight-icon bg-danger-subtle text-danger">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div class="stat-highlight-text">
+                            <div class="stat-highlight-number">24/7</div>
+                            <div class="stat-highlight-label">Đọc online miễn phí</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Categories Bento Grid (Taste-Soft Double-Bezel Architecture) -->
+@if (Model.Categories != null && Model.Categories.Any())
+{
+    <section class="categories-bento-section py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
+                <div>
+                    <div class="eyebrow-pill mb-2">
+                        <i class="fa-solid fa-compass"></i> KHÁM PHÁ THỂ LOẠI
+                    </div>
+                    <h2 class="display-6 fw-bold mb-1 text-heading" style="letter-spacing: -0.025em;">Vũ trụ Tri thức theo Thể loại</h2>
+                    <p class="text-secondary mb-0">Tìm kiếm nhanh những tác phẩm phù hợp nhất với sở thích và nhu cầu đọc của bạn</p>
+                </div>
+                <a asp-controller="Books" asp-action="Index" class="btn-taste-cta">
+                    <span>Xem tất cả thể loại</span>
+                    <span class="btn-taste-circle"><i class="fa-solid fa-arrow-right"></i></span>
+                </a>
+            </div>
+
+            <div class="row g-3 justify-content-center">
+                @foreach (var cat in Model.Categories)
+                {
+                    var catIcon = (cat.Name ?? "").ToLower() switch
+                    {
+                        var n when n.Contains("văn học") => "fa-feather-pointed",
+                        var n when n.Contains("kỹ năng") || n.Contains("sống") => "fa-lightbulb",
+                        var n when n.Contains("kinh tế") || n.Contains("kinh doanh") => "fa-chart-line",
+                        var n when n.Contains("thiếu nhi") => "fa-child-reaching",
+                        var n when n.Contains("triết") => "fa-brain",
+                        var n when n.Contains("khoa học") || n.Contains("công nghệ") => "fa-atom",
+                        var n when n.Contains("lịch sử") => "fa-landmark",
+                        var n when n.Contains("ngoại ngữ") => "fa-language",
+                        _ => "fa-book"
+                    };
+
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="double-bezel h-100">
+                            <a asp-controller="Books" asp-action="Index" asp-route-categoryId="@cat.Id" class="double-bezel-core category-bento-card text-decoration-none d-flex flex-column justify-content-between p-4">
+                                <div class="mb-3">
+                                    <div class="category-bento-badge" title="Khám phá @cat.Name">
+                                        <i class="fa-solid @catIcon category-icon-main"></i>
+                                        <span class="category-icon-arrow">
+                                            <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <line x1="3" y1="11" x2="11" y2="3"></line>
+                                                <polyline points="4 3 11 3 11 10"></polyline>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="category-bento-content">
+                                    <h5 class="category-bento-title text-truncate fw-bold mb-1" style="font-family: var(--sans);">@cat.Name</h5>
+                                    <span class="category-bento-count text-muted small">
+                                        <i class="fa-solid fa-book-open me-1"></i> @(cat.Books?.Count ?? 0) cuốn sách
+                                    </span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<section id="newBooks" class="books-section" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+        <style>
+            @@media (max-width: 991px) {
+                .books-section {
+                    padding-top: var(--section-gap-sm) !important;
+                    padding-bottom: var(--section-gap-sm) !important;
+                }
+            }
+        </style>
+    <div class="container">
+        <div class="section-title text-center mb-5">
+            <span class="badge px-3 py-2 rounded-pill" style="background-color: var(--brand-base); color: var(--brand-ink);">Cập nhật</span>
+            <h2 class="display-5 fw-bold mt-3" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">Sách mới nhất</h2>
+            <p class="text-secondary" style="font-family: var(--font-sans); font-size: var(--text-lg); font-weight: 400;">Những đầu sách vừa được cập nhật gần đây</p>
+        </div>
+        <div class="row g-4 justify-content-center book-grid-row">
+            @foreach (var item in Model.NewBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a asp-controller="Books" asp-action="Details" asp-route-id="@item.Id" class="book-card card-elevated h-100 text-decoration-none text-reset d-flex flex-column" style="cursor: pointer;">
+                        <div class="book-image">
+                            <img src="@item.CoverImage" onerror="this.src='/images/no-book.png'">
+                            <span class="badge new-badge" style="background-color: var(--brand-base); color: var(--brand-ink);">NEW</span>
+                        </div>
+                        <div class="book-content d-flex flex-column justify-content-between flex-grow-1">
+                            <div>
+                                <h3 class="text-heading" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@item.Title</h3>
+                                <p class="text-subtle mb-1"><i class="fa-regular fa-user me-2 small"></i>@item.Author?.Name</p>
+                                <small class="text-muted"><i class="fa-regular fa-folder me-2 small"></i>@item.Category?.Name</small>
+                            </div>
+
+                            <div class="mt-3">
+                                @{
+                                    var realCount1 = GetRealAvailableCount(item.Id, item.Quantity);
+                                }
+                                <span class="badge @(realCount1 > 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") small fw-semibold">
+                                    <i class="fa-solid fa-boxes-stacked me-1"></i> @(realCount1 > 0 ? $"Còn {realCount1} quyển" : "Hết sách")
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Literary Inspiration Quote Banner -->
+<section class="inspiration-quote-section py-4 my-2">
+    <div class="container">
+        <div class="inspiration-quote-card">
+            <div class="quote-watermark-icon">
+                <i class="fa-solid fa-quote-right"></i>
+            </div>
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 d-inline-block">
+                        <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Cảm hứng đọc sách hôm nay
+                    </span>
+                    <blockquote class="inspiration-quote-text">
+                        "Việc đọc tất cả những cuốn sách hay cũng giống như một cuộc trò chuyện với những bộ óc tuyệt vời nhất của những thế kỷ đã qua."
+                    </blockquote>
+                    <cite class="inspiration-quote-author">
+                        - René Descartes <span class="text-white-50 fw-normal">(Triết gia, Nhà toán học thời Khai sáng)</span>
+                    </cite>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-flex flex-column gap-2 justify-content-lg-end">
+                        <a asp-controller="Books" asp-action="Random" class="btn btn-warning btn-lg fw-bold rounded-pill px-4 text-dark shadow-sm">
+                            <i class="fa-solid fa-dice me-2"></i> Khám phá ngẫu nhiên
+                        </a>
+                        <a asp-controller="Books" asp-action="Index" class="btn btn-outline-light btn-lg fw-bold rounded-pill px-4">
+                            <i class="fa-solid fa-magnifying-glass me-2"></i> Tra cứu toàn bộ kho
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="books-section" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+    <div class="container">
+        <div class="section-title text-center mb-5">
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill">Phổ biến</span>
+            <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+            <h2 class="display-5 fw-bold mt-3" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">Sách hot</h2>
+            <p class="text-secondary" style="font-family: var(--font-sans); font-size: var(--text-lg); font-weight: 400;">Những cuốn sách được mượn nhiều nhất</p>
+        </div>
+        <div class="row g-4 justify-content-center book-grid-row">
+            @foreach (var item in Model.HotBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a asp-controller="Books" asp-action="Details" asp-route-id="@item.Id" class="book-card popular-card h-100 text-decoration-none text-reset d-flex flex-column" style="cursor: pointer;">
+                        <div class="book-image">
+                            <img src="@item.CoverImage" onerror="this.src='/images/no-book.png'">
+                            <div class="popular-icon"><i class="fa-solid fa-fire"></i></div>
+                        </div>
+                        <div class="book-content d-flex flex-column justify-content-between flex-grow-1">
+                            <div>
+                                <h3 class="text-heading" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@item.Title</h3>
+                                <p class="text-subtle mb-1"><i class="fa-regular fa-user me-2 small"></i>@item.Author?.Name</p>
+                                <small class="text-muted"><i class="fa-regular fa-building me-2 small"></i>@item.Publisher?.Name</small>
+                            </div>
+
+                            <div class="mt-3">
+                                @{
+                                    var realCountHot = GetRealAvailableCount(item.Id, item.Quantity);
+                                }
+                                <span class="badge @(realCountHot > 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") small fw-semibold me-2">
+                                    <i class="fa-solid fa-boxes-stacked me-1"></i> @(realCountHot > 0 ? $"Còn {realCountHot} quyển" : "Hết sách")
+                                </span>
+                                <span class="badge bg-warning-subtle text-warning small fw-semibold">
+                                    <i class="fa-solid fa-hand-holding-heart me-1"></i> @(item.BorrowDetails?.Count ?? 0) lượt mượn
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="books-section" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+    <div class="container">
+        <div class="section-title text-center mb-5">
+            <span class="badge bg-danger px-3 py-2 rounded-pill">Yêu thích</span>
+            <h2 class="display-5 fw-bold mt-3" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">Sách được yêu thích</h2>
+            <p class="text-secondary" style="font-family: var(--font-sans); font-size: var(--text-lg); font-weight: 400;">Những cuốn sách được thích nhiều nhất</p>
+        </div>
+        <div class="row g-4 justify-content-center book-grid-row">
+            @foreach (var item in Model.FavoriteBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a asp-controller="Books" asp-action="Details" asp-route-id="@item.Id" class="book-card favorite-card h-100 text-decoration-none text-reset d-flex flex-column" style="cursor: pointer;">
+                        <div class="book-image">
+                            <img src="@item.CoverImage" onerror="this.src='/images/no-book.png'">
+                            <div class="favorite-icon"><i class="fa-solid fa-heart"></i></div>
+                        </div>
+                        <div class="book-content d-flex flex-column justify-content-between flex-grow-1">
+                            <div>
+                                <h3 class="text-heading" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@item.Title</h3>
+                                <p class="text-subtle mb-1"><i class="fa-regular fa-user me-2 small"></i>@item.Author?.Name</p>
+                                <small class="text-muted"><i class="fa-regular fa-folder me-2 small"></i>@item.Category?.Name</small>
+                            </div>
+
+                            <div class="mt-3">
+                                @{
+                                    var realCountFav = GetRealAvailableCount(item.Id, item.Quantity);
+                                }
+                                <span class="badge @(realCountFav > 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") small fw-semibold me-2">
+                                    <i class="fa-solid fa-boxes-stacked me-1"></i> @(realCountFav > 0 ? $"Còn {realCountFav} quyển" : "Hết sách")
+                                </span>
+                                <span class="badge bg-danger-subtle text-danger small fw-semibold">
+                                    <i class="fa-solid fa-heart me-1"></i> @(item.BookFavorites?.Count ?? 0) lượt thích
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Featured Authors Spotlight -->
+@if (Model.Authors != null && Model.Authors.Any())
+{
+    <section class="authors-spotlight-section py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
+                <div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                        <i class="fa-solid fa-feather-pointed me-1"></i> Tác giả tuyển chọn
+                    </span>
+                    <h2 class="display-6 fw-bold mt-2 mb-1 text-heading">Bậc Thầy Ngòi Bút &amp; Danh Tác</h2>
+                    <p class="text-secondary mb-0">Hồ sơ những tác giả có đóng góp xuất sắc với nhiều tác phẩm lưu trữ tại Thư viện số</p>
+                </div>
+                <a asp-controller="Books" asp-action="Index" class="btn btn-outline-primary fw-bold rounded-pill px-4">
+                    Xem tất cả sách <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row g-3">
+                @foreach (var author in Model.Authors)
+                {
+                    var initial = !string.IsNullOrWhiteSpace(author.Name) ? author.Name.Substring(0, 1).ToUpper() : "TG";
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="author-spotlight-card">
+                            <div class="author-spotlight-avatar">
+                                <span>@initial</span>
+                            </div>
+                            <h5 class="author-spotlight-name text-truncate" title="@author.Name">@author.Name</h5>
+                            <div class="author-spotlight-nationality">
+                                <i class="fa-solid fa-globe me-1"></i> @(string.IsNullOrWhiteSpace(author.Nationality) ? "Thế giới" : author.Nationality)
+                            </div>
+                            <div class="author-spotlight-count mt-2">
+                                <span class="badge bg-light text-dark border">
+                                    @(author.Books?.Count ?? 1) tác phẩm
+                                </span>
+                            </div>
+                            <a asp-controller="Books" asp-action="Index" asp-route-authorId="@author.Id" class="author-spotlight-link mt-3">
+                                <span>Xem sách</span> <i class="fa-solid fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- How It Works: 3 Steps -->
+<section class="how-it-works-section py-5">
+    <div class="container">
+        <div class="section-title text-center mb-5">
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill fw-bold">
+                <i class="fa-solid fa-circle-check me-1"></i> Quy trình thuận tiện
+            </span>
+            <h2 class="display-6 fw-bold mt-2 text-heading">Mượn Sách Dễ Dàng Chỉ Với 3 Bước</h2>
+            <p class="text-secondary">Trải nghiệm dịch vụ thư viện số thông minh, nhanh chóng và hoàn toàn minh bạch</p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-badge">01</div>
+                    <div class="step-icon text-warning bg-warning-subtle">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <h4 class="step-title">Tìm kiếm &amp; Chọn sách</h4>
+                    <p class="step-desc">Khám phá tác phẩm qua Kệ 3D sinh động, tìm theo tựa đề, tác giả, ISBN hoặc danh mục yêu thích.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-badge">02</div>
+                    <div class="step-icon text-primary bg-primary-subtle">
+                        <i class="fa-solid fa-file-signature"></i>
+                    </div>
+                    <h4 class="step-title">Đăng ký mượn trực tuyến</h4>
+                    <p class="step-desc">Tạo phiếu mượn 1 chạm. Hệ thống tự động xét duyệt và giữ chỗ sách cho bạn ngay lập tức.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-badge">03</div>
+                    <div class="step-icon text-success bg-success-subtle">
+                        <i class="fa-solid fa-book-reader"></i>
+                    </div>
+                    <h4 class="step-title">Nhận sách &amp; Thưởng thức</h4>
+                    <p class="step-desc">Đến quầy nhận sách vật lý hoặc thưởng thức ngay trên trình đọc Ebook trực tuyến tiện lợi.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="books-section" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+    <div class="container">
+        <div class="section-title text-center mb-5">
+            <span class="badge bg-info px-3 py-2 rounded-pill">Đánh giá</span>
+            <h2 class="display-5 fw-bold mt-3" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">Sách được đánh giá cao</h2>
+            <p class="text-secondary" style="font-family: var(--font-sans); font-size: var(--text-lg); font-weight: 400;">Những cuốn sách có đánh giá cao nhất</p>
+        </div>
+        <div class="row g-4 justify-content-center book-grid-row">
+            @foreach (var item in Model.HighlyRatedBooks)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <a asp-controller="Books" asp-action="Details" asp-route-id="@item.Id" class="book-card rated-card h-100 text-decoration-none text-reset d-flex flex-column" style="cursor: pointer;">
+                        <div class="book-image">
+                            <img src="@item.CoverImage" onerror="this.src='/images/no-book.png'">
+                            <div class="rated-icon"><i class="fa-solid fa-star"></i></div>
+                        </div>
+                        <div class="book-content d-flex flex-column justify-content-between flex-grow-1">
+                            <div>
+                                <h3 class="text-heading" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@item.Title</h3>
+                                <p class="text-subtle mb-1"><i class="fa-regular fa-user me-2 small"></i>@item.Author?.Name</p>
+                                <small class="text-muted"><i class="fa-regular fa-folder me-2 small"></i>@item.Category?.Name</small>
+                            </div>
+
+                            <div class="mt-3">
+                                @{
+                                    var realCountRated = GetRealAvailableCount(item.Id, item.Quantity);
+                                }
+                                <span class="badge @(realCountRated > 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") small fw-semibold me-2">
+                                    <i class="fa-solid fa-boxes-stacked me-1"></i> @(realCountRated > 0 ? $"Còn {realCountRated} quyển" : "Hết sách")
+                                </span>
+                                <span class="badge bg-info-subtle text-info small fw-semibold">
+                                    <i class="fa-solid fa-star me-1"></i> @(item.BookRatings != null && item.BookRatings.Any() ? item.BookRatings.Average(r => r.Rating).ToString("F1") : "0")/5
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@if (Model.RecommendBooks != null && Model.RecommendBooks.Any())
+{
+    <section id="recommendedBooks" class="books-section" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap); background: var(--bg-deep, #fafbfc);">
+        <div class="container">
+            <div class="section-title text-center mb-5">
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Recommendation
+                </span>
+                <h2 class="display-5 fw-bold mt-3" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+                    Gợi ý dành riêng cho bạn
+                </h2>
+                <p class="text-secondary" style="font-family: var(--font-sans); font-size: var(--text-lg); font-weight: 400;">
+                    Những cuốn sách được phân tích từ sở thích thể loại, tác giả và lịch sử mượn đọc của bạn
+                </p>
+            </div>
+            <div class="row g-4 justify-content-center book-grid-row">
+                @foreach (var item in Model.RecommendBooks)
+                {
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+                        <div class="book-card card-elevated h-100 p-3" style="border: 1px solid var(--border-color); border-radius: 16px; cursor: pointer;" onclick="if (!event.target.closest('a, button')) { window.location.href='@Url.Action("Details", "Books", new { id = item.Id })'; }">
+                            <div class="d-flex gap-3">
+                                <div style="width: 100px; height: 140px; flex-shrink: 0; border-radius: 8px; overflow: hidden;">
+                                    <img src="@item.CoverImage" onerror="this.src='/images/no-book.png'" style="width: 100%; height: 100%; object-fit: cover;" />
+                                </div>
+                                <div class="d-flex flex-column justify-content-between flex-grow-1">
+                                    <div>
+                                        <span class="badge bg-primary-subtle text-primary mb-1">@item.Category?.Name</span>
+                                        <h4 class="text-heading text-truncate mb-1" style="font-size: 16px; font-weight: 600;" title="@item.Title">@item.Title</h4>
+                                        <p class="text-subtle mb-1 small"><i class="fa-regular fa-user me-1"></i>@item.Author?.Name</p>
+                                        <small class="text-muted d-block text-truncate" style="max-width: 200px;">@(item.Description ?? "Tác phẩm xuất sắc đáng đọc")</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        @{
+                                            var realCountRec = GetRealAvailableCount(item.Id, item.Quantity);
+                                        }
+                                        <span class="badge @(realCountRec > 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") small">
+                                            @(realCountRec > 0 ? $"Còn {realCountRec} cuốn" : "Hết sách")
+                                        </span>
+                                        <a asp-controller="Books" asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary rounded-pill">
+                                            <i class="fa-solid fa-book-open me-1"></i> Xem ngay
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Partner Publishers Showcase -->
+@if (Model.Publishers != null && Model.Publishers.Any())
+{
+    <section class="publishers-section py-5">
+        <div class="container text-center">
+            <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill fw-bold mb-2 d-inline-block">
+                <i class="fa-solid fa-building me-1"></i> Đơn vị xuất bản uy tín
+            </span>
+            <h3 class="fw-bold text-heading mb-3">Các Nhà Xuất Bản Đồng Hành</h3>
+            <p class="text-secondary mb-4 mx-auto" style="max-width: 600px;">
+                Kho sách của thư viện được tuyển chọn và cập nhật liên tục từ các nhà xuất bản hàng đầu trong và ngoài nước
+            </p>
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                @foreach (var pub in Model.Publishers)
+                {
+                    <a asp-controller="Books" asp-action="Index" asp-route-publisherId="@pub.Id" class="publisher-badge-card">
+                        <i class="fa-solid fa-book-bookmark text-warning me-2"></i>
+                        <span class="fw-bold">@pub.Name</span>
+                        <span class="badge bg-light text-secondary border ms-2">@(pub.Books?.Count ?? 0) đầu sách</span>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Community Call-To-Action Banner -->
+<section class="py-5" style="background: var(--bg-surface, transparent);">
+    <div class="container">
+        <div class="card home-cta-card border-0 rounded-4 overflow-hidden shadow-sm" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.05) 100%); border: 1.5px solid rgba(245, 158, 11, 0.3) !important;">
+            <div class="card-body p-4 p-md-5">
+                <div class="row align-items-center g-4">
+                    <div class="col-lg-8">
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 d-inline-block">
+                            <i class="fa-solid fa-sparkles me-1"></i> Trải nghiệm thư viện số
+                        </span>
+                        <h2 class="display-6 fw-bold text-heading mb-2">Bắt Đầu Hành Trình Tri Thức Ngay Hôm Nay</h2>
+                        <p class="text-secondary mb-3" style="font-size: 16px; line-height: 1.7;">
+                            Đăng ký tài khoản độc giả hoàn toàn miễn phí để mượn sách không giới hạn, lưu trữ lịch sử đọc, nhận đề xuất cá nhân hóa bằng AI và tham gia chinh phục các huy hiệu độc giả danh giá.
+                        </p>
+                        <div class="d-flex flex-wrap gap-4 text-muted small fw-medium">
+                            <div><i class="fa-solid fa-check text-success me-1"></i> Mượn sách trực tuyến 14 ngày</div>
+                            <div><i class="fa-solid fa-check text-success me-1"></i> Đọc Ebook 3D trực tiếp</div>
+                            <div><i class="fa-solid fa-check text-success me-1"></i> Gia hạn online linh hoạt</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 text-lg-end">
+                        <div class="d-flex flex-column flex-sm-row flex-lg-column gap-3 justify-content-lg-end">
+                            <a asp-controller="Books" asp-action="Index" class="btn btn-warning btn-lg fw-bold rounded-pill px-4 text-dark shadow-sm">
+                                <i class="fa-solid fa-book-open me-2"></i> Khám phá kho sách
+                            </a>
+                            <a asp-controller="Account" asp-action="Register" class="btn home-cta-register-btn btn-lg fw-bold rounded-pill px-4">
+                                <i class="fa-solid fa-user-plus me-2"></i> Đăng ký thành viên
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, var(--bg-deep) 0%, var(--accent-light) 100%);
+        transition: background 0.3s ease;
+    }
+
+    [data-theme="dark"] .hero-section {
+        background: linear-gradient(135deg, #0F1117 0%, rgba(16, 185, 129, 0.08) 100%);
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, var(--text-primary) 40%, var(--emerald-base));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+    }
+
+    /* Search Wrapper */
+    .search-wrapper {
+        background: var(--bg-card);
+        padding: var(--card-pad);
+        border-radius: 20px;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    [data-theme="dark"] .search-wrapper {
+        background: #1A1D24;
+        border-color: #30363D;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-input-wrapper input {
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding-left: 45px;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .search-input-wrapper input:focus {
+        background: var(--bg-input);
+        border-color: var(--emerald-base);
+        box-shadow: 0 0 0 3px var(--emerald-soft);
+        color: var(--text-primary);
+    }
+
+    .search-input-wrapper input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 18px;
+    }
+
+    /* Books Section */
+    .books-section {
+        background: var(--bg-deep);
+        transition: background-color 0.3s ease;
+    }
+
+    .section-title {
+        margin-bottom: 60px;
+    }
+
+    /* Book Card */
+    .book-card {
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        border-radius: 20px;
+        transition: all 0.35s ease;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+    }
+
+    [data-theme="dark"] .book-card {
+        background: #1A1D24;
+        border-color: #30363D;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .book-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--emerald-base);
+        z-index: 10;
+    }
+
+    .book-image {
+        height: 320px;
+        overflow: hidden;
+        position: relative;
+        background: var(--bg-input);
+    }
+
+    [data-theme="dark"] .book-image {
+        background: #21262D;
+    }
+
+    .book-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .book-card:hover .book-image img {
+        transform: scale(1.05);
+    }
+
+    .book-content {
+        padding: var(--card-pad);
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .book-content h5 {
+        height: 48px;
+        overflow: hidden;
+        font-weight: 600;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin-bottom: 12px;
+        color: var(--text-primary);
+        transition: color 0.3s ease;
+    }
+
+    .book-content p {
+        color: var(--text-secondary);
+        transition: color 0.3s ease;
+    }
+
+    .book-content small {
+        color: var(--text-muted);
+        transition: color 0.3s ease;
+    }
+
+    /* Badges */
+    .new-badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        right: auto !important;
+        width: auto !important;
+        padding: 5px 12px !important;
+        background: var(--brand-base, #F59E0B) !important;
+        color: #0A0A0C !important;
+        border-radius: var(--radius-pill, 999px) !important;
+        font-weight: 800 !important;
+        font-size: 11px !important;
+        letter-spacing: 0.08em;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+        z-index: 5;
+    }
+
+    .popular-icon,
+    .favorite-icon,
+    .rated-icon {
+        position: absolute;
+        right: 15px;
+        top: 15px;
+        width: 42px;
+        height: 42px;
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+        font-size: 18px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        filter: grayscale(100%);
+    }
+
+    [data-theme="dark"] .popular-icon,
+    [data-theme="dark"] .favorite-icon,
+    [data-theme="dark"] .rated-icon {
+        background: rgba(30, 33, 43, 0.95);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Card Footer Action */
+    .card-footer-action hr {
+        border-color: var(--border-color);
+        opacity: 0.3;
+        transition: border-color 0.3s ease;
+    }
+
+    /* Action Button */
+    .btn-action {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        border: 2px solid transparent;
+        background: var(--emerald-base);
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        background: var(--emerald-hover);
+        color: white;
+    }
+
+
+    /* Custom Button Styles */
+    .btn-emerald {
+        background-color: var(--emerald-base);
+        border-color: var(--emerald-base);
+        color: white;
+    }
+
+    .btn-emerald:hover {
+        background-color: var(--emerald-hover);
+        border-color: var(--emerald-hover);
+        color: white;
+    }
+
+    .btn-outline-emerald {
+        border: 2px solid #D97706;
+        color: #B45309;
+        background-color: rgba(217, 119, 6, 0.08);
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+
+    .btn-outline-emerald:hover {
+        background-color: #D97706;
+        border-color: #D97706;
+        color: #FFFFFF;
+        box-shadow: 0 4px 14px rgba(217, 119, 6, 0.3);
+    }
+
+    .bg-emerald {
+        background-color: var(--emerald-base) !important;
+    }
+
+    /* Clickable Book Cards */
+    .book-card {
+        position: relative;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .book-card:hover {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    /* Responsive */
+    @@media(max-width:768px) {
+        .book-image {
+            height: 260px;
+        }
+
+        .join-card {
+            padding: 40px 20px;
+        }
+
+        .hero-title {
+            font-size: 1.8rem;
+        }
+
+        .hero-subtitle {
+            font-size: 0.95rem;
+        }
+
+        .search-wrapper {
+            padding: 25px;
+        }
+    }
+</style>
+
+<script>
+    function toggleLike(button) {
+        const icon = button.querySelector('i');
+        if (button.classList.contains('btn-danger')) {
+            button.classList.remove('btn-danger');
+            button.classList.add('btn-outline-danger');
+            icon.classList.remove('bi-heart-fill');
+            icon.classList.add('bi-heart');
+        } else {
+            button.classList.remove('btn-outline-danger');
+            button.classList.add('btn-danger');
+            icon.classList.remove('bi-heart');
+            icon.classList.add('bi-heart-fill');
+        }
+    }
+</script>

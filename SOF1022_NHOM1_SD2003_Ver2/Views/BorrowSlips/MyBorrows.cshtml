@@ -1,0 +1,1213 @@
+﻿<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@model SOF1022_NHOM1_SD2003_Ver2.Models.ViewModels.MyBorrowViewModel
+
+@{
+    ViewData["Title"] = "Sách của tôi";
+}
+
+@Html.AntiForgeryToken()
+
+
+<div class="container" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+        <style>
+            @@media (max-width: 991px) {
+                .container {
+                    padding-top: var(--section-gap-sm) !important;
+                    padding-bottom: var(--section-gap-sm) !important;
+                }
+            }
+        </style>
+
+    <!-- Advanced Filter Section -->
+    <div class="card bg-white border-secondary mb-4" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <div class="card-body">
+            <form asp-action="MyBorrows" method="get">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-secondary text-secondary">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control bg-white border-secondary text-dark" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm kiếm tên sách..." />
+                            <!-- TODO: Keep text-dark here because bg-white is a fixed light background that doesn't change with theme -->
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select bg-white border-secondary text-dark" name="statusFilter">
+                            <!-- TODO: Keep text-dark here because bg-white is a fixed light background that doesn't change with theme -->
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="active" selected="@(ViewBag.StatusFilter == "active" ? "selected" : null)">Đang mượn</option>
+                            <option value="overdue" selected="@(ViewBag.StatusFilter == "overdue" ? "selected" : null)">Quá hạn</option>
+                            <option value="returned" selected="@(ViewBag.StatusFilter == "returned" ? "selected" : null)">Đã trả</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select bg-white border-secondary text-dark" name="sortOrder">
+                            <!-- TODO: Keep text-dark here because bg-white is a fixed light background that doesn't change with theme -->
+                            <option value="">Sắp xếp mặc định</option>
+                            <option value="borrow_date_desc" selected="@(ViewBag.SortOrder == "borrow_date_desc" ? "selected" : null)">Ngày mượn (mới nhất)</option>
+                            <option value="borrow_date_asc" selected="@(ViewBag.SortOrder == "borrow_date_asc" ? "selected" : null)">Ngày mượn (cũ nhất)</option>
+                            <option value="due_date_desc" selected="@(ViewBag.SortOrder == "due_date_desc" ? "selected" : null)">Hạn trả (gần nhất)</option>
+                            <option value="due_date_asc" selected="@(ViewBag.SortOrder == "due_date_asc" ? "selected" : null)">Hạn trả (xa nhất)</option>
+                            <option value="name_asc" selected="@(ViewBag.SortOrder == "name_asc" ? "selected" : null)">Tên A-Z</option>
+                            <option value="name_desc" selected="@(ViewBag.SortOrder == "name_desc" ? "selected" : null)">Tên Z-A</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-warning w-100 fw-bold">
+                            <i class="bi bi-filter me-2"></i>Lọc
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-heading fw-bold d-flex align-items-center" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+            <i class="fa-solid fa-book-bookmark text-warning me-3"></i> Sách đang mượn
+        </h2>
+    </div>
+
+    @if (Model.CurrentBorrows != null && Model.CurrentBorrows.Any())
+    {
+        // Group by slip code (using BorrowDate as proxy for slip grouping)
+        var groupedBorrows = Model.CurrentBorrows.GroupBy(b => b.BorrowSlipId);
+        
+        <div class="row g-4 mb-5">
+            @foreach (var slipGroup in groupedBorrows)
+            {
+                var firstItem = slipGroup.First();
+                var slipCode = !string.IsNullOrEmpty(firstItem.BorrowCode) ? firstItem.BorrowCode : ("BR" + firstItem.BorrowSlipId.ToString("D6"));
+                var isOverdue = firstItem.Status == "Quá hạn";
+                var isPending = firstItem.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.PendingApproval;
+                var isApprovedAwaitingPickup = firstItem.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.ApprovedAwaitingPickup;
+                var isApprovedNotPickedUp = isApprovedAwaitingPickup && firstItem.PickupDeadline.HasValue && firstItem.PickupDeadline > DateTime.Now;
+                var isPendingExtension = firstItem.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.PendingExtension;
+                
+                <div class="col-12">
+                    <div class="slip-card @(isOverdue ? "border-danger" : "")">
+                        <!-- Slip Header -->
+                        <div class="slip-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="slip-code">#@slipCode</span>
+                                    @if (isPending)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-2">
+                                            <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                            <i class="fa-solid fa-clock me-1"></i> Chờ duyệt
+                                        </span>
+                                    }
+                                    else if (isApprovedNotPickedUp)
+                                    {
+                                        <span class="badge bg-info ms-2">
+                                            <i class="fa-solid fa-check-circle me-1"></i> Đã duyệt
+                                        </span>
+                                    }
+                                    else if (isPendingExtension)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-2">
+                                            <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                            <i class="fa-solid fa-hourglass-half me-1"></i> Chờ duyệt gia hạn
+                                        </span>
+                                    }
+                                    else if (isOverdue)
+                                    {
+                                        <span class="badge bg-danger ms-2">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Quá hạn
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success ms-2">
+                                            <i class="fa-solid fa-circle-check me-1"></i> Đang mượn
+                                        </span>
+                                    }
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-light" onclick="loadSlipDetails(@firstItem.BorrowSlipId)">
+                                    <i class="fa-solid fa-eye me-1"></i> Chi tiết
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Book List -->
+                        <div class="slip-body">
+                            <div class="row g-3">
+                                @foreach (var item in slipGroup)
+                                {
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="book-item-mini">
+                                            <img src="@item.BookCoverImage" alt="@item.BookTitle" class="book-thumb" />
+                                            <div class="book-info">
+                                                <h3 class="book-title text-truncate" title="@item.BookTitle" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@item.BookTitle</h3>
+                                                <span class="badge bg-secondary">Số lượng: 1</span>
+                                                @if (isPending || isApprovedNotPickedUp)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100"
+                                                            onclick="cancelBorrowItem(@item.BorrowDetailId)">
+                                                        <i class="fa-solid fa-trash-alt me-1"></i>Hủy cuốn này
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Meta Info -->
+                        <div class="slip-meta">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">Ngày tạo:</small>
+                                    <div class="fw-bold">@firstItem.BorrowDate.ToString("dd/MM/yyyy")</div>
+                                </div>
+                                @if (isPending || isApprovedNotPickedUp)
+                                {
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Hạn nhận:</small>
+                                        <div class="fw-bold @(isApprovedNotPickedUp ? "text-info" : "text-warning")">@firstItem.PickupDeadline?.ToString("dd/MM/yyyy HH:mm")</div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Hạn trả:</small>
+                                        <div class="fw-bold @(isOverdue ? "text-danger" : "text-light")">@firstItem.DueDate.ToString("dd/MM/yyyy")</div>
+                                    </div>
+                                }
+                                <div class="col-md-4">
+                                    <small class="text-muted">Số sách:</small>
+                                    <div class="fw-bold">@slipGroup.Count()</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="slip-actions d-flex gap-3 flex-wrap">
+                            @if (isPending || isApprovedNotPickedUp)
+                            {
+                                <button type="button" class="btn btn-danger" onclick="cancelBorrowSlip(@firstItem.BorrowSlipId)">
+                                    <i class="fa-solid fa-trash-alt me-2"></i>Hủy phiếu mượn
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="loadSlipDetails(@firstItem.BorrowSlipId)">
+                                    <i class="fa-solid fa-eye me-1"></i> Xem chi tiết phiếu
+                                </button>
+                                @if (isApprovedNotPickedUp)
+                                {
+                                    <div class="alert alert-info py-2 mb-0 ms-2">
+                                        <small><i class="fa-solid fa-info-circle me-1"></i> Vui lòng đến thư viện trước @firstItem.PickupDeadline?.ToString("dd/MM/yyyy") để nhận sách</small>
+                                    </div>
+                                }
+                            }
+                            else if (isOverdue)
+                            {
+                                <div class="alert alert-danger py-2 mb-0">
+                                    <small><i class="fa-solid fa-triangle-exclamation me-1"></i> Phiếu mượn đã quá hạn! Vui lòng đến thư viện để trả sách và thanh toán phạt.</small>
+                                </div>
+                            }
+                            else
+                            {
+                                var canExtend = slipGroup.Any(b => b.ExtensionCount < 2);
+                                if (canExtend && !Model.HasUnpaidFines)
+                                {
+                                    <button type="button" onclick="requestExtension(@firstItem.BorrowDetailId)" class="btn btn-primary">
+                                        <i class="fa-solid fa-paper-plane me-2"></i>Gửi yêu cầu gia hạn
+                                    </button>
+                                }
+                                else if (Model.HasUnpaidFines)
+                                {
+                                    <button type="button" class="btn btn-secondary" disabled>
+                                        <i class="fa-solid fa-lock me-2"></i>Gia hạn bị khóa do nợ phạt
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-secondary" disabled>
+                                        <i class="fa-solid fa-check-circle me-2"></i>Đã gia hạn tối đa
+                                    </button>
+                                }
+                                <button type="button" class="btn btn-outline-info" onclick="loadSlipDetails(@firstItem.BorrowSlipId)">
+                                    <i class="fa-solid fa-eye me-1"></i> Xem phiếu/Mã QR
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="custom-empty-state my-5">
+            <i class="fa-solid fa-face-smile fa-3x text-secondary opacity-50 mb-3"></i>
+            <p class="text-heading mb-0">Tuyệt vời! Bạn không có cuốn sách nào đang mượn hoặc quá hạn.</p>
+        </div>
+    }
+
+    <hr class="custom-hr my-5">
+
+    <h2 class="text-heading mb-4 d-flex align-items-center fw-bold" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+        <i class="fa-solid fa-clock-rotate-left text-warning me-3"></i> Lịch sử mượn sách
+    </h2>
+
+    @if (Model.History != null && Model.History.Any())
+    {
+        <div class="table-responsive custom-table-container">
+            <table class="table table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Bìa</th>
+                        <th>Tên sách</th>
+                        <th>Ngày mượn</th>
+                        <th>Hạn trả</th>
+                        <th>Ngày trả</th>
+                        <th>Trạng thái</th>
+                        <th class="pe-4 text-end">Chi phí phạt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.History)
+                    {
+                        <tr>
+                            <td class="ps-4" width="90">
+                                <div class="table-book-img">
+                                    <img src="@item.BookCoverImage" alt="bìa" />
+                                </div>
+                            </td>
+                            <td class="fw-bold text-white max-w-250">
+                                <div class="text-truncate" title="@item.BookTitle">@item.BookTitle</div>
+                            </td>
+                            <td class="text-secondary">@item.BorrowDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-secondary">@item.DueDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-light">
+                                @(item.ReturnedDate?.ToString("dd/MM/yyyy") ?? "-")
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @if (item.Status == "Đã hủy - quá hạn nhận sách")
+                                    {
+                                        <span class="badge bg-secondary text-white fw-bold"><i class="fa-solid fa-circle-xmark me-1"></i>Đã hủy - quá hạn nhận sách</span>
+                                        <small class="text-muted d-block w-100 fs-12">Bạn đã không đến nhận sách trong thời hạn quy định</small>
+                                    }
+                                    else if (item.Status == "Đã hủy")
+                                    {
+                                        <span class="badge bg-secondary text-white fw-bold"><i class="fa-solid fa-ban me-1"></i>Đã hủy</span>
+                                    }
+                                    else if (item.IsLost)
+                                    {
+                                        <span class="badge bg-warning text-dark fw-bold"><i class="fa-solid fa-circle-question me-1"></i>Mất sách</span>
+                                        <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                    }
+                                    else if (item.IsDamaged)
+                                    {
+                                        <span class="badge bg-secondary text-white fw-bold"><i class="fa-solid fa-heart-crack me-1"></i>Hư hỏng</span>
+                                    }
+                                    else if (item.IsLate)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Trả muộn</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Đúng hạn</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <div class="d-flex flex-column align-items-end gap-1">
+                                    @if (item.FineAmount > 0 && item.Status != "Đã hủy" && item.Status != "Đã hủy - quá hạn nhận sách")
+                                    {
+                                        <span class="text-danger fw-bold">@item.FineAmount.ToString("N0") VNĐ</span>
+                                        @if (item.FineStatus == "Chờ xử lý" || item.FineStatus == "Unpaid" || string.IsNullOrEmpty(item.FineStatus))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-warning" onclick="showQRPaymentModal(@item.FineId, @item.FineAmount, '@item.TransactionCode')">
+                                                <i class="fas fa-qrcode me-1"></i> Thanh toán bằng QR
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Đã thanh toán</span>
+                                        }
+                                        <a href="/Fines/MyFines" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i> Chi tiết phạt
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-success">0 VNĐ</span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="custom-empty-state my-5">
+            <i class="fa-solid fa-folder-open fa-3x text-secondary opacity-50 mb-3"></i>
+            <p class="text-heading mb-0">Bạn chưa thực hiện giao dịch mượn sách nào từ trước đến nay.</p>
+        </div>
+    }
+</div>
+
+<!-- Slip Details Modal -->
+<div class="modal fade" id="slipDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                <h3 class="modal-title" style="color: var(--text-primary); font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                    <i class="fa-solid fa-file-contract me-2" style="color: var(--brand-base);"></i>
+                    Chi tiết phiếu mượn
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1);"></button>
+            </div>
+            <div class="modal-body" style="color: var(--text-primary);">
+                <div id="slipDetailsContent">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #E2E8F0;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Payment Modal -->
+<div class="modal fade" id="qrPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                <h3 class="modal-title" style="color: var(--text-primary); font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                    <i class="fas fa-qrcode me-2" style="color: var(--brand-base);"></i>
+                    Thanh toán bằng QR
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1);"></button>
+            </div>
+            <div class="modal-body" style="color: var(--text-primary);">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <img id="qrCodeImage" src="" alt="VietQR Code" class="img-fluid" style="max-width: 200px; border: 2px solid var(--border-color); border-radius: 8px;" />
+                    </div>
+                    <div class="alert alert-info mb-3">
+                        <small><strong>Thông tin tài khoản:</strong></small><br>
+                        <small>LE PHU AN</small><br>
+                        <small>105884348544</small><br>
+                        <small>VietinBank - CN DONG NAI - HOI SO</small>
+                    </div>
+                    <h3 class="fw-bold mb-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Mã giao dịch:</h3>
+                    <p class="h5 text-primary fw-bold mb-3" id="qrTransactionCode">-</p>
+                    <h3 class="fw-bold mb-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Số tiền cần thanh toán:</h3>
+                    <p class="h3 text-danger fw-bold mb-3" id="qrPaymentAmount">0 VNĐ</p>
+                    <p class="text-muted small mb-4">
+                        Vui lòng chuyển khoản với nội dung chứa mã giao dịch trên.<br>
+                        Hệ thống sẽ kiểm tra thanh toán trong vòng 3 phút.
+                    </p>
+                    <div id="paymentVerificationStatus" class="d-none">
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            <span id="verificationMessage">Đang kiểm tra thanh toán...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #E2E8F0;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelPaymentBtn">Hủy</button>
+                <button type="button" class="btn btn-success" id="confirmQRPaymentBtn" onclick="confirmQRPayment()">
+                    <i class="fas fa-check me-2"></i>Xác nhận thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* Thẻ bao quát Card mượn sách */
+    .borrow-card {
+        background: var(--bg-card);
+        border-radius: 18px;
+        overflow: hidden;
+        transition: transform .35s, box-shadow .35s, border-color .35s;
+        border: 1px solid var(--border-color);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .borrow-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.3) !important;
+    }
+
+    /* Borrow Slip Card Styles */
+    .slip-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .slip-card:hover {
+        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .slip-card.border-danger {
+        border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .slip-card.border-danger:hover {
+        box-shadow: 0 8px 24px rgba(239, 68, 68, 0.2);
+    }
+
+    .slip-header {
+        background: linear-gradient(135deg, var(--bg-input) 0%, var(--bg-card) 100%);
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .slip-code {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--brand-base);
+        letter-spacing: 1px;
+    }
+
+    .slip-body {
+        padding: 20px;
+    }
+
+    .book-item-mini {
+        display: flex;
+        gap: 12px;
+        background: var(--bg-card);
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s ease;
+    }
+
+    .book-item-mini:hover {
+        background: var(--bg-input);
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .book-thumb {
+        width: 50px;
+        height: 65px;
+        object-fit: cover;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    .book-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .book-title {
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .slip-meta {
+        background: var(--bg-input);
+        padding: 16px 20px;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .slip-actions {
+        padding: 16px 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    /* Image wrapper */
+    .book-image {
+        height: 280px;
+        overflow: hidden;
+        background: var(--bg-input);
+    }
+
+    .book-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform .5s;
+    }
+
+    .borrow-card:hover .book-image img {
+        transform: scale(1.05);
+    }
+
+    /* Hộp thông tin chi tiết mượn */
+    .borrow-info-box {
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+
+    /* Custom Table Light Theme */
+    .custom-table-container {
+        background: var(--bg-card);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .table-dark {
+        --bs-table-bg: var(--bg-card) !important;
+        --bs-table-hover-bg: var(--bg-input) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    .table-dark th {
+        background-color: var(--bg-input) !important;
+        color: var(--text-primary) !important;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        padding: 14px 10px;
+        border-bottom: 2px solid var(--border-color) !important;
+    }
+
+    .table-dark td {
+        padding: 16px 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .table-book-img {
+        width: 50px;
+        height: 65px;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-input);
+    }
+
+    .table-book-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Trạng thái trống thay thế alert mặc định của Bootstrap */
+    .custom-empty-state {
+        background: var(--bg-card);
+        border: 2px dashed var(--border-color);
+        border-radius: 16px;
+        padding: 40px;
+        text-align: center;
+    }
+
+    /* Tiện ích linh tinh */
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: 48px; /* Giữ khung tiêu đề cân đối giữa các dòng */
+    }
+
+    .fs-14 { font-size: 14px; }
+    .max-w-250 { max-width: 250px; }
+    .custom-hr { border-color: var(--border-color); opacity: 1; }
+    
+    .bg-success-subtle { background-color: rgba(34, 197, 94, 0.12) !important; }
+    .bg-danger-subtle { background-color: rgba(239, 68, 68, 0.12) !important; }
+
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+    }
+
+    @@media(max-width:768px) {
+        .book-image { height: 230px; }
+        .text-truncate-2 { height: auto; }
+    }
+</style>
+
+<script>
+    function getAntiForgeryToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    }
+
+    function loadSlipDetails(slipId) {
+        const contentEl = document.getElementById('slipDetailsContent');
+        if (!contentEl) return;
+
+        contentEl.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-spinner fa-spin fa-2x text-secondary"></i><p class="mt-2 text-muted">Đang tải chi tiết phiếu...</p></div>';
+        new bootstrap.Modal(document.getElementById('slipDetailsModal')).show();
+
+        fetch('/BorrowSlips/GetDetails/' + slipId)
+            .then(response => response.json())
+            .then(result => {
+                if (!result.success) {
+                    contentEl.innerHTML = `<div class="alert alert-danger mb-0">${result.message || 'Không tìm thấy chi tiết phiếu mượn'}</div>`;
+                    return;
+                }
+
+                const slip = result.data;
+                const isPending = slip.borrowStatus === 0;
+                const isApprovedAwaitingPickup = slip.borrowStatus === 1;
+                const canCancel = isPending || isApprovedAwaitingPickup;
+                const isOverdue = slip.statusText === 'Quá hạn';
+
+                let content = `
+                    <div class="mb-4">
+                        <h6 style="color: var(--brand-base); font-weight: 700;">#${slip.borrowCode}</h6>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <small style="color: var(--text-secondary);">Ngày tạo:</small>
+                                <div style="color: var(--text-primary); font-weight: 600;">${new Date(slip.borrowDate).toLocaleDateString('vi-VN')}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <small style="color: var(--text-secondary);">Trạng thái:</small>
+                                <div style="color: var(--text-primary); font-weight: 600;">${slip.statusText}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h6 style="color: var(--text-primary); font-weight: 600; margin-bottom: 12px;">Danh sách sách:</h6>
+                    <div class="row g-2 mb-4">
+                `;
+
+                (slip.items || []).forEach(item => {
+                    content += `
+                        <div class="col-md-6">
+                            <div style="background: var(--bg-card); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <img src="${item.bookCover || '/images/default-book-cover.jpg'}" alt="${item.bookTitle}" style="width: 40px; height: 50px; object-fit: cover; border-radius: 4px;" />
+                                    <div style="flex: 1;">
+                                        <div style="color: var(--text-primary); font-size: 13px; font-weight: 600;">${item.bookTitle}</div>
+                                        <span class="badge bg-secondary" style="font-size: 11px;">Số lượng: 1</span>
+                                    </div>
+                                </div>
+                                ${canCancel ? `
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="cancelBorrowItem(${item.detailId})">
+                                        <i class="fa-solid fa-trash-alt me-1"></i>Hủy cuốn này
+                                    </button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                content += `
+                    </div>
+                    <h6 style="color: var(--text-primary); font-weight: 600; margin-bottom: 12px;">Thông tin bổ sung:</h6>
+                    <div style="background: var(--bg-input); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <small style="color: var(--text-secondary);">Hạn trả:</small>
+                                <div style="color: ${isOverdue ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${new Date(slip.dueDate).toLocaleDateString('vi-VN')}</div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <small style="color: var(--text-secondary);">Số sách:</small>
+                                <div style="color: var(--text-primary); font-weight: 600;">${slip.totalBooks}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                contentEl.innerHTML = content;
+            })
+            .catch(() => {
+                contentEl.innerHTML = '<div class="alert alert-danger mb-0">Có lỗi xảy ra khi tải chi tiết phiếu mượn</div>';
+            });
+    }
+
+    let currentFineId = null;
+    let paymentVerificationInterval = null;
+    let paymentStartTime = null;
+
+    function showQRPaymentModal(fineId, amount, transactionCode) {
+        if (!fineId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Không tìm thấy thông tin khoản phạt'
+            });
+            return;
+        }
+
+        currentFineId = fineId;
+        document.getElementById('qrPaymentAmount').textContent = amount.toLocaleString('vi-VN') + ' VNĐ';
+        document.getElementById('qrTransactionCode').textContent = transactionCode || '-';
+
+        // Generate VietQR code with banking info and transaction code
+        const qrData = `00020101021226580016vn.com0000005303704${transactionCode}5802VN6304`;
+        const qrImageUrl = `https://img.vietqr.io/image/970418-105884348544-compact2.png?amount=${amount}&addInfo=${transactionCode}`;
+        document.getElementById('qrCodeImage').src = qrImageUrl;
+
+        // Reset verification status
+        document.getElementById('paymentVerificationStatus').classList.add('d-none');
+        document.getElementById('confirmQRPaymentBtn').disabled = false;
+        document.getElementById('confirmQRPaymentBtn').innerHTML = '<i class="fas fa-check me-2"></i>Xác nhận thanh toán';
+        document.getElementById('cancelPaymentBtn').disabled = false;
+
+        new bootstrap.Modal(document.getElementById('qrPaymentModal')).show();
+    }
+
+    function confirmQRPayment() {
+        if (!currentFineId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Không tìm thấy thông tin khoản phạt'
+            });
+            return;
+        }
+
+        const confirmBtn = document.getElementById('confirmQRPaymentBtn');
+        const cancelBtn = document.getElementById('cancelPaymentBtn');
+        const verificationStatus = document.getElementById('paymentVerificationStatus');
+        const verificationMessage = document.getElementById('verificationMessage');
+
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+        verificationStatus.classList.remove('d-none');
+        verificationMessage.textContent = 'Đang kiểm tra thanh toán...';
+
+        paymentStartTime = new Date();
+        let elapsedSeconds = 0;
+        const maxWaitSeconds = 180; // 3 minutes
+
+        // Start payment verification with polling
+        paymentVerificationInterval = setInterval(() => {
+            elapsedSeconds = Math.floor((new Date() - paymentStartTime) / 1000);
+            const remainingSeconds = maxWaitSeconds - elapsedSeconds;
+
+            if (remainingSeconds <= 0) {
+                // Timeout - payment not received
+                clearInterval(paymentVerificationInterval);
+                verificationStatus.classList.remove('alert-warning');
+                verificationStatus.classList.add('alert-danger');
+                verificationMessage.innerHTML = '<i class="fas fa-times-circle me-2"></i>Hết thời gian chờ thanh toán (3 phút)';
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Thử lại';
+                cancelBtn.disabled = false;
+                return;
+            }
+
+            // Update status message with countdown
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            verificationMessage.textContent = `Đang kiểm tra thanh toán... (${minutes}:${seconds.toString().padStart(2, '0')} còn lại)`;
+
+            // Check payment status every 5 seconds
+            if (elapsedSeconds % 5 === 0) {
+                checkPaymentStatus();
+            }
+        }, 1000);
+
+        // Initial payment check
+        checkPaymentStatus();
+    }
+
+    function checkPaymentStatus() {
+        const token = getAntiForgeryToken();
+        if (!token) {
+            clearInterval(paymentVerificationInterval);
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tìm thấy token bảo mật. Vui lòng tải lại trang.' });
+            return;
+        }
+
+        fetch('/Fines/CheckPaymentStatus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify({ fineId: currentFineId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.paid) {
+                // Payment successful
+                clearInterval(paymentVerificationInterval);
+                const verificationStatus = document.getElementById('paymentVerificationStatus');
+                const verificationMessage = document.getElementById('verificationMessage');
+
+                verificationStatus.classList.remove('alert-warning');
+                verificationStatus.classList.add('alert-success');
+                verificationMessage.innerHTML = '<i class="fas fa-check-circle me-2"></i>Thanh toán thành công!';
+
+                setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thanh toán thành công!',
+                        text: 'Khoản phạt đã được thanh toán thành công.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                }, 1000);
+            } else if (data.insufficient) {
+                // Insufficient funds
+                clearInterval(paymentVerificationInterval);
+                const verificationStatus = document.getElementById('paymentVerificationStatus');
+                const verificationMessage = document.getElementById('verificationMessage');
+
+                verificationStatus.classList.remove('alert-warning');
+                verificationStatus.classList.add('alert-danger');
+                verificationMessage.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Không đủ tiền hoặc số tiền chuyển không đúng';
+
+                const confirmBtn = document.getElementById('confirmQRPaymentBtn');
+                const cancelBtn = document.getElementById('cancelPaymentBtn');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Thử lại';
+                cancelBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+        });
+    }
+
+    function cancelBorrowItem(detailId) {
+        Swal.fire({
+            title: 'Xác nhận hủy cuốn sách',
+            text: 'Bạn có chắc chắn muốn hủy cuốn sách này khỏi phiếu mượn?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            const token = getAntiForgeryToken();
+            if (!token) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tìm thấy token bảo mật. Vui lòng tải lại trang.' });
+                return;
+            }
+
+            fetch('/BorrowSlips/CancelItem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ detailId: detailId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Đã hủy', text: data.message }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Không thể hủy cuốn sách' });
+                }
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi kết nối' }));
+        });
+    }
+
+    function cancelBorrowSlip(slipId) {
+        Swal.fire({
+            title: 'Xác nhận hủy phiếu mượn',
+            text: 'Bạn có chắc chắn muốn hủy toàn bộ phiếu mượn này? Sách sẽ được hoàn lại kho.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            const token = getAntiForgeryToken();
+            if (!token) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tìm thấy token bảo mật. Vui lòng tải lại trang.' });
+                return;
+            }
+
+            fetch('/BorrowSlips/CancelSlip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ id: slipId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Đã hủy', text: data.message }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Không thể hủy phiếu mượn' });
+                }
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi kết nối' }));
+        });
+    }
+
+    async function quickReturnBook(id) {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Xác nhận',
+            text: 'Xác nhận hoàn trả cuốn sách này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Huỷ'
+        });
+        if (!isConfirmed) {
+            return;
+        }
+
+        fetch('/BorrowSlips/ReturnBook/' + id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Thông báo', text: data.message });
+                location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi: ' + data.message });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi trả sách' });
+        });
+    }
+
+    function requestExtension(id) {
+        // Use SweetAlert2 for extension request
+        Swal.fire({
+            title: 'Gửi yêu cầu gia hạn',
+            html: `
+                <div class="text-start">
+                    <label class="form-label fw-bold">Số ngày muốn gia hạn:</label>
+                    <select id="extensionDays" class="form-select mb-3">
+                        <option value="1">1 ngày</option>
+                        <option value="3">3 ngày</option>
+                        <option value="7" selected>7 ngày</option>
+                        <option value="14">14 ngày</option>
+                    </select>
+                    <label class="form-label fw-bold">Lý do gia hạn:</label>
+                    <select id="extensionReason" class="form-select mb-3">
+                        <option value="Chưa đọc xong sách">Chưa đọc xong sách</option>
+                        <option value="Đang ôn thi / Làm đồ án">Đang ôn thi / Làm đồ án</option>
+                        <option value="Bận công tác / Việc cá nhân">Bận công tác / Việc cá nhân</option>
+                        <option value="Lý do khác">Lý do khác</option>
+                    </select>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Gửi yêu cầu',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            preConfirm: () => {
+                const days = document.getElementById('extensionDays').value;
+                const reason = document.getElementById('extensionReason').value;
+                return { days, reason };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const { days, reason } = result.value;
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                
+                if (!token) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Không tìm thấy token bảo mật. Vui lòng tải lại trang.',
+                        confirmButtonText: 'Đóng'
+                    });
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("__RequestVerificationToken", token);
+                formData.append("detailId", id);
+                formData.append("requestedDays", days);
+                formData.append("reason", reason);
+
+                fetch('/BorrowSlips/RequestExtension', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công',
+                            text: data.message,
+                            confirmButtonText: 'Đóng'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message,
+                            confirmButtonText: 'Đóng'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra khi gửi yêu cầu gia hạn',
+                        confirmButtonText: 'Đóng'
+                    });
+                });
+            }
+        });
+    }
+
+    async function cancelReservation(id) {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc chắn muốn hủy yêu cầu đặt sách này? Sách sẽ được hoàn lại kho.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Huỷ'
+        });
+        if (!isConfirmed) {
+            return;
+        }
+
+        fetch('/BorrowSlips/CancelReservation?detailId=' + id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Thông báo', text: data.message });
+                location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi: ' + data.message });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi hủy đặt sách' });
+        });
+    }
+
+    // Cancel request button handler
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-cancel-request').forEach(button => {
+            button.addEventListener('click', function() {
+                const borrowDetailId = this.getAttribute('data-id');
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                
+                if (!token) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tìm thấy token bảo mật. Vui lòng tải lại trang.' });
+                    return;
+                }
+
+                const { isConfirmed } = await Swal.fire({
+                    title: 'Xác nhận',
+                    text: 'Bạn có chắc chắn muốn hủy yêu cầu mượn sách này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Huỷ'
+                });
+                if (!isConfirmed) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("__RequestVerificationToken", token);
+                formData.append("borrowDetailId", borrowDetailId);
+
+                fetch('/BorrowSlips/CancelRequestForm', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                        if (data.success) {
+                            if (data.redirectTo) {
+                                window.location.href = data.redirectTo;
+                            } else {
+                                // Remove the card from DOM smoothly
+                                const cardWrapper = this.closest('.borrow-card-wrapper');
+                                cardWrapper.style.transition = 'all 0.3s ease';
+                                cardWrapper.style.opacity = '0';
+                                cardWrapper.style.transform = 'scale(0.9)';
+                                
+                                setTimeout(() => {
+                                    cardWrapper.remove();
+                                    
+                                    // Check if no more cards, show empty state
+                                    if (document.querySelectorAll('.borrow-card-wrapper').length === 0) {
+                                        location.reload();
+                                    }
+                                }, 300);
+                            }
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi: ' + data.message });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi hủy yêu cầu mượn' });
+                    });
+                }
+            });
+        });
+    });
+</script>
+

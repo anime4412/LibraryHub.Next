@@ -1,0 +1,509 @@
+@model SOF1022_NHOM1_SD2003_Ver2.Models.SupportTickets
+@using SOF1022_NHOM1_SD2003_Ver2.Models.Enums
+
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu hỗ trợ";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-2">
+                                <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
+                            </a>
+                            <h4 class="mb-1 fw-bold">
+                                <i class="fa-solid fa-headset text-primary me-2"></i>@Model.TicketCode
+                            </h4>
+                            <p class="text-muted mb-0">
+                                @if (!string.IsNullOrEmpty(Model.Subject))
+                                {
+                                    @Model.Subject
+                                }
+                                else
+                                {
+                                    <text>Không có chủ đề</text>
+                                }
+                            </p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (Model.Status == SupportTicketStatus.Open)
+                            {
+                                <button type="button" id="claimTicketBtn" class="btn btn-success">
+                                    <i class="fa-solid fa-hand-paper me-1"></i> Nhận xử lý
+                                </button>
+                            }
+                            @if (Model.Status != SupportTicketStatus.Closed)
+                            {
+                                <button type="button" id="closeTicketBtn" class="btn btn-danger">
+                                    <i class="fa-solid fa-times me-1"></i> Đóng ticket
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Thông tin ticket</h6>
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Trạng thái</label>
+                                        <div>
+                                            @switch (Model.Status)
+                                            {
+                                                case SupportTicketStatus.Open:
+                                                    <span class="badge bg-warning text-dark">Chờ xử lý</span>
+                                                    break;
+                                                case SupportTicketStatus.InProgress:
+                                                    <span class="badge bg-info">Đang xử lý</span>
+                                                    break;
+                                                case SupportTicketStatus.Closed:
+                                                    <span class="badge bg-secondary">Đã đóng</span>
+                                                    break;
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Độc giả</label>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-primary text-white me-2">
+                                                @(Model.Reader?.FullName?.Substring(0, 1).ToUpper() ?? "D")
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">@Model.Reader?.FullName</div>
+                                                <small class="text-muted">@Model.Reader?.Email</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Nhân viên xử lý</label>
+                                        <div>
+                                            @if (Model.AssignedStaff != null)
+                                            {
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-circle bg-success text-white me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                                                        @(Model.AssignedStaff.FullName?.Substring(0, 1).ToUpper() ?? "N")
+                                                    </div>
+                                                    <span>@Model.AssignedStaff.FullName</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa gán</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="text-muted small">Ngày tạo</label>
+                                        <div>@Model.CreatedDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                    </div>
+                                    @if (Model.ClosedDate.HasValue)
+                                    {
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Ngày đóng</label>
+                                            <div>@Model.ClosedDate.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card border-0">
+                                <div class="card-body p-0">
+                                    <div class="support-messages-container" style="height: 500px; overflow-y: auto; padding: 20px; background: #f8f9fa;">
+                                        <div class="support-messages">
+                                            @if (Model.Messages != null && Model.Messages.Any())
+                                            {
+                                                @foreach (var message in Model.Messages.OrderBy(m => m.SentDate))
+                                                {
+                                                    var time = message.SentDate.ToString("dd/MM/yyyy HH:mm");
+                                                    
+                                                    @if (message.SenderType == SupportSenderType.System)
+                                                    {
+                                                        <div class="support-message system">
+                                                            @message.Content
+                                                            <div class="support-message-time">@time</div>
+                                                        </div>
+                                                    }
+                                                    else if (message.SenderType == SupportSenderType.Employee)
+                                                    {
+                                                        <div class="support-message mine">
+                                                            <div class="fw-semibold mb-1">@(Model.AssignedStaff?.FullName ?? "Nhân viên")</div>
+                                                            @message.Content
+                                                            <div class="support-message-time">@time</div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="support-message theirs">
+                                                            <div class="fw-semibold mb-1">@(Model.Reader?.FullName ?? "Độc giả")</div>
+                                                            @message.Content
+                                                            <div class="support-message-time">@time</div>
+                                                        </div>
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div class="text-center text-muted py-5">
+                                                    <i class="fa-solid fa-comments fa-2x mb-2"></i>
+                                                    <p>Chưa có tin nhắn nào</p>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (Model.Status != SupportTicketStatus.Closed)
+                                    {
+                                        <div class="p-3 border-top bg-white">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <small class="text-muted fw-semibold"><i class="fa-solid fa-bolt text-warning me-1"></i>Mẫu trả lời nhanh:</small>
+                                                <select id="cannedResponseSelect" class="form-select form-select-sm" style="max-width: 320px;" onchange="if(this.value){ document.getElementById('replyInput').value = this.value; this.selectedIndex = 0; }">
+                                                    <option value="">-- Chọn câu trả lời mẫu --</option>
+                                                    <option value="Chào bạn, Thư viện đã tiếp nhận yêu cầu và đang kiểm tra thông tin giúp bạn nhé.">Tiếp nhận yêu cầu</option>
+                                                    <option value="Chào bạn, thời hạn mượn sách là 14 ngày. Bạn có thể gia hạn thêm tại mục 'Sách đang mượn' trước ngày hết hạn.">Hướng dẫn mượn / gia hạn</option>
+                                                    <option value="Chào bạn, đối với khoản phạt trễ hạn hoặc hỏng sách, bạn vui lòng đến quầy thư viện gặp Kế toán để nộp phạt và nhận biên lai nhé.">Hướng dẫn nộp phạt</option>
+                                                    <option value="Chào bạn, sách hiện tại đã có sẵn trên kệ thư viện. Bạn có thể đến mượn trực tiếp hoặc đặt trước qua website.">Sách đã có sẵn</option>
+                                                    <option value="Yêu cầu của bạn đã được xử lý hoàn tất. Cảm ơn bạn và chúc bạn có thời gian đọc sách thật thú vị!">Xác nhận hoàn tất hỗ trợ</option>
+                                                </select>
+                                            </div>
+                                            <div class="input-group">
+                                                <input type="text" id="replyInput" class="form-control" 
+                                                       placeholder="Nhập câu trả lời hoặc chọn từ mẫu bên trên..." 
+                                                       @(Model.Status == SupportTicketStatus.Open && Model.AssignedStaff == null ? "disabled" : "")>
+                                                <button type="button" id="replyBtn" class="btn btn-primary"
+                                                        @(Model.Status == SupportTicketStatus.Open && Model.AssignedStaff == null ? "disabled" : "")>
+                                                    <i class="fa-solid fa-paper-plane"></i> Gửi
+                                                </button>
+                                            </div>
+                                            @if (Model.Status == SupportTicketStatus.Open && Model.AssignedStaff == null)
+                                            {
+                                                <small class="text-muted">Bạn cần nhận xử lý ticket trước khi có thể trả lời.</small>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .support-messages-container {
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .support-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .support-message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            position: relative;
+            word-wrap: break-word;
+        }
+        
+        .support-message.reader {
+            background: #e9ecef;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+        
+        .support-message.employee {
+            background: linear-gradient(135deg, #0d6efd, #0043a8);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        
+        .support-message.system {
+            background: #fff3cd;
+            color: #856404;
+            align-self: center;
+            text-align: center;
+            font-size: 13px;
+            font-style: italic;
+            max-width: 90%;
+        }
+        
+        .support-message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .support-message.employee .support-message-time {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        const ticketId = @Model.Id;
+        let supportConnection = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize SignalR connection
+            supportConnection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/support')
+                .withAutomaticReconnect()
+                .build();
+
+            supportConnection.on('NewMessage', function(ticketId, messageData) {
+                if (ticketId === @Model.Id) {
+                    appendMessage(messageData);
+                }
+            });
+
+            supportConnection.on('TicketClaimed', function(tId, employeeId, employeeName) {
+                if (tId === @Model.Id) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Ticket đã được nhận',
+                        text: `Nhân viên ${employeeName} đã nhận xử lý ticket này.`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+
+            supportConnection.on('TicketClosed', function(tId) {
+                if (tId === @Model.Id) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Ticket đã đóng',
+                        text: 'Ticket này đã được đóng.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+
+            supportConnection.start().then(function() {
+                supportConnection.invoke('JoinTicketGroup', @Model.Id);
+            }).catch(function(err) {
+                console.error('SignalR connection error:', err);
+            });
+
+            // Scroll to bottom
+            const container = document.querySelector('.support-messages-container');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+
+        // Claim ticket
+        document.getElementById('claimTicketBtn')?.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Nhận xử lý yêu cầu?',
+                text: 'Bạn sẽ trở thành người chịu trách nhiệm xử lý yêu cầu này.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đồng ý nhận',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+                    
+                    fetch('/SupportTickets/Claim?id=' + @Model.Id, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi!',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi!',
+                            text: 'Có lỗi xảy ra. Vui lòng thử lại.'
+                        });
+                    });
+                }
+            });
+        });
+
+        // Close ticket
+        document.getElementById('closeTicketBtn')?.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Đóng ticket?',
+                text: 'Bạn có chắc chắn muốn đóng ticket này? Sau khi đóng, không thể gửi tin nhắn thêm.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đóng ticket',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+                    
+                    fetch('/SupportTickets/Close?id=' + @Model.Id, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi!',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi!',
+                            text: 'Có lỗi xảy ra. Vui lòng thử lại.'
+                        });
+                    });
+                }
+            });
+        });
+
+        // Reply
+        document.getElementById('replyBtn')?.addEventListener('click', sendReply);
+        document.getElementById('replyInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendReply();
+            }
+        });
+
+        function sendReply() {
+            const input = document.getElementById('replyInput');
+            const content = input?.value?.trim();
+            
+            if (!content) return;
+
+            const btn = document.getElementById('replyBtn');
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            formData.append('content', content);
+            
+            fetch('/SupportTickets/Reply?id=' + @Model.Id + '&content=' + encodeURIComponent(content), {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    window.location.reload();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi!',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi!',
+                    text: 'Có lỗi xảy ra. Vui lòng thử lại.'
+                });
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        }
+
+        function appendMessage(messageData) {
+            const container = document.querySelector('.support-messages');
+            if (container) {
+                const time = messageData.sentDate;
+                // Trang này luôn được Admin/Librarian xem, nên tin nhắn Employee = "mine"
+                const isMine = messageData.senderType === 'Employee';
+                const label = isMine ? 'Nhân viên' : 'Độc giả';
+                const msgHtml = `
+                    <div class="support-message ${isMine ? 'mine' : 'theirs'}">
+                        <div class="fw-semibold mb-1">${label}</div>
+                        ${messageData.content}
+                        <div class="support-message-time">${time}</div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', msgHtml);
+                
+                const scrollContainer = document.querySelector('.support-messages-container');
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                }
+            }
+        }
+    </script>
+}

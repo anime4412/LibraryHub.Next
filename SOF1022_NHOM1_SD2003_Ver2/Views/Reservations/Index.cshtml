@@ -1,0 +1,396 @@
+@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Reservations>
+
+@{
+    ViewData["Title"] = "Quản lý đặt trước sách";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container-fluid" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+        <style>
+            @@media (max-width: 991px) {
+                .container-fluid {
+                    padding-top: var(--section-gap-sm) !important;
+                    padding-bottom: var(--section-gap-sm) !important;
+                }
+            }
+        </style>
+
+    <!-- PAGE HEADER -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h2 class="fw-bold mb-1" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+                        <i class="fa-solid fa-boxes-stacked text-primary me-2"></i>
+                        Quản lý Đặt Trước Sách
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Hệ thống điều phối, phê duyệt và theo dõi các yêu cầu giữ sách của độc giả
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <a asp-action="History" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                        Lịch sử
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATISTICS -->
+    <div class="row mb-4" style="gap: var(--card-gap);">
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Tổng yêu cầu</div>
+                    <h3 class="fw-bold mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@(Model?.Count() ?? 0)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Chờ xử lý</div>
+                    <h3 class="fw-bold text-warning mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => m.BooksStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Waiting)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Đã duyệt</div>
+                    <h3 class="fw-bold text-info mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => m.BooksStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Approved)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Sẵn sàng mượn</div>
+                    <h3 class="fw-bold text-success mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => m.BooksStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.ReadyToBorrow)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-10">
+                        <label class="form-label fw-semibold">Tìm kiếm</label>
+                        <input class="form-control"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               placeholder="Mã yêu cầu, tên độc giả, tên sách..." />
+                    </div>
+                    <div class="col-lg-2 d-grid">
+                        <button class="btn btn-primary">
+                            <i class="fa-solid fa-magnifying-glass me-2"></i>
+                            Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- RESERVATIONS TABLE -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold mb-0" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Danh sách yêu cầu đặt trước</h3>
+                <span class="text-muted">Tổng cộng @(Model?.Count() ?? 0) yêu cầu</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:120px">Mã yêu cầu</th>
+                        <th style="width:150px">Độc giả</th>
+                        <th>Tên sách</th>
+                        <th style="width:140px">Ngày đặt</th>
+                        <th style="width:120px">Hết hạn</th>
+                        <th style="width:140px">Trạng thái</th>
+                        <th style="width:200px">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            var readerName = item.Reader?.FullName ?? "Độc giả ẩn danh";
+                            var bookTitle = item.Book?.Title ?? "Tài liệu đã bị xóa";
+                            var avatarLetter = !string.IsNullOrWhiteSpace(readerName) ? readerName.Substring(0, 1).ToUpper() : "R";
+
+                            var statusClass = "bg-secondary-subtle text-secondary";
+                            var statusText = "Không rõ";
+                            var statusIcon = "fa-question";
+
+                            @switch (item.BooksStatus)
+                            {
+                                case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Waiting:
+                                    statusClass = "bg-warning-subtle text-warning";
+                                    statusText = "Chờ xử lý";
+                                    statusIcon = "fa-clock";
+                                    break;
+                                case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Approved:
+                                    statusClass = "bg-info-subtle text-info";
+                                    statusText = "Đã duyệt";
+                                    statusIcon = "fa-circle-check";
+                                    break;
+                                case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.ReadyToBorrow:
+                                    statusClass = "bg-success-subtle text-success";
+                                    statusText = "Sẵn sàng mượn";
+                                    statusIcon = "fa-box";
+                                    break;
+                                case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Rejected:
+                                    statusClass = "bg-danger-subtle text-danger";
+                                    statusText = "Từ chối";
+                                    statusIcon = "fa-circle-xmark";
+                                    break;
+                                case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Completed:
+                                    statusClass = "bg-success-subtle text-success";
+                                    statusText = "Hoàn tất";
+                                    statusIcon = "fa-circle-check";
+                                    break;
+                            }
+
+                            <tr>
+                                <!-- Mã yêu cầu -->
+                                <td>
+                                    <span class="badge bg-secondary">#@item.Id</span>
+                                </td>
+
+                                <!-- Độc giả -->
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-2" style="width:36px;height:36px;font-size:14px;">
+                                            @avatarLetter
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-truncate" style="max-width:150px;" title="@readerName">
+                                                @readerName
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Tên sách -->
+                                <td>
+                                    <div class="text-truncate" style="max-width:250px;" title="@bookTitle">
+                                        <i class="fa-solid fa-book-open text-muted me-1"></i>
+                                        @bookTitle
+                                    </div>
+                                </td>
+
+                                <!-- Ngày đặt -->
+                                <td>
+                                    @item.ReservationDate.ToString("dd/MM/yyyy HH:mm")
+                                </td>
+
+                                <!-- Hết hạn -->
+                                <td>
+                                    @if (item.ExpirationDate != null)
+                                    {
+                                        <span class="@(item.ExpirationDate < DateTime.Now ? "text-danger fw-bold" : "")">@item.ExpirationDate?.ToString("dd/MM/yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+
+                                <!-- Trạng thái -->
+                                <td>
+                                    <span class="badge @statusClass">
+                                        <i class="fa-solid @statusIcon me-1"></i>@statusText
+                                    </span>
+                                </td>
+
+                                <!-- Thao tác -->
+                                <td>
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        @if (item.BooksStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Waiting)
+                                        {
+                                            @if (Context.HasPermission("reservation.confirm"))
+                                            {
+                                                <button type="button" class="btn btn-success btn-sm" onclick="approveReservation(@item.Id)">
+                                                    <i class="fa-solid fa-check me-1"></i>Duyệt
+                                                </button>
+                                            }
+                                            @if (Context.HasPermission("reservation.cancel"))
+                                            {
+                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="rejectReservation(@item.Id)">
+                                                    <i class="fa-solid fa-xmark me-1"></i>Từ chối
+                                                </button>
+                                            }
+                                        }
+                                        else if (item.BooksStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.ReservationsStatus.Approved && Context.HasPermission("reservation.confirm"))
+                                        {
+                                            <a asp-action="ReadyForPickup" asp-route-id="@item.Id" class="btn btn-success btn-sm">
+                                                <i class="fa-solid fa-box me-1"></i>Sẵn sàng
+                                            </a>
+                                        }
+                                        
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info btn-sm" title="Chi tiết">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrWhiteSpace(item.Note))
+                                    {
+                                        <small class="text-muted d-block mt-1 text-truncate" style="max-width:200px;" title="@item.Note">
+                                            <i class="fa-solid fa-comment-dots me-1"></i>@item.Note
+                                        </small>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- EMPTY STATE -->
+    @if (Model == null || !Model.Any())
+    {
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body text-center py-5">
+                <i class="fa-solid fa-folder-open fa-5x text-secondary mb-4 opacity-50"></i>
+                <h3 class="fw-bold" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Không tìm thấy yêu cầu nào</h3>
+                <p class="text-muted">
+                    Không có dữ liệu đặt trước trùng khớp với từ khóa tìm kiếm hoặc danh sách hiện tại đang trống.
+                </p>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .card {
+        border-radius: 14px;
+    }
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .table {
+        margin-bottom: 0;
+    }
+    .table thead th {
+        font-weight: 700;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+    }
+    .table tbody td {
+        vertical-align: middle;
+    }
+    .table tbody tr {
+        transition: .25s ease;
+    }
+    .table tbody tr:hover {
+        background: #f8fbff;
+    }
+    .form-control {
+        height: 38px;
+        border-radius: 8px;
+    }
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: none;
+    }
+    .btn {
+        border-radius: 8px;
+    }
+    .badge {
+        font-weight: 600;
+        padding: 6px 10px;
+    }
+    @@media(max-width:992px) {
+        .table {
+            min-width: 1000px;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        async function approveReservation(id) {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Xác nhận',
+                text: 'Bạn có chắc chắn muốn duyệt yêu cầu đặt trước này? Hệ thống sẽ tự động tạo phiếu mượn và trừ kho sách.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Huỷ'
+            });
+            if (!isConfirmed) {
+                return;
+            }
+
+            $.ajax({
+                url: '/Admin/Reservations/Approve/' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({ icon: 'success', title: 'Thông báo', text: response.message });
+                        if (response.redirectUrl) {
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi: ' + response.message });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Đã xảy ra lỗi: ' + error });
+                }
+            });
+        }
+
+        async function rejectReservation(id) {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Xác nhận',
+                text: 'Bạn có chắc chắn muốn từ chối yêu cầu đặt trước này?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Huỷ'
+            });
+            if (!isConfirmed) {
+                return;
+            }
+
+            $.ajax({
+                url: '/Admin/Reservations/Cancel/' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({ icon: 'success', title: 'Thông báo', text: response.message });
+                        location.reload();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi: ' + response.message });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Đã xảy ra lỗi: ' + error });
+                }
+            });
+        }
+    </script>
+}

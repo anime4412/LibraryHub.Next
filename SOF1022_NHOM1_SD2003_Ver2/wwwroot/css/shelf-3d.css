@@ -1,0 +1,924 @@
+/* ==========================================================================
+   3D INTERACTIVE BOOKSHELF HERO (KỆ SÁCH TINH HOA 3D)
+   Architecture: 3D Cover-Angle Perspective Flow (Mặt bìa nghiêng 3D chân thực)
+   ========================================================================== */
+
+:root {
+    --shelf-paper: #FFFFFF;
+    --shelf-paper-warm: #F8FAFC;
+    --shelf-sheet: #FFFFFF;
+    --shelf-ink: #0F172A;
+    --shelf-muted: #64748B;
+    --shelf-accent: #2563EB;
+    --shelf-gold: #D97706;
+    --shelf-gold-light: #FDE68A;
+    --shelf-rule: #E2E8F0;
+    --shelf-shadow: rgba(15, 23, 42, 0.12);
+    --shelf-ease: cubic-bezier(0.2, 0.8, 0.2, 1.0);
+    --shelf-h: 290px;
+    --book-w: 195px;
+    --book-d: 26px;
+}
+
+@media (max-width: 1200px) {
+    :root { 
+        --shelf-h: 260px;
+        --book-w: 175px;
+        --book-d: 24px;
+    }
+}
+@media (max-width: 768px) {
+    :root { 
+        --shelf-h: 220px;
+        --book-w: 150px;
+        --book-d: 22px;
+    }
+}
+@media (max-width: 576px) {
+    :root { 
+        --shelf-h: 180px;
+        --book-w: 125px;
+        --book-d: 18px;
+    }
+}
+
+/* Base Shelf Section (Taste-Soft Silver-Grey Canvas) */
+.shelf-hero-section {
+    position: relative;
+    width: 100%;
+    min-height: auto;
+    background-color: var(--canvas, #F2F2F0);
+    background-image: 
+        radial-gradient(ellipse at 50% 20%, rgba(255, 255, 255, 0.88) 0%, rgba(232, 232, 229, 0.5) 65%),
+        linear-gradient(to bottom, #FDFBF7 0%, var(--canvas, #F2F2F0) 100%);
+    overflow: hidden;
+    padding: 10px 0 18px;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+    border-bottom: 1px solid var(--hairline, rgba(10, 10, 12, 0.08));
+}
+
+/* Subtle Paper Texture Overlay */
+.shelf-grain-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.18;
+    mix-blend-mode: multiply;
+    background-image: radial-gradient(rgba(10, 10, 12, 0.05) 1px, transparent 1px);
+    background-size: 4px 4px;
+}
+
+/* Shelf Navigation / Header */
+.shelf-header {
+    position: relative;
+    z-index: 10;
+    max-width: 1320px;
+    margin: 0 auto 12px;
+    padding: 0 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.shelf-brand-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shelf-badge-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--shelf-accent);
+    color: #FFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    box-shadow: 0 6px 16px rgba(31, 63, 176, 0.22);
+}
+
+.shelf-title-main {
+    font-family: var(--font-display, 'Lora', serif);
+    font-size: 23px;
+    font-weight: 700;
+    color: var(--shelf-ink);
+    letter-spacing: -0.02em;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.shelf-subtitle-main {
+    font-size: 12px;
+    color: var(--shelf-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 2px 0 0;
+}
+
+/* Category Filter Tabs */
+.shelf-tabs-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--shelf-rule);
+    border-radius: 40px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.shelf-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 7px 16px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--shelf-muted);
+    cursor: pointer;
+    transition: all 0.25s var(--shelf-ease);
+    white-space: nowrap;
+}
+
+.shelf-tab-btn:hover {
+    color: var(--shelf-ink);
+}
+
+.shelf-tab-btn.active {
+    background: var(--shelf-ink);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(24, 23, 21, 0.18);
+}
+
+/* Quick Search in Hero */
+.shelf-search-bar {
+    position: relative;
+    z-index: 10;
+    max-width: 660px;
+    margin: 0 auto 24px;
+    padding: 0 20px;
+}
+
+.shelf-search-inner {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--hairline, rgba(10, 10, 12, 0.08));
+    border-radius: var(--radius-pill, 999px);
+    padding: 5px 6px 5px 22px;
+    box-shadow: 0 16px 36px -12px rgba(10, 10, 12, 0.08);
+    transition: box-shadow 400ms var(--ease), border-color 400ms var(--ease), transform 400ms var(--ease);
+}
+
+.shelf-search-inner:focus-within {
+    border-color: var(--brand-base);
+    box-shadow: 0 20px 40px -10px rgba(245, 158, 11, 0.18);
+    transform: translateY(-1px);
+}
+
+.shelf-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-family: var(--sans);
+    color: var(--ink, #0A0A0C);
+    background: transparent;
+}
+
+.shelf-search-btn {
+    border: none;
+    background: var(--ink, #0A0A0C);
+    color: #FFFFFF;
+    padding: 9px 22px;
+    border-radius: var(--radius-pill, 999px);
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(10, 10, 12, 0.18);
+    transition: transform 300ms var(--ease), box-shadow 300ms var(--ease), background-color 300ms var(--ease);
+}
+
+.shelf-search-btn:hover {
+    background-color: var(--brand-base);
+    color: #0A0A0C;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.32);
+}
+
+/* ==========================================================================
+   3D STAGE & RUNNER
+   ========================================================================== */
+
+.shelf-stage-container {
+    position: relative;
+    width: 100%;
+    height: calc(var(--shelf-h) + 40px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1800px;
+    -webkit-perspective: 1800px;
+    overflow: visible;
+    margin: 32px auto 0;
+}
+
+/* The Shelf Track */
+.shelf-track {
+    position: absolute;
+    width: 0;
+    height: var(--shelf-h);
+    top: 24px;
+    left: 50%;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    will-change: transform;
+    pointer-events: auto;
+}
+
+/* The Wooden Bookshelf Ledge */
+.shelf-wooden-ledge {
+    position: absolute;
+    bottom: 0;
+    left: -200%;
+    right: -200%;
+    height: 16px;
+    background: linear-gradient(to bottom, #E8DEC8 0%, #D8CBB2 45%, #B5A486 100%);
+    box-shadow: 
+        0 4px 18px rgba(0, 0, 0, 0.12),
+        0 16px 45px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    border-radius: 3px;
+    z-index: 1;
+}
+
+.shelf-wooden-shadow {
+    position: absolute;
+    bottom: -24px;
+    left: -200%;
+    right: -200%;
+    height: 40px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0, 0, 0, 0.18) 0%, transparent 75%);
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   INDIVIDUAL 3D BOOK CUBOID (.book-tape)
+   Primary Face: FRONT COVER (.cv) angled in 3D perspective
+   ========================================================================== */
+
+.book-tape {
+    position: absolute;
+    bottom: 0;
+    left: calc(var(--book-w) / -2);
+    width: var(--book-w);
+    height: var(--shelf-h);
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    cursor: pointer;
+    will-change: transform;
+    transform-origin: 50% 50% 0;
+    transition: filter 0.3s;
+}
+
+.book-tape:not(.active):hover {
+    filter: brightness(1.08) drop-shadow(0 15px 30px rgba(0, 0, 0, 0.25));
+}
+
+/* 3D Book Faces Base */
+.book-face {
+    position: absolute;
+    box-sizing: border-box;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* 1. FRONT COVER (.cv) - The main visual focus! */
+.book-face.cv {
+    top: 0;
+    left: 0;
+    width: var(--book-w);
+    height: var(--shelf-h);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 
+        inset 5px 0 10px rgba(0, 0, 0, 0.35),
+        inset -1px 0 2px rgba(255, 255, 255, 0.25),
+        0 14px 38px var(--shelf-shadow);
+    overflow: hidden;
+}
+
+/* Cover glossy sheen + spine fold line */
+.book-face.cv::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0; width: 14px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.45) 0%, rgba(255, 255, 255, 0.18) 35%, transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.book-face.cv::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(115deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.03) 40%, transparent 65%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* 2. BACK COVER (.back) */
+.book-face.back {
+    top: 0;
+    left: 0;
+    width: var(--book-w);
+    height: var(--shelf-h);
+    background: linear-gradient(135deg, #242220 0%, #1A1918 50%, #2A2621 100%);
+    border-radius: 6px 0 0 6px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+/* 3. SPINAL FACE (.sp) - Realistic Vintage/Modern Leather on left edge */
+.book-face.sp {
+    top: 0;
+    left: calc(50% - (var(--book-d) / 2));
+    width: var(--book-d);
+    height: var(--shelf-h);
+    background: linear-gradient(135deg, #2B2A28 0%, #1A1918 50%, #2E2923 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 4px;
+    box-sizing: border-box;
+    box-shadow: 
+        inset 1px 0 2px rgba(255, 255, 255, 0.25),
+        inset -1px 0 3px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.spine-rib {
+    width: 85%;
+    height: 2.5px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 0%, rgba(0, 0, 0, 0.7) 100%);
+    border-radius: 2px;
+    margin: 2px 0;
+}
+
+.spine-header-badge {
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--shelf-gold);
+    letter-spacing: 0.1em;
+    text-align: center;
+}
+
+.spine-title {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-family: var(--font-display, 'Lora', serif);
+    font-size: 13px;
+    font-weight: 600;
+    color: #F8F6F0;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+    max-height: calc(var(--shelf-h) * 0.55);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 6px 0;
+}
+
+.spine-author {
+    font-size: 9px;
+    font-weight: 500;
+    color: #B5B0A4;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+}
+
+.spine-footer-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--shelf-gold-light);
+    font-size: 11px;
+}
+
+.spine-footer-logo span {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+/* 4. SIDE FACE (Outer Right Pages Edge) */
+.book-face.side-face {
+    top: 0;
+    left: calc(50% - (var(--book-d) / 2));
+    width: var(--book-d);
+    height: var(--shelf-h);
+    background: #C4BCAE;
+    background-image: repeating-linear-gradient(to bottom, #C4BCAE, #C4BCAE 2px, #A89E8D 2px, #A89E8D 3px);
+    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.55);
+    opacity: 0.85;
+}
+
+/* 5. TOP FACE (Pages Edge) */
+.book-face.top-face {
+    top: calc(50% - (var(--book-d) / 2));
+    left: 0;
+    width: var(--book-w);
+    height: var(--book-d);
+    background: #EBE5D8;
+    background-image: repeating-linear-gradient(to right, #EBE5D8, #EBE5D8 2px, #D5CEBE 2px, #D5CEBE 3px);
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Realistic Ground Shadow Beneath Each Book */
+.book-floor-shadow {
+    position: absolute;
+    bottom: -32px;
+    left: 10%;
+    width: 80%;
+    height: 36px;
+    background: radial-gradient(ellipse at center, rgba(16, 14, 10, 0.38) 0%, transparent 72%);
+    transform: rotateX(90deg) translateZ(-16px);
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.book-tape.active .book-floor-shadow {
+    opacity: 0.9;
+    transform: rotateX(90deg) translateZ(-26px) scale(1.15);
+    background: radial-gradient(ellipse at center, rgba(16, 14, 10, 0.55) 0%, transparent 75%);
+}
+
+/* Floating Play/Open Ring on Active Cover */
+.book-open-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(31, 63, 176, 0.92);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 10px 28px rgba(31, 63, 176, 0.45);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s var(--shelf-ease), background 0.3s;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.book-tape.active .book-open-ring {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+}
+
+.book-tape.active:hover .book-open-ring {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: #173394;
+}
+
+/* ==========================================================================
+   NAVIGATION ARROWS & COUNTER
+   ========================================================================== */
+
+.shelf-nav-controls {
+    position: absolute;
+    top: 48%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 25;
+    width: 100%;
+    margin: 0;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.shelf-nav-btn {
+    pointer-events: auto;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid var(--shelf-rule);
+    color: var(--shelf-ink);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s var(--shelf-ease);
+}
+
+.shelf-nav-btn:hover {
+    background: var(--shelf-ink);
+    color: #FFFFFF;
+    transform: scale(1.08);
+    box-shadow: 0 8px 24px rgba(24, 23, 21, 0.25);
+}
+
+.shelf-counter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    padding: 3px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--hairline-strong);
+    letter-spacing: 0.14em;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   CAPTION BOX WITH MASK SLIDE REVEAL
+   ========================================================================== */
+
+.shelf-caption-wrapper {
+    position: relative;
+    z-index: 10;
+    max-width: 860px;
+    margin: 12px auto 0;
+    padding: 0 24px;
+    text-align: center;
+}
+
+.shelf-caption-mask {
+    overflow: hidden;
+    padding: 4px 0;
+}
+
+.shelf-caption-title {
+    font-family: var(--font-display, 'Lora', serif);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--shelf-ink);
+    margin: 0;
+    line-height: 1.25;
+    transition: transform 0.45s var(--shelf-ease), opacity 0.45s var(--shelf-ease);
+}
+
+.shelf-caption-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: 6px 0 14px;
+    font-size: 13.5px;
+    color: var(--shelf-muted);
+    font-weight: 500;
+    flex-wrap: wrap;
+    transition: transform 0.45s var(--shelf-ease) 0.05s, opacity 0.45s var(--shelf-ease) 0.05s;
+}
+
+.shelf-caption-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.shelf-caption-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    transition: transform 0.45s var(--shelf-ease) 0.1s, opacity 0.45s var(--shelf-ease) 0.1s;
+}
+
+.shelf-action-btn-primary {
+    background: var(--shelf-accent);
+    color: #FFFFFF;
+    border: none;
+    padding: 9px 24px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 6px 20px rgba(31, 63, 176, 0.28);
+    transition: all 0.2s;
+}
+
+.shelf-action-btn-primary:hover {
+    background: #173394;
+    color: #FFFFFF;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(31, 63, 176, 0.38);
+}
+
+.shelf-action-btn-secondary {
+    background: #FFFFFF;
+    color: #1E293B;
+    border: 1.5px solid #CBD5E1;
+    padding: 9px 22px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s;
+}
+
+.shelf-action-btn-secondary i {
+    color: #2563EB;
+}
+
+.shelf-action-btn-secondary:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+    border-color: #94A3B8;
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   PAPER SHEET DETAIL MODAL
+   ========================================================================== */
+
+.shelf-detail-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1000;
+    background: rgba(18, 16, 12, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s var(--shelf-ease);
+}
+
+.shelf-detail-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.shelf-detail-sheet {
+    background: var(--shelf-sheet);
+    border-radius: 16px;
+    max-width: 960px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 40px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    transform: scale(0.92) translateY(20px);
+    transition: transform 0.45s var(--shelf-ease);
+}
+
+.shelf-detail-modal.active .shelf-detail-sheet {
+    transform: scale(1) translateY(0);
+}
+
+.shelf-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(24, 23, 21, 0.08);
+    border: none;
+    font-size: 20px;
+    color: var(--shelf-ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.shelf-close-btn:hover {
+    background: rgba(24, 23, 21, 0.16);
+}
+
+.shelf-poster-container {
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    background: #EFECE4;
+}
+
+.shelf-poster-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Dark Mode Support for 3D Bookshelf */
+[data-theme="dark"] {
+    --shelf-paper: #141722;
+    --shelf-paper-warm: #1A1F2C;
+    --shelf-sheet: #1D212B;
+    --shelf-ink: #F8FAFC;
+    --shelf-muted: #9BA3AF;
+    --shelf-accent: #3B82F6;
+    --shelf-gold: #F59E0B;
+    --shelf-gold-light: #FDE68A;
+    --shelf-rule: rgba(255, 255, 255, 0.12);
+    --shelf-shadow: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .shelf-hero-section {
+    background-color: var(--canvas, #0C0D12);
+    background-image: 
+        radial-gradient(ellipse at 50% 25%, rgba(30, 41, 59, 0.45) 0%, rgba(12, 13, 18, 0.98) 75%),
+        linear-gradient(to bottom, rgba(30, 41, 59, 0.3) 0%, var(--canvas, #0C0D12) 100%);
+    border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+}
+
+[data-theme="dark"] .shelf-wooden-ledge {
+    background: linear-gradient(to bottom, #2C3444 0%, #1B212D 60%, #10141C 100%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .shelf-wooden-shadow {
+    background: radial-gradient(ellipse at 50% 0%, rgba(0, 0, 0, 0.85) 0%, transparent 75%) !important;
+}
+
+[data-theme="dark"] .shelf-tabs-wrapper {
+    background: rgba(29, 33, 43, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .shelf-tab-btn {
+    color: #9BA3AF;
+}
+
+[data-theme="dark"] .shelf-tab-btn:hover {
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] .shelf-tab-btn.active {
+    background: #3B82F6;
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] .shelf-search-inner {
+    background: #1D212B;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .shelf-search-input {
+    color: #F4F1EA;
+}
+
+[data-theme="dark"] .shelf-detail-sheet {
+    background: #1D212B;
+    color: #F4F1EA;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .shelf-close-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: #F4F1EA;
+}
+
+[data-theme="dark"] .shelf-caption-title {
+    color: #FFFFFF !important;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .shelf-caption-meta {
+    color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .shelf-caption-meta span {
+    color: #E2E8F0 !important;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .shelf-caption-meta span i {
+    color: #60A5FA !important;
+}
+
+[data-theme="dark"] .shelf-caption-meta .badge.bg-success-subtle {
+    background-color: #064E3B !important;
+    color: #34D399 !important;
+    border: 1px solid #059669 !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="dark"] .shelf-caption-meta .badge.bg-danger-subtle {
+    background-color: #7F1D1D !important;
+    color: #FCA5A5 !important;
+    border: 1px solid #DC2626 !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="dark"] .shelf-action-btn-primary {
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45) !important;
+}
+
+[data-theme="dark"] .shelf-action-btn-primary:hover {
+    background: #1D4ED8 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-2px);
+}
+
+[data-theme="dark"] .shelf-action-btn-secondary {
+    background: #1E293B !important;
+    color: #F8FAFC !important;
+    border: 1.5px solid #475569 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .shelf-action-btn-secondary i {
+    color: #38BDF8 !important;
+}
+
+[data-theme="dark"] .shelf-action-btn-secondary:hover {
+    background: #334155 !important;
+    color: #FFFFFF !important;
+    border-color: #38BDF8 !important;
+    transform: translateY(-2px);
+}
+
+[data-theme="dark"] .shelf-nav-btn {
+    background: #1D212B !important;
+    color: #F4F1EA !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .shelf-nav-btn:hover {
+    background: #2D3748 !important;
+    color: #FFFFFF !important;
+    border-color: #60A5FA !important;
+}
+
+[data-theme="dark"] .shelf-counter {
+    background: #1D212B !important;
+    color: #F4F1EA !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .shelf-brand-title h1 {
+    color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .shelf-brand-title p {
+    color: #94A3B8 !important;
+}

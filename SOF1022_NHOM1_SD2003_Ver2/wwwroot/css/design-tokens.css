@@ -1,0 +1,135 @@
+:root {
+  /* Brand Tokens */
+  --brand-base: #F59E0B;      /* Amber 500 - điểm nhấn ấm áp */
+  --brand-hover: #D97706;     /* Amber 600 */
+  --brand-soft: rgba(245, 158, 11, 0.12);
+  --brand-ink: #0A0A0C;       /* Chữ tương phản cao */
+
+  /* Taste-Soft Premium Canvas & Surfaces */
+  --canvas: #F2F2F0;          /* Silver-grey soft canvas (Apple-tier) */
+  --canvas-2: #E8E8E5;
+  --bg-deep: #F2F2F0;         /* Nền tổng thể trang */
+  --bg-card: #FFFFFF;         /* Nền card lõi trong */
+  --bg-input: #FFFFFF;
+  --border-color: rgba(10, 10, 12, 0.08); /* Hairline */
+  --hairline: rgba(10, 10, 12, 0.08);
+  --hairline-strong: rgba(10, 10, 12, 0.14);
+  --innerlight: rgba(255, 255, 255, 0.75);
+
+  /* Taste-Soft Typography */
+  --ink: #0A0A0C;             /* Off-black */
+  --text-primary: #0A0A0C;
+  --text-secondary: #57575A;  /* Soft muted slate */
+  --text-muted: #8E8E93;
+  --sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Haptic & Spring Motion */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.16, 1.16, 0.3, 1);
+
+  /* Squircle Concentric Radii */
+  --shell-radius: 2rem;
+  --core-radius: calc(2rem - 0.375rem);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* Feedback */
+  --success: #10B981;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --danger: #EF4444;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --warning: #F59E0B;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --info: #3B82F6;
+  --info-bg: rgba(59, 130, 246, 0.12);
+  --accent-light: rgba(245, 158, 11, 0.12);
+
+  /* Diffuse Wide-Spread Low-Opacity Shadows */
+  --shadow-sm: 0 2px 8px -2px rgba(10, 10, 12, 0.04);
+  --shadow-md: 0 16px 36px -12px rgba(10, 10, 12, 0.06);
+  --shadow-lg: 0 24px 48px -16px rgba(10, 10, 12, 0.08);
+
+  /* Typography scale */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+  --text-4xl: 44px;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  /* Section rhythm */
+  --section-gap: 72px;
+  --section-gap-sm: 44px;
+  --card-gap: 24px;
+  --card-pad: 24px;
+  --container-max: 1240px;
+
+  /* Compatibility aliases */
+  --emerald-base: var(--brand-base);
+  --emerald-hover: var(--brand-hover);
+  --emerald-soft: var(--brand-soft);
+
+  /* Floating Pill Navbar & Footer */
+  --navbar-bg: rgba(255, 255, 255, 0.65);
+  --navbar-border: rgba(10, 10, 12, 0.08);
+  --footer-bg: #E8E8E5;
+  --dropdown-bg: #FFFFFF;
+}
+
+[data-theme="dark"] {
+  /* Taste-Soft Dark Canvas & Surfaces */
+  --canvas: #0C0D12;
+  --canvas-2: #141622;
+  --bg-deep: #0C0D12;
+  --bg-card: #141722;
+  --bg-input: #1A1E2C;
+  --border-color: rgba(255, 255, 255, 0.09);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --innerlight: rgba(255, 255, 255, 0.05);
+
+  /* Taste-Soft Dark Typography */
+  --ink: #F5F5F7;
+  --text-primary: #F5F5F7;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+
+  /* Brand Dark */
+  --brand-base: #F59E0B;
+  --brand-hover: #FBBF24;
+  --brand-soft: rgba(245, 158, 11, 0.16);
+  --brand-ink: #0A0A0C;
+
+  --success: #34D399;
+  --success-bg: rgba(52, 211, 153, 0.15);
+  --danger: #F87171;
+  --danger-bg: rgba(248, 113, 113, 0.15);
+  --warning: #FBBF24;
+  --warning-bg: rgba(251, 191, 36, 0.15);
+  --info: #60A5FA;
+  --info-bg: rgba(96, 165, 250, 0.15);
+  --accent-light: rgba(245, 158, 11, 0.15);
+
+  /* Dark Diffuse Shadows */
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 16px 36px -12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 48px -16px rgba(0, 0, 0, 0.7);
+
+  /* Dark Navbar & Footer */
+  --navbar-bg: rgba(20, 23, 34, 0.75);
+  --navbar-border: rgba(255, 255, 255, 0.09);
+  --footer-bg: #08090D;
+  --dropdown-bg: #141722;
+}

@@ -1,0 +1,1021 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.BorrowSlips
+
+@{
+    ViewData["Title"] = "Chi tiết phiếu mượn";
+    var userRole = Context.Session.GetString("Role");
+    var isAdmin = userRole == "Admin" || userRole == "Librarian";
+}
+
+@Html.AntiForgeryToken()
+
+
+<div class="details-hero">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 class="hero-title d-flex align-items-center mb-1">
+                    <i class="fa-solid fa-circle-info text-warning me-3"></i> Thông tin phiếu mượn
+                </h1>
+                <p class="hero-sub mb-0">
+                    Xem chi tiết dữ liệu, trạng thái và lịch trình lưu vết hệ thống của mã phiếu này
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="PrintSlip" asp-route-id="@Model.Id" target="_blank" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm">
+                    <i class="fa-solid fa-print me-2"></i>In phiếu mượn
+                </a>
+                @if (isAdmin)
+                {
+                    <a asp-action="Index" class="btn btn-outline-light rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại danh sách
+                    </a>
+                }
+                else
+                {
+                    <a asp-action="MyBorrows" class="btn btn-outline-light rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại danh sách
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-4">
+        
+        <!-- CỘT TRÁI: THÔNG TIN CHÍNH CỦA PHIẾU -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="details-main-card">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <span class="fs-5 fw-bold text-heading d-flex align-items-center">
+                        <i class="fa-solid fa-receipt text-warning me-2"></i> Nội dung phiếu mượn
+                    </span>
+                    
+                    @{
+                        var isPending = Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.PendingApproval;
+                        var isApprovedAwaitingPickup = Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.ApprovedAwaitingPickup;
+                        var isBorrowing = Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Borrowing;
+                        var isOverdue = isBorrowing && Model.DueDate < DateTime.Now;
+                        var isLostOrDamaged = Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.LostOrDamaged;
+                        var isCancelled = Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Cancelled || 
+                                          Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.CanceledDueToTimeout;
+                        var isReturned = Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Returned ||
+                                         Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Completed;
+                    }
+                    
+                    <div>
+                        @if (isCancelled)
+                        {
+                            <span class="badge status-cancelled-badge">
+                                <i class="fa-solid fa-ban me-1"></i> Đã hủy
+                            </span>
+                        }
+                        else if (isPending)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                <i class="fa-solid fa-clock me-1"></i> Chờ duyệt
+                            </span>
+                        }
+                        else if (isApprovedAwaitingPickup)
+                        {
+                            <span class="badge bg-info text-dark">
+                                <!-- TODO: Keep text-dark here because bg-info is a fixed light background that doesn't change with theme -->
+                                <i class="fa-solid fa-box-open me-1"></i> Chờ lấy sách
+                            </span>
+                        }
+                        else if (isBorrowing)
+                        {
+                            if (isOverdue)
+                            {
+                                <span class="badge status-overdue-badge">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Quá hạn trả
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge status-borrowing-badge">
+                                    <i class="fa-solid fa-book-open-reader me-1"></i> Đang mượn
+                                </span>
+                            }
+                        }
+                        else if (isLostOrDamaged)
+                        {
+                            <span class="badge status-incident-badge">
+                                <i class="fa-solid fa-exclamation-triangle me-1"></i> Sự cố / Bồi thường
+                            </span>
+                        }
+                        else if (isReturned)
+                        {
+                            <span class="badge status-returned-badge">
+                                <i class="fa-solid fa-circle-check me-1"></i> Đã trả
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">@Model.BorrowStatus</span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Admin Action Buttons -->
+                @if (User.IsInRole("Admin") || User.IsInRole("Librarian"))
+                {
+                    <div class="card-body-custom pt-0">
+                        @if (Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.PendingApproval)
+                        {
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-success" onclick="approveSlip(@Model.Id)">
+                                    <i class="fa-solid fa-check me-2"></i>Duyệt phiếu mượn
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="rejectSlip(@Model.Id)">
+                                    <i class="fa-solid fa-times me-2"></i>Từ chối
+                                </button>
+                            </div>
+                        }
+                        else if (Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.ApprovedAwaitingPickup)
+                        {
+                            <button type="button" class="btn btn-primary" onclick="deliverSlip(@Model.Id)">
+                                <i class="fa-solid fa-box me-2"></i>Xác nhận đã giao sách
+                            </button>
+                        }
+                        else if (Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Borrowing)
+                        {
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-warning" onclick="openReturnModal(@Model.Id)">
+                                    <i class="fa-solid fa-rotate-left me-2"></i>Trả sách
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="renewSlip(@Model.Id)">
+                                    <i class="fa-solid fa-clock-rotate-left me-2"></i>Gia hạn (+7 ngày)
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Borrowing && Model.DueDate >= DateTime.Now)
+                {
+                    <div class="card-body-custom pt-0">
+                        <button type="button" class="btn btn-primary" onclick="renewSlip(@Model.Id)">
+                            <i class="fa-solid fa-clock-rotate-left me-2"></i>Gia hạn mượn sách (+7 ngày)
+                        </button>
+                    </div>
+                }
+
+                <div class="card-body-custom">
+                    <dl class="info-definition-list">
+                        <div class="info-row">
+                            <dt><i class="fa-solid fa-hashtag text-warning me-2"></i>Mã số phiếu</dt>
+                            <dd class="fw-bold text-heading fs-5">@Html.DisplayFor(model => model.BorrowCode)</dd>
+                        </div>
+
+                        <div class="info-row">
+                            <dt><i class="fa-solid fa-user-tag text-warning me-2"></i>Độc giả mượn</dt>
+                            <dd class="text-heading fw-semibold">
+                                @(Model.Readers?.FullName ?? "Không tìm thấy dữ liệu tên độc giả") 
+                                <small class="text-muted ms-2">(ID người dùng: @Model.ReaderId)</small>
+                            </dd>
+                        </div>
+
+                        <div class="info-row">
+                            <dt><i class="fa-solid fa-layer-group text-warning me-2"></i>Số lượng sách</dt>
+                            <dd class="text-heading fw-bold">@Html.DisplayFor(model => model.TotalBooks) <span class="text-muted fw-normal fs-14">cuốn</span></dd>
+                        </div>
+
+                        <div class="info-row align-items-start">
+                            <dt class="pt-1"><i class="fa-solid fa-comment-dots text-warning me-2"></i>Ghi chú nội bộ</dt>
+                            <dd class="text-muted note-block">
+                                @if (!string.IsNullOrWhiteSpace(Model.Note))
+                                {
+                                    @Html.DisplayFor(model => model.Note)
+                                }
+                                else
+                                {
+                                    <span class="fst-italic opacity-50">Không có ghi chú nào đính kèm cho phiếu mượn này</span>
+                                }
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- DANH SÁCH SÁCH TRONG PHIẾU -->
+            <div class="details-main-card mt-4">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <span class="fs-5 fw-bold text-heading d-flex align-items-center">
+                        <i class="fa-solid fa-book text-warning me-2"></i> Danh sách sách mượn
+                    </span>
+                    @if (Model.BorrowStatus == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Borrowing)
+                    {
+                        <button onclick="openReturnModal(@Model.Id)" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-undo-alt me-1"></i> Xử lý trả sách
+                        </button>
+                    }
+                </div>
+                <div class="card-body-custom">
+                    @if (Model.BorrowDetails != null && Model.BorrowDetails.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tên sách</th>
+                                        <th>Tác giả</th>
+                                        <th>Trạng thái</th>
+                                        @if (isPending)
+                                        {
+                                            <th>Thao tác</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detail in Model.BorrowDetails)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold">@detail.Books?.Title</td>
+                                            <td>@detail.Books?.Author?.Name</td>
+                                            <td>
+                                                @if (detail.IsReturned)
+                                                {
+                                                    <span class="badge bg-success">Đã trả</span>
+                                                }
+                                                else if (detail.IsLost)
+                                                {
+                                                    <span class="badge bg-danger">Đã mất</span>
+                                                }
+                                                else if (detail.IsDamaged)
+                                                {
+                                                    <span class="badge bg-warning text-dark">Đã hư hại</span>
+                                                    <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                                }
+                                                else if (isPending)
+                                                {
+                                                    <span class="badge bg-warning text-dark">Chờ duyệt</span>
+                                                    <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                                }
+                                                else if (isApprovedAwaitingPickup)
+                                                {
+                                                    <span class="badge bg-info text-dark">Chờ lấy sách</span>
+                                                    <!-- TODO: Keep text-dark here because bg-info is a fixed light background that doesn't change with theme -->
+                                                }
+                                                else if (isBorrowing)
+                                                {
+                                                    <span class="badge bg-primary">Đang mượn</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@Model.BorrowStatus</span>
+                                                }
+                                            </td>
+                                            @if (isPending)
+                                            {
+                                                <td>
+                                                    @if (!detail.IsReturned)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelIndividualBook(@detail.Id)">
+                                                            <i class="fa-solid fa-trash-alt me-1"></i>Hủy cuốn này
+                                                        </button>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted fst-italic">Không có sách nào trong phiếu mượn này.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- EDITABLE DATES CARD -->
+            <div class="details-main-card mt-4">
+                <div class="card-header-custom">
+                    <span class="fs-5 fw-bold text-heading d-flex align-items-center">
+                        <i class="fa-solid fa-calendar text-warning me-2"></i> Chỉnh sửa ngày tháng
+                    </span>
+                </div>
+                <div class="card-body-custom">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-heading">Ngày mượn</label>
+                            <input type="date" class="form-control" 
+                                   id="borrowDateEdit" 
+                                   value="@Model.BorrowDate.ToString("yyyy-MM-dd")"
+                                   @(isBorrowing ? "" : "disabled") />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-heading">Hạn trả</label>
+                            <input type="date" class="form-control" 
+                                   id="dueDateEdit" 
+                                   value="@Model.DueDate.ToString("yyyy-MM-dd")"
+                                   @(isBorrowing ? "" : "disabled") />
+                        </div>
+                        @if (isBorrowing)
+                        {
+                            <div class="col-12">
+                                <button onclick="updateDates()" class="btn btn-primary">
+                                    <i class="fa-solid fa-save me-1"></i>Cập nhật ngày tháng
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- FINE/PENALTY DETAILS CARD -->
+            <div class="details-main-card mt-4">
+                <div class="card-header-custom">
+                    <span class="fs-5 fw-bold text-heading d-flex align-items-center">
+                        <i class="fa-solid fa-money-bill-wave text-warning me-2"></i> Chi tiết tiền phạt
+                    </span>
+                </div>
+                <div class="card-body-custom">
+                    @if (Model.Fines != null && Model.Fines.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Mã phạt</th>
+                                        <th>Lý do</th>
+                                        <th>Số tiền</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var fine in Model.Fines)
+                                    {
+                                        <tr>
+                                            <td>#FN@fine.Id.ToString("D6")</td>
+                                            <td>@fine.Reason</td>
+                                            <td class="fw-bold text-danger">@fine.Amount.ToString("N0") VNĐ</td>
+                                            <td>
+                                                @if (fine.IsPaid)
+                                                {
+                                                    <span class="badge bg-success">Đã thanh toán</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Chưa thanh toán</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else if (Model.BorrowDetails != null && Model.BorrowDetails.Any(d => d.CompensationAmount > 0))
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var detail in Model.BorrowDetails.Where(d => d.CompensationAmount > 0))
+                            {
+                                <li class="mb-2">
+                                    <strong>@detail.Books?.Title:</strong>
+                                    <span class="text-danger fw-bold">@detail.CompensationAmount.ToString("N0") VNĐ</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted fst-italic mb-0">Không có khoản phạt nào.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: TIẾN TRÌNH THỜI GIAN -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="details-side-card">
+                <div class="side-card-header">
+                    <i class="fa-solid fa-timeline text-warning me-2"></i> Lịch trình xử lý
+                </div>
+                <div class="side-card-body">
+                    <div class="timeline-item">
+                        <div class="timeline-icon bg-success-subtle text-success"><i class="fa-solid fa-calendar-plus"></i></div>
+                        <div class="timeline-content">
+                            <div class="label">Ngày mượn sách</div>
+                            <div class="val">@Model.BorrowDate.ToString("dd/MM/yyyy")</div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-icon @(isOverdue ? "bg-danger-subtle text-danger" : "bg-warning-subtle text-warning")">
+                            <i class="fa-solid fa-calendar-xmark"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="label">Hạn trả bắt buộc</div>
+                            <div class="val @(isOverdue ? "text-danger fw-bold animate-pulse" : "")">@Model.DueDate.ToString("dd/MM/yyyy")</div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-icon bg-secondary-subtle text-heading"><i class="fa-solid fa-user-shield"></i></div>
+                        <div class="timeline-content">
+                            <div class="label">Nhân viên tạo phiếu</div>
+                            <div class="val">@Html.DisplayFor(model => model.CreatedBy)</div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item pb-0">
+                        <div class="timeline-icon bg-secondary-subtle text-heading"><i class="fa-solid fa-clock"></i></div>
+                        <div class="timeline-content">
+                            <div class="label">Khởi tạo hệ thống</div>
+                            <div class="val text-muted fs-13">@Model.CreatedDate.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Nút điều hướng phụ ở dưới dành cho thiết bị di động (Mobile UX) -->
+            <div class="mt-3 d-block d-lg-none">
+                @if (isAdmin)
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100 py-2.5 fw-medium rounded-3 btn-custom-back">
+                        <i class="fa-solid fa-chevron-left me-2"></i>Quay lại danh sách
+                    </a>
+                }
+                else
+                {
+                    <a asp-action="MyBorrows" class="btn btn-outline-secondary w-100 py-2.5 fw-medium rounded-3 btn-custom-back">
+                        <i class="fa-solid fa-chevron-left me-2"></i>Quay lại danh sách
+                    </a>
+                }
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+@await Html.PartialAsync("_ReturnBookModalPartial", Model)
+
+<style>
+    body {
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .details-hero {
+        background: linear-gradient(135deg, var(--brand-base) 0%, var(--brand-hover) 100%);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 20px;
+    }
+
+    .hero-title {
+        font-size: 34px;
+        font-weight: 800;
+        color: white;
+    }
+
+    .hero-sub {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 15px;
+    }
+
+    /* Card trung tâm */
+    .details-main-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header-custom {
+        background: var(--bg-input);
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-body-custom {
+        padding: 24px;
+    }
+
+    .info-definition-list {
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .info-row {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 14px;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .info-row dt {
+        width: 200px;
+        flex-shrink: 0;
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .info-row dd {
+        margin-bottom: 0;
+        flex-grow: 1;
+    }
+
+    .note-block {
+        line-height: 1.6;
+        word-break: break-word;
+    }
+
+    /* Thẻ bên phải (Side card) */
+    .details-side-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .side-card-header {
+        background: var(--bg-input);
+        padding: 14px 20px;
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .side-card-body {
+        padding: 20px;
+    }
+
+    /* Thành phần Timeline */
+    .timeline-item {
+        display: flex;
+        gap: 16px;
+        padding-bottom: 20px;
+        position: relative;
+    }
+
+    .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 18px;
+        top: 36px;
+        bottom: 0;
+        width: 2px;
+        background: var(--border-color);
+    }
+
+    .timeline-item:last-child::after {
+        display: none;
+    }
+
+    .timeline-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        z-index: 2;
+        font-size: 14px;
+    }
+
+    .timeline-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .timeline-content .label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 2px;
+    }
+
+    .timeline-content .val {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    /* Badges trạng thái */
+    .badge {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 999px;
+    }
+
+    .status-borrowing-badge {
+        background: rgba(245, 158, 11, .15);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, .3);
+    }
+
+    .status-returned-badge {
+        background: rgba(34, 197, 94, .15);
+        color: var(--success);
+        border: 1px solid rgba(34, 197, 94, .25);
+    }
+
+    .status-overdue-badge {
+        background: rgba(239, 68, 68, .15);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, .25);
+    }
+
+    .status-incident-badge {
+        background: rgba(245, 158, 11, .15);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, .3);
+    }
+
+    .status-cancelled-badge {
+        background: rgba(107, 114, 128, .15);
+        color: var(--text-muted);
+        border: 1px solid rgba(107, 114, 128, .25);
+    }
+
+    .btn-custom-back {
+        color: var(--text-secondary);
+        border-color: var(--border-color);
+        background: var(--bg-card);
+    }
+    
+    .btn-custom-back:hover {
+        background: var(--bg-input);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+
+    .py-2.5 { padding-top: 10px; padding-bottom: 10px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+
+    .bg-success-subtle { background-color: rgba(34, 197, 94, 0.1) !important; }
+    .bg-warning-subtle { background-color: rgba(245, 158, 11, 0.1) !important; }
+    .bg-danger-subtle { background-color: rgba(239, 68, 68, 0.1) !important; }
+    .bg-secondary-subtle { background-color: rgba(139, 148, 158, 0.1) !important; }
+
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .6; }
+    }
+
+    @@media(max-width: 768px) {
+        .info-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+        .info-row dt { width: 100%; }
+        .details-hero { padding-top: 30px; }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function cancelIndividualBook(borrowDetailId) {
+        Swal.fire({
+            title: 'Xác nhận hủy cuốn sách',
+            text: 'Bạn có chắc chắn muốn hủy cuốn sách này khỏi phiếu mượn?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/BorrowSlips/CancelItem', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ detailId: borrowDetailId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã hủy',
+                            text: data.message || 'Đã hủy cuốn sách thành công',
+                            confirmButtonText: 'Đóng'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message || 'Không thể hủy cuốn sách',
+                            confirmButtonText: 'Đóng'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra khi kết nối',
+                        confirmButtonText: 'Đóng'
+                    });
+                });
+            }
+        });
+    }
+
+    function approveSlip(slipId) {
+        Swal.fire({
+            title: 'Xác nhận duyệt phiếu mượn',
+            text: 'Bạn có chắc chắn muốn duyệt phiếu mượn này?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Duyệt',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/BorrowSlips/Approve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ id: slipId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã duyệt',
+                            text: data.message || 'Phiếu mượn đã được duyệt',
+                            confirmButtonText: 'Đóng'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message || 'Không thể duyệt phiếu mượn',
+                            confirmButtonText: 'Đóng'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra khi kết nối',
+                        confirmButtonText: 'Đóng'
+                    });
+                });
+            }
+        });
+    }
+
+    function rejectSlip(slipId) {
+        Swal.fire({
+            title: 'Xác nhận từ chối phiếu mượn',
+            text: 'Bạn có chắc chắn muốn từ chối phiếu mượn này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Từ chối',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/BorrowSlips/Reject', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ id: slipId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã từ chối',
+                            text: data.message || 'Phiếu mượn đã bị từ chối',
+                            confirmButtonText: 'Đóng'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message || 'Không thể từ chối phiếu mượn',
+                            confirmButtonText: 'Đóng'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra khi kết nối',
+                        confirmButtonText: 'Đóng'
+                    });
+                });
+            }
+        });
+    }
+
+    function deliverSlip(slipId) {
+        Swal.fire({
+            title: 'Xác nhận giao sách',
+            text: 'Bạn có chắc chắn đã giao sách cho độc giả?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/BorrowSlips/Deliver', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ id: slipId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã giao sách',
+                            text: data.message || 'Đã xác nhận giao sách thành công',
+                            confirmButtonText: 'Đóng'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message || 'Không thể xác nhận giao sách',
+                            confirmButtonText: 'Đóng'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra khi kết nối',
+                        confirmButtonText: 'Đóng'
+                    });
+                });
+            }
+        });
+    }
+
+    function openReturnModal(slipId) {
+        // Load and show the return book modal
+        fetch('/BorrowSlips/GetReturnBookModal/' + slipId)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('returnModalContainer').innerHTML = html;
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Không thể tải modal trả sách',
+                    confirmButtonText: 'Đóng'
+                });
+            });
+    }
+
+    function updateDates() {
+        const borrowDate = document.getElementById('borrowDateEdit').value;
+        const dueDate = document.getElementById('dueDateEdit').value;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        
+        if (!token) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Không tìm thấy token bảo mật. Vui lòng tải lại trang.'
+            });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("__RequestVerificationToken", token);
+        formData.append("borrowSlipId", @Model.Id);
+        formData.append("borrowDate", borrowDate);
+        formData.append("dueDate", dueDate);
+
+        fetch('/BorrowSlips/UpdateDates', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Có lỗi xảy ra khi cập nhật ngày tháng'
+            });
+        });
+    }
+
+    function renewSlip(slipId) {
+        Swal.fire({
+            title: 'Gia hạn phiếu mượn?',
+            text: 'Bạn có muốn gia hạn thời hạn trả sách thêm 7 ngày không?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý gia hạn',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const token = $('input[name="__RequestVerificationToken"]').val();
+                $.ajax({
+                    url: '/BorrowSlips/RenewSlip',
+                    type: 'POST',
+                    data: {
+                        slipId: slipId,
+                        __RequestVerificationToken: token
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công',
+                                text: res.message
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Không thể gia hạn',
+                                text: res.message
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: 'Đã xảy ra lỗi khi gửi yêu cầu gia hạn.'
+                        });
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+<!-- Container for dynamically loaded modals -->
+<div id="returnModalContainer"></div>

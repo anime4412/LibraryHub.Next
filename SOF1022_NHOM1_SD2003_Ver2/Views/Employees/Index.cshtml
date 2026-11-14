@@ -1,0 +1,1005 @@
+@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Employee>
+@using SOF1022_NHOM1_SD2003_Ver2.Models.Enums
+
+@{
+    ViewData["Title"] = "Quản lý nhân viên";
+
+    var allEmployees = Model.ToList();
+    var workingEmployees = allEmployees.Where(x => x.StatusId == 1).ToList();
+    var suspendedEmployees = allEmployees.Where(x => x.StatusId == 2).ToList();
+    var terminatedEmployees = allEmployees.Where(x => x.StatusId == 3 || x.IsDeleted).ToList();
+
+    // Use dashboard metrics from controller for accurate counting
+    var workingEmployee = ViewBag.ActiveEmployees ?? allEmployees.Count(x => x.StatusId == 1);
+    var suspendedEmployee = ViewBag.SuspendedEmployees ?? allEmployees.Count(x => x.StatusId == 2);
+    var resignedEmployee = ViewBag.ArchivedEmployees ?? allEmployees.Count(x => x.StatusId == 3 || x.IsDeleted);
+    var totalEmployee = ViewBag.TotalEmployees ?? allEmployees.Count();
+
+    decimal totalSalary = allEmployees.Sum(x => x.Salary);
+    decimal averageSalary = totalEmployee > 0 ? totalSalary / totalEmployee : 0;
+    
+    var statusFilter = ViewBag.StatusFilter ?? 1; // Default to "Đang làm việc"
+}
+
+<div class="container-fluid py-4" style="max-width: 100%; overflow: hidden;">
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center bg-white">
+                <div class="col-lg-8">
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="fas fa-users me-2"></i>
+                        Quản lý nhân viên
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Quản lý thông tin nhân viên trong hệ thống thư viện.
+                    </p>
+                </div>
+                    @if (Context.HasPermission("employee.create"))
+                    {
+                        <a asp-action="Create" class="btn btn-primary shadow-sm">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Thêm nhân viên
+                        </a>
+                    }
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Tổng nhân viên</div>
+                        <h3 class="fw-bold mb-0 mt-1">@totalEmployee</h3>
+                    </div>
+                    <div class="text-primary bg-primary-light p-3 rounded-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Đang làm việc</div>
+                        <h3 class="fw-bold text-success mb-0 mt-1">@workingEmployee</h3>
+                    </div>
+                    <div class="text-success bg-success-light p-3 rounded-3">
+                        <i class="fas fa-user-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Tạm ngưng việc</div>
+                        <h3 class="fw-bold text-warning mb-0 mt-1">@suspendedEmployee</h3>
+                    </div>
+                    <div class="text-warning bg-warning-light p-3 rounded-3">
+                        <i class="fas fa-user-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Đã nghỉ việc</div>
+                        <h3 class="fw-bold text-danger mb-0 mt-1">@resignedEmployee</h3>
+                    </div>
+                    <div class="text-danger bg-danger-light p-3 rounded-3">
+                        <i class="fas fa-user-slash fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get" id="filterForm">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" name="searchString" value="@ViewBag.SearchString"
+                               placeholder="Tìm theo mã nhân viên, họ tên, email, số điện thoại, CCCD hoặc chức vụ..." />
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" name="statusFilter" id="statusDropdown" style="height: 45px;">
+                            <option value="1" selected="@(statusFilter == 1)">Đang làm việc</option>
+                            <option value="2" selected="@(statusFilter == 2)">Tạm ngưng việc</option>
+                            <option value="3" selected="@(statusFilter == 3)">Đã nghỉ việc</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary" style="height: 45px;">
+                            <i class="fas fa-search me-2"></i>Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form id="deleteForm">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3">
+            <ul class="nav nav-pills card-header-pills" id="employeeTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link @(statusFilter == 1 ? "active" : "")" id="working-tab" data-status="1" data-bs-toggle="pill" data-bs-target="#working-content" type="button" role="tab">
+                        <i class="fas fa-user-check me-2"></i>Đang làm việc
+                        <span class="badge bg-success ms-1">@workingEmployee</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(statusFilter == 2 ? "active" : "")" id="suspended-tab" data-status="2" data-bs-toggle="pill" data-bs-target="#suspended-content" type="button" role="tab">
+                        <i class="fas fa-user-clock me-2"></i>Tạm ngưng việc
+                        <span class="badge bg-warning text-dark ms-1">@suspendedEmployee</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(statusFilter == 3 ? "active" : "")" id="terminated-tab" data-status="3" data-bs-toggle="pill" data-bs-target="#terminated-content" type="button" role="tab">
+                        <i class="fas fa-user-slash me-2"></i>Đã nghỉ việc
+                        <span class="badge bg-danger ms-1">@resignedEmployee</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-0">
+            <div class="tab-content" id="employeeTabsContent">
+                <!-- Tab 1: Đang làm việc -->
+                <div class="tab-pane fade @(statusFilter == 1 ? "show active" : "")" id="working-content" role="tabpanel">
+                    <div class="table-responsive" style="width: 100%; overflow-x: auto; display: block;">
+                        <table class="table table-hover align-middle mb-0" style="min-width: 1200px; table-layout: fixed;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">STT</th>
+                                    <th style="width: 95px;">Mã NV</th>
+                                    <th style="width: 170px;">Họ và tên</th>
+                                    <th class="text-center" style="width: 85px;">Giới tính</th>
+                                    <th style="width: 130px;">CCCD</th>
+                                    <th style="width: 210px;">Email</th>
+                                    <th style="width: 125px;">Số điện thoại</th>
+                                    <th style="width: 140px;">Chức vụ</th>
+                                    <th class="text-center" style="width: 140px;">Trạng thái</th>
+                                    <th class="text-center" style="width: 100px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (workingEmployees.Any())
+                                {
+                                    int stt = 1;
+                                    foreach (var item in workingEmployees)
+                                    {
+                                        <tr>
+                                            <td class="text-center fw-bold text-muted">@(stt++)</td>
+                                            <td>
+                                                <span class="fw-semibold text-primary text-truncate d-block" title="@item.EmployeeId">@item.EmployeeId</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark text-truncate" title="@item.FullName">@item.FullName</div>
+                                            </td>
+                                            <td class="text-center">
+                                                @switch (item.Gender)
+                                                {
+                                                    case Gender.Male:
+                                                        <span class="badge bg-primary-light text-primary px-2 py-1">Nam</span>
+                                                        break;
+                                                    case Gender.Female:
+                                                        <span class="badge bg-danger-light text-danger px-2 py-1">Nữ</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-secondary-light text-secondary px-2 py-1">Khác</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td class="text-nowrap text-secondary">@item.CCCD</td>
+                                            <td>
+                                                <div class="text-truncate" title="@item.Email">
+                                                    <i class="fas fa-envelope text-muted me-1 small"></i>@item.Email
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap text-secondary">
+                                                <i class="fas fa-phone text-muted me-1 small"></i>@item.Phone
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" title="@(item.Position?.Name)">
+                                                    <span class="fw-medium text-dark">@(item.Position?.Name ?? "Chưa phân chức vụ")</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success text-white d-inline-flex align-items-center cursor-pointer status-badge"
+                                                      data-employee-id="@item.Id"
+                                                      data-employee-name="@item.FullName"
+                                                      data-status-id="@item.StatusId"
+                                                      data-leave-reason="@item.LeaveReason"
+                                                      style="cursor: pointer;"
+                                                      data-bs-toggle="tooltip"
+                                                      title="Click để chỉnh sửa nhanh">
+                                                    <i class="fas fa-check-circle me-1 small"></i>Đang làm việc
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group gap-1">
+                                                    <a asp-action="PhanQuyen" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Phân quyền">
+                                                        <i class="fas fa-key"></i>
+                                                    </a>
+                                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Chỉnh sửa">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form asp-action="ResetPassword" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn cấp lại mật khẩu cho nhân viên này?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Cấp lại mật khẩu">
+                                                            <i class="fas fa-sync-alt"></i>
+                                                        </button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-terminate" data-id="@item.Id" data-name="@item.FullName" data-bs-toggle="tooltip" title="Sa thải">
+                                                        <i class="fas fa-user-slash text-danger"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="10" class="text-center py-5">
+                                            <div class="py-4">
+                                                <i class="fas fa-user-check fa-4x text-muted mb-3 opacity-50"></i>
+                                                <h4 class="fw-bold text-secondary">Không có nhân viên đang làm việc</h4>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Tạm ngưng việc -->
+                <div class="tab-pane fade @(statusFilter == 2 ? "show active" : "")" id="suspended-content" role="tabpanel">
+                    <div class="table-responsive" style="width: 100%; overflow-x: auto; display: block;">
+                        <table class="table table-hover align-middle mb-0" style="min-width: 1300px; table-layout: fixed;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">STT</th>
+                                    <th style="width: 95px;">Mã NV</th>
+                                    <th style="width: 170px;">Họ và tên</th>
+                                    <th class="text-center" style="width: 85px;">Giới tính</th>
+                                    <th style="width: 130px;">CCCD</th>
+                                    <th style="width: 210px;">Email</th>
+                                    <th style="width: 125px;">Số điện thoại</th>
+                                    <th style="width: 140px;">Chức vụ</th>
+                                    <th class="text-center" style="width: 140px;">Trạng thái</th>
+                                    <th style="width: 200px;">Lý do tạm ngưng</th>
+                                    <th class="text-center" style="width: 100px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (suspendedEmployees.Any())
+                                {
+                                    int stt = 1;
+                                    foreach (var item in suspendedEmployees)
+                                    {
+                                        <tr>
+                                            <td class="text-center fw-bold text-muted">@(stt++)</td>
+                                            <td>
+                                                <span class="fw-semibold text-primary text-truncate d-block" title="@item.EmployeeId">@item.EmployeeId</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark text-truncate" title="@item.FullName">@item.FullName</div>
+                                            </td>
+                                            <td class="text-center">
+                                                @switch (item.Gender)
+                                                {
+                                                    case Gender.Male:
+                                                        <span class="badge bg-primary-light text-primary px-2 py-1">Nam</span>
+                                                        break;
+                                                    case Gender.Female:
+                                                        <span class="badge bg-danger-light text-danger px-2 py-1">Nữ</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-secondary-light text-secondary px-2 py-1">Khác</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td class="text-nowrap text-secondary">@item.CCCD</td>
+                                            <td>
+                                                <div class="text-truncate" title="@item.Email">
+                                                    <i class="fas fa-envelope text-muted me-1 small"></i>@item.Email
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap text-secondary">
+                                                <i class="fas fa-phone text-muted me-1 small"></i>@item.Phone
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" title="@(item.Position?.Name)">
+                                                    <span class="fw-medium text-dark">@(item.Position?.Name ?? "Chưa phân chức vụ")</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning text-dark d-inline-flex align-items-center cursor-pointer status-badge"
+                                                      data-employee-id="@item.Id"
+                                                      data-employee-name="@item.FullName"
+                                                      data-status-id="@item.StatusId"
+                                                      data-leave-reason="@item.LeaveReason"
+                                                      style="cursor: pointer;"
+                                                      data-bs-toggle="tooltip"
+                                                      title="Click để chỉnh sửa nhanh">
+                                                    <i class="fas fa-pause-circle me-1 small"></i>Tạm ngưng
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" title="@item.LeaveReason">
+                                                    @if (!string.IsNullOrWhiteSpace(item.LeaveReason))
+                                                    {
+                                                        <span class="text-success"><i class="fas fa-check-circle me-1"></i>@item.LeaveReason</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Nghỉ không phép</span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group gap-1">
+                                                    <a asp-action="PhanQuyen" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Phân quyền">
+                                                        <i class="fas fa-key"></i>
+                                                    </a>
+                                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Chỉnh sửa">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form asp-action="ResetPassword" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn cấp lại mật khẩu cho nhân viên này?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Cấp lại mật khẩu">
+                                                            <i class="fas fa-sync-alt"></i>
+                                                        </button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-terminate" data-id="@item.Id" data-name="@item.FullName" data-bs-toggle="tooltip" title="Sa thải">
+                                                        <i class="fas fa-user-slash text-danger"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="11" class="text-center py-5">
+                                            <div class="py-4">
+                                                <i class="fas fa-user-clock fa-4x text-muted mb-3 opacity-50"></i>
+                                                <h4 class="fw-bold text-secondary">Không có nhân viên tạm ngưng</h4>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Đã nghỉ việc -->
+                <div class="tab-pane fade @(statusFilter == 3 ? "show active" : "")" id="terminated-content" role="tabpanel">
+                    <div class="table-responsive" style="width: 100%; overflow-x: auto; display: block;">
+                        <table class="table table-hover align-middle mb-0" style="min-width: 1200px; table-layout: fixed;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">STT</th>
+                                    <th style="width: 95px;">Mã NV</th>
+                                    <th style="width: 170px;">Họ và tên</th>
+                                    <th class="text-center" style="width: 85px;">Giới tính</th>
+                                    <th style="width: 130px;">CCCD</th>
+                                    <th style="width: 210px;">Email</th>
+                                    <th style="width: 125px;">Số điện thoại</th>
+                                    <th style="width: 140px;">Chức vụ</th>
+                                    <th class="text-center" style="width: 140px;">Trạng thái</th>
+                                    <th class="text-center" style="width: 100px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (terminatedEmployees.Any())
+                                {
+                                    int stt = 1;
+                                    foreach (var item in terminatedEmployees)
+                                    {
+                                        <tr>
+                                            <td class="text-center fw-bold text-muted">@(stt++)</td>
+                                            <td>
+                                                <span class="fw-semibold text-primary text-truncate d-block" title="@item.EmployeeId">@item.EmployeeId</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark text-truncate" title="@item.FullName">@item.FullName</div>
+                                            </td>
+                                            <td class="text-center">
+                                                @switch (item.Gender)
+                                                {
+                                                    case Gender.Male:
+                                                        <span class="badge bg-primary-light text-primary px-2 py-1">Nam</span>
+                                                        break;
+                                                    case Gender.Female:
+                                                        <span class="badge bg-danger-light text-danger px-2 py-1">Nữ</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-secondary-light text-secondary px-2 py-1">Khác</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td class="text-nowrap text-secondary">@item.CCCD</td>
+                                            <td>
+                                                <div class="text-truncate" title="@item.Email">
+                                                    <i class="fas fa-envelope text-muted me-1 small"></i>@item.Email
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap text-secondary">
+                                                <i class="fas fa-phone text-muted me-1 small"></i>@item.Phone
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" title="@(item.Position?.Name)">
+                                                    <span class="fw-medium text-dark">@(item.Position?.Name ?? "Chưa phân chức vụ")</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-danger text-white d-inline-flex align-items-center">
+                                                    <i class="fas fa-user-slash me-1 small"></i>Đã nghỉ việc
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if (item.IsDeleted || item.StatusId == 3)
+                                                {
+                                                    <!-- Show Rehire and Permanent Archive buttons for soft-deleted/archived staff -->
+                                                    <div class="btn-group gap-1">
+                                                        <button type="button" class="btn btn-sm btn-outline-success btn-rehire" data-id="@item.Id" data-name="@item.FullName" data-bs-toggle="tooltip" title="Mời làm lại">
+                                                            <i class="fas fa-user-plus text-success"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger archive-permanent-btn" data-id="@item.Id" data-name="@item.FullName" data-bs-toggle="tooltip" title="Ẩn vĩnh viễn khỏi danh sách">
+                                                            <i class="fas fa-eye-slash text-danger"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <!-- Standard controls for active/temporary staff -->
+                                                    <div class="btn-group gap-1">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Không thể chỉnh sửa nhân viên đã nghỉ việc">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-soft-delete" data-id="@item.Id" data-name="@item.FullName" data-bs-toggle="tooltip" title="Xóa lưu trữ khỏi giao diện">
+                                                            <i class="fas fa-trash-alt text-secondary"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="10" class="text-center py-5">
+                                            <div class="py-4">
+                                                <i class="fas fa-user-slash fa-4x text-muted mb-3 opacity-50"></i>
+                                                <h4 class="fw-bold text-secondary">Không có nhân viên đã nghỉ việc</h4>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-top py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Hiển thị <strong>@totalEmployee</strong> nhân viên
+                </small>
+                <small class="text-muted">
+                    Cập nhật: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick-Edit Status Modal -->
+<div class="modal fade" id="quickEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Chỉnh sửa nhanh trạng thái
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="quickEditEmployeeId" name="employeeId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên nhân viên</label>
+                        <input type="text" class="form-control" id="quickEditEmployeeName" readonly />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Trạng thái</label>
+                        <span class="text-danger">*</span>
+                        <select class="form-select" id="quickEditStatusId" name="statusId" required>
+                            <option value="1">Đang làm việc</option>
+                            <option value="2">Tạm ngưng</option>
+                            <option value="3">Đã nghỉ việc</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="leaveReasonContainer" style="display: none;">
+                        <label class="form-label fw-semibold">Lý do nghỉ <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="quickEditLeaveReason" name="leaveReason" rows="3" placeholder="Nhập lý do nghỉ (bắt buộc khi chọn Tạm ngưng)"></textarea>
+                        <small class="text-muted">Nếu để trống, nhân viên sẽ được đánh dấu là "Nghỉ không phép"</small>
+                    </div>
+                    
+                    <div class="alert alert-warning d-none" id="unexcusedWarning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Cảnh báo:</strong> Nếu không nhập lý do, nhân viên sẽ được đánh dấu là "Nghỉ không phép". Sau 5 ngày liên tục, hệ thống sẽ tự động chuyển sang "Đã nghỉ việc".
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="submitQuickEdit()">
+                    <i class="fas fa-save me-2"></i>Cập nhật
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Bootstrap Tooltip
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Focus Search Box
+            const searchBox = document.querySelector("input[name='searchString']");
+            if (searchBox && searchBox.value !== "") {
+                searchBox.focus();
+                searchBox.select();
+            }
+
+            // Status Badge Click Handler - Open Quick Edit Modal
+            document.querySelectorAll(".status-badge").forEach(badge => {
+                badge.addEventListener("click", function () {
+                    const employeeId = this.dataset.employeeId;
+                    const employeeName = this.dataset.employeeName;
+                    const statusId = this.dataset.statusId;
+                    const leaveReason = this.dataset.leaveReason;
+
+                    document.getElementById("quickEditEmployeeId").value = employeeId;
+                    document.getElementById("quickEditEmployeeName").value = employeeName;
+                    document.getElementById("quickEditStatusId").value = statusId;
+                    document.getElementById("quickEditLeaveReason").value = leaveReason || "";
+
+                    // Show/hide leave reason field based on status
+                    toggleLeaveReasonField(statusId);
+
+                    // Initialize modal
+                    var modal = new bootstrap.Modal(document.getElementById("quickEditModal"));
+                    modal.show();
+                });
+            });
+
+            // Status dropdown change handler
+            document.getElementById("quickEditStatusId").addEventListener("change", function () {
+                toggleLeaveReasonField(this.value);
+            });
+
+            // Xử lý sự kiện nút Sa thải (Terminate)
+            document.querySelectorAll(".btn-terminate").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    const name = this.dataset.name;
+
+                    Swal.fire({
+                        title: "Xác nhận sa thải",
+                        text: `Bạn có chắc chắn muốn sa thải nhân viên "${name}" không?`,
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Sa thải",
+                        cancelButtonText: "Hủy",
+                        confirmButtonColor: "#dc3545",
+                        cancelButtonColor: "#6c757d",
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (!result.isConfirmed) return;
+
+                        fetch(`/Employees/Terminate/${id}`, {
+                            method: "POST",
+                            headers: {
+                                "RequestVerificationToken": document.querySelector("#deleteForm input[name='__RequestVerificationToken']").value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Thành công",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Không thể sa thải",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Lỗi",
+                                text: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.",
+                                confirmButtonText: "Đóng"
+                            });
+                        });
+                    });
+                });
+            });
+
+            // Xử lý sự kiện nút Xóa lưu trữ vĩnh viễn (Soft Delete)
+            document.querySelectorAll(".btn-soft-delete").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    const name = this.dataset.name;
+
+                    Swal.fire({
+                        title: "Xóa lưu trữ vĩnh viễn",
+                        text: `Bạn có chắc chắn muốn xóa lưu trữ nhân viên "${name}" khỏi giao diện không? Dữ liệu sẽ vẫn được lưu trong hệ thống.`,
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Xóa lưu trữ",
+                        cancelButtonText: "Hủy",
+                        confirmButtonColor: "#6c757d",
+                        cancelButtonColor: "#6c757d",
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (!result.isConfirmed) return;
+
+                        fetch(`/Employees/SoftDelete/${id}`, {
+                            method: "POST",
+                            headers: {
+                                "RequestVerificationToken": document.querySelector("#deleteForm input[name='__RequestVerificationToken']").value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Thành công",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Không thể xóa",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Lỗi",
+                                text: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.",
+                                confirmButtonText: "Đóng"
+                            });
+                        });
+                    });
+                });
+            });
+
+            // Xử lý sự kiện nút Mời làm lại (Rehire)
+            document.querySelectorAll(".btn-rehire").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    const name = this.dataset.name;
+
+                    Swal.fire({
+                        title: "Mời làm lại nhân viên",
+                        text: `Bạn có chắc chắn muốn mời nhân viên "${name}" làm lại không? Tài khoản sẽ được khôi phục và nhân viên có thể đăng nhập lại.`,
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Mời làm lại",
+                        cancelButtonText: "Hủy",
+                        confirmButtonColor: "#198754",
+                        cancelButtonColor: "#6c757d",
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (!result.isConfirmed) return;
+
+                        fetch(`/Employees/Rehire/${id}`, {
+                            method: "POST",
+                            headers: {
+                                "RequestVerificationToken": document.querySelector("#deleteForm input[name='__RequestVerificationToken']").value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Thành công",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Không thể mời làm lại",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Lỗi",
+                                text: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.",
+                                confirmButtonText: "Đóng"
+                            });
+                        });
+                    });
+                });
+            });
+
+            // Xử lý sự kiện nút Ẩn vĩnh viễn (Permanent Archive)
+            document.querySelectorAll(".archive-permanent-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    const name = this.dataset.name;
+
+                    Swal.fire({
+                        title: "Ẩn vĩnh viễn khỏi danh sách",
+                        text: `Bạn có chắc chắn muốn ẩn nhân viên "${name}" vĩnh viễn không? Dữ liệu vẫn được lưu trữ trong hệ thống nhưng sẽ không hiển thị trong danh sách nhân viên.`,
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Ẩn vĩnh viễn",
+                        cancelButtonText: "Hủy",
+                        confirmButtonColor: "#dc3545",
+                        cancelButtonColor: "#6c757d",
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (!result.isConfirmed) return;
+
+                        fetch(`/Employees/ArchivePermanent/${id}`, {
+                            method: "POST",
+                            headers: {
+                                "RequestVerificationToken": document.querySelector("#deleteForm input[name='__RequestVerificationToken']").value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Thành công",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Không thể ẩn",
+                                    text: result.message,
+                                    confirmButtonText: "Đóng"
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Lỗi",
+                                text: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.",
+                                confirmButtonText: "Đóng"
+                            });
+                        });
+                    });
+                });
+            });
+        });
+
+        // Synchronize tab clicks with dropdown
+        document.querySelectorAll("#employeeTabs .nav-link").forEach(tab => {
+            tab.addEventListener("click", function() {
+                const status = this.dataset.status;
+                const dropdown = document.getElementById("statusDropdown");
+                if (dropdown) {
+                    dropdown.value = status;
+                    document.getElementById("filterForm").submit();
+                }
+            });
+        });
+
+        // Synchronize dropdown change with tab active state
+        document.getElementById("statusDropdown").addEventListener("change", function() {
+            const status = this.value;
+            document.querySelectorAll("#employeeTabs .nav-link").forEach(tab => {
+                tab.classList.remove("active");
+                if (tab.dataset.status === status) {
+                    tab.classList.add("active");
+                }
+            });
+        });
+
+        // Toggle leave reason field visibility (removed required validation)
+        function toggleLeaveReasonField(statusId) {
+            const leaveReasonContainer = document.getElementById("leaveReasonContainer");
+            const leaveReasonInput = document.getElementById("quickEditLeaveReason");
+            const unexcusedWarning = document.getElementById("unexcusedWarning");
+
+            if (statusId === "2") { // Tạm ngưng
+                leaveReasonContainer.style.display = "block";
+                leaveReasonInput.required = false; // Not required - backend will auto-populate
+                unexcusedWarning.classList.remove("d-none");
+            } else {
+                leaveReasonContainer.style.display = "none";
+                leaveReasonInput.required = false;
+                leaveReasonInput.value = "";
+                unexcusedWarning.classList.add("d-none");
+            }
+        }
+
+        // Submit Quick Edit Form
+        function submitQuickEdit() {
+            const employeeId = document.getElementById("quickEditEmployeeId").value;
+            const statusId = document.getElementById("quickEditStatusId").value;
+            const leaveReason = document.getElementById("quickEditLeaveReason").value;
+
+            const formData = new FormData();
+            formData.append("__RequestVerificationToken", document.querySelector("#quickEditForm input[name='__RequestVerificationToken']").value);
+            formData.append("employeeId", employeeId);
+            formData.append("statusId", statusId);
+            formData.append("leaveReason", leaveReason);
+
+            fetch("/Employees/UpdateStatusQuick", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Close modal
+                    var modal = bootstrap.Modal.getInstance(document.getElementById("quickEditModal"));
+                    modal.hide();
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Thành công",
+                        text: result.message,
+                        confirmButtonText: "Đóng"
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Lỗi",
+                        text: result.message,
+                        confirmButtonText: "Đóng"
+                    });
+                }
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi",
+                    text: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.",
+                    confirmButtonText: "Đóng"
+                });
+            });
+        }
+    </script>
+
+    <style>
+        .card {
+            border-radius: 12px;
+        }
+
+        .bg-primary-light { background-color: rgba(13, 110, 253, 0.08) !important; }
+        .bg-success-light { background-color: rgba(25, 135, 84, 0.08) !important; }
+        .bg-warning-light { background-color: rgba(255, 193, 7, 0.12) !important; }
+        .bg-danger-light { background-color: rgba(220, 53, 69, 0.08) !important; }
+        .bg-secondary-light { background-color: rgba(108, 117, 125, 0.08) !important; }
+
+        table thead th {
+            white-space: nowrap;
+            vertical-align: middle;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+            padding: 14px 10px !important;
+        }
+
+        table tbody td {
+            vertical-align: middle;
+            padding: 12px 10px !important;
+            color: #495057;
+        }
+
+        table tbody tr {
+            transition: background-color .15s ease;
+        }
+
+        table tbody tr:hover {
+            background-color: #f8fbff !important;
+        }
+
+        .text-nowrap {
+            white-space: nowrap;
+        }
+
+        .text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        input.form-control {
+            height: 45px;
+            border-radius: 8px;
+        }
+        
+        input.form-control:focus {
+            box-shadow: none;
+            border-color: #0d6efd;
+        }
+
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .btn-group .btn {
+            min-width: 36px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+}

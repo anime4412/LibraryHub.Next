@@ -1,0 +1,541 @@
+@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Readers>
+
+@{
+    ViewData["Title"] = "Quản lý độc giả";
+}
+
+<div class="container-fluid py-4">
+
+    <!-- ===================================== -->
+    <!-- PAGE HEADER -->
+    <!-- ===================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <div class="row align-items-center">
+
+                <div class="col-lg-8">
+
+                    <h2 class="fw-bold mb-1">
+
+                        <i class="fa-solid fa-users text-primary me-2"></i>
+
+                        Quản lý độc giả
+
+                    </h2>
+
+                    <div class="text-muted">
+
+                        Quản lý thông tin thành viên và độc giả của thư viện
+
+                    </div>
+
+                </div>
+
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+
+                    @if (Context.HasPermission("reader.create"))
+                    {
+                        <a asp-action="Create"
+                           class="btn btn-primary">
+                            <i class="fa-solid fa-user-plus me-2"></i>
+                            Thêm độc giả
+                        </a>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ===================================== -->
+    <!-- ALERT MESSAGES -->
+    <!-- ===================================== -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- ===================================== -->
+    <!-- STATISTICS -->
+    <!-- ===================================== -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Tổng độc giả
+
+                    </div>
+
+                    <h3 class="fw-bold mt-2">
+
+                        @ViewBag.TotalCount
+
+                    </h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted">
+                        Đang hoạt động
+                    </div>
+                    <h3 class="fw-bold text-success mt-2">
+                        @(ViewBag.ActiveCount ?? 0)
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted">
+                        Đã khóa
+                    </div>
+                    <h3 class="fw-bold text-danger mt-2">
+                        @(ViewBag.LockedCount ?? 0)
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-muted">
+                        Đăng ký hôm nay
+                    </div>
+                    <h3 class="fw-bold text-primary mt-2">
+                        @(ViewBag.TodayCount ?? 0)
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===================================== -->
+    <!-- FILTER -->
+    <!-- ===================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <form id="searchForm">
+
+                <div class="row g-3">
+
+                    <div class="col-lg-5">
+
+                        <input type="text"
+                               class="form-control"
+                               id="searchString"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               placeholder="Tên, Email hoặc SĐT..." />
+
+                    </div>
+
+                    <div class="col-lg-3">
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="true">Đang hoạt động</option>
+                            <option value="false">Đã khóa</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <select class="form-select" id="sortOrder" name="sortOrder">
+                            <option value="new">Mới nhất</option>
+                            <option value="name">Theo tên</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+
+                        <button type="submit" class="btn btn-primary w-100">
+
+                            <i class="fa-solid fa-magnifying-glass me-2"></i>
+
+                            Tìm kiếm
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="mt-3">
+
+                    <button type="button" id="resetBtn" class="btn btn-outline-secondary">
+
+                        Đặt lại
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+    <!-- ===================================== -->
+    <!-- READER TABLE -->
+    <!-- ===================================== -->
+
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-header bg-white">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <h5 class="fw-bold mb-0">
+
+                    Danh sách độc giả
+
+                </h5>
+
+                <span class="text-muted">
+
+                    Hiển thị @ViewBag.TotalCount độc giả
+
+                </span>
+
+            </div>
+
+        </div>
+
+        <div id="readerTableContainer">
+            @await Html.PartialAsync("_ReaderTablePartial", Model)
+        </div>
+
+        <div id="tableSpinner" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+
+    </div>
+    <!-- ===================================== -->
+    <!-- PAGINATION -->
+    <!-- ===================================== -->
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="row mt-4">
+
+            <div class="col-md-6 d-flex align-items-center">
+
+                <span class="text-muted">
+
+                    Trang
+
+                    <strong>
+
+                        @ViewBag.CurrentPage
+
+                    </strong>
+
+                    /
+
+                    <strong>
+
+                        @ViewBag.TotalPages
+
+                    </strong>
+
+                </span>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <nav>
+
+                    <ul class="pagination justify-content-end mb-0" id="pagination">
+
+                        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+
+                            <a class="page-link"
+                               href="#"
+                               data-page="@(ViewBag.CurrentPage - 1)"
+                               data-search="@ViewBag.SearchString">
+
+                                <i class="fa-solid fa-angle-left"></i>
+
+                            </a>
+
+                        </li>
+
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+
+                                <a class="page-link"
+                                   href="#"
+                                   data-page="@i"
+                                   data-search="@ViewBag.SearchString">
+
+                                    @i
+
+                                </a>
+
+                            </li>
+                        }
+
+                        <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+
+                            <a class="page-link"
+                               href="#"
+                               data-page="@(ViewBag.CurrentPage + 1)"
+                               data-search="@ViewBag.SearchString">
+
+                                <i class="fa-solid fa-angle-right"></i>
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </nav>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+<style>
+
+    .reader-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg,#2563eb,#60a5fa);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 20px;
+        box-shadow: 0 5px 15px rgba(37,99,235,.25);
+    }
+
+    .table tbody tr {
+        transition: .25s;
+    }
+
+        .table tbody tr:hover {
+            background: #f8fbff;
+        }
+
+    .card {
+        border-radius: 18px;
+    }
+
+    .card-header {
+        border-radius: 18px 18px 0 0 !important;
+    }
+
+    .table th {
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .btn-group .btn {
+        width: 38px;
+    }
+
+    .badge {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .pagination .page-link {
+        border-radius: 10px;
+        margin: 0 2px;
+    }
+
+</style>
+@section Scripts {
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const currentPage = @ViewBag.CurrentPage;
+            const pageSize = @ViewBag.PageSize;
+
+            // Load table data via AJAX
+            function loadTable(page, searchString) {
+                const container = document.getElementById('readerTableContainer');
+                const spinner = document.getElementById('tableSpinner');
+
+                container.style.display = 'none';
+                spinner.style.display = 'block';
+
+                const statusVal = document.getElementById('status')?.value || '';
+                const sortOrderVal = document.getElementById('sortOrder')?.value || 'new';
+
+                const params = new URLSearchParams({
+                    page: page,
+                    pageSize: pageSize,
+                    searchString: searchString || '',
+                    status: statusVal,
+                    sortOrder: sortOrderVal
+                });
+
+                fetch(`/Readers/Index?${params.toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    container.innerHTML = html;
+                    spinner.style.display = 'none';
+                    container.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading table:', error);
+                    spinner.style.display = 'none';
+                    container.style.display = 'block';
+                });
+            }
+
+            // Handle filter change
+            document.getElementById('status').addEventListener('change', function() {
+                const searchString = document.getElementById('searchString').value;
+                loadTable(1, searchString);
+            });
+
+            document.getElementById('sortOrder').addEventListener('change', function() {
+                const searchString = document.getElementById('searchString').value;
+                loadTable(1, searchString);
+            });
+
+            // Handle search form submission
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const searchString = document.getElementById('searchString').value;
+                loadTable(1, searchString);
+            });
+
+            // Handle reset button
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                document.getElementById('searchString').value = '';
+                document.getElementById('status').value = '';
+                document.getElementById('sortOrder').value = 'new';
+                loadTable(1, '');
+            });
+
+            // Handle pagination clicks
+            document.getElementById('pagination').addEventListener('click', function(e) {
+                const link = e.target.closest('a.page-link');
+                if (link && !link.parentElement.classList.contains('disabled')) {
+                    e.preventDefault();
+                    const page = link.getAttribute('data-page');
+                    const searchString = link.getAttribute('data-search');
+                    loadTable(page, searchString);
+                }
+            });
+
+            // Row click highlight
+            document.querySelectorAll("tbody tr").forEach(function (row) {
+                row.addEventListener("click", function () {
+                    document.querySelectorAll("tbody tr").forEach(r => r.classList.remove("table-active"));
+                    this.classList.add("table-active");
+                });
+            });
+
+            // Handle renew card button clicks
+            document.addEventListener('click', async function(e) {
+                if (e.target.closest('.renew-card-btn')) {
+                    const btn = e.target.closest('.renew-card-btn');
+                    const readerId = btn.getAttribute('data-id');
+                    
+                    const { isConfirmed } = await Swal.fire({
+                        title: 'Xác nhận',
+                        text: 'Bạn có chắc muốn gia hạn thẻ độc giả này thêm 1 năm không?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Đồng ý',
+                        cancelButtonText: 'Huỷ'
+                    });
+                    if (!isConfirmed) {
+                        return;
+                    }
+
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+                    fetch(`/Readers/RenewCard/${readerId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ __RequestVerificationToken: token })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Reload table to show updated status
+                            const currentPage = @ViewBag.CurrentPage;
+                            const searchString = '@ViewBag.SearchString';
+                            loadTable(currentPage, searchString);
+                            
+                            // Show success message
+                            if (typeof showToast === 'function') {
+                                showToast('success', data.message);
+                            } else {
+                                Swal.fire({ icon: 'success', title: 'Thông báo', text: data.message });
+                            }
+                        } else {
+                            if (typeof showToast === 'function') {
+                                showToast('error', data.message);
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message });
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error renewing card:', error);
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi gia hạn thẻ.' });
+                    });
+                }
+            });
+        });
+
+    </script>
+
+}

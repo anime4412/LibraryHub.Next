@@ -1,0 +1,826 @@
+﻿@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Fines>
+
+@{
+    ViewData["Title"] = "Tiền phạt của tôi";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+        <style>
+            @@media (max-width: 991px) {
+                .container {
+                    padding-top: var(--section-gap-sm) !important;
+                    padding-bottom: var(--section-gap-sm) !important;
+                }
+            }
+        </style>
+
+    <div class="text-center mb-5 header-animation">
+        <span class="badge status-pill-danger px-3 py-2 text-uppercase fw-bold shadow-sm">
+            <i class="fa-solid fa-gavel me-2"></i>Nghĩa vụ độc giả
+        </span>
+        <h1 class="display-6 fw-bold mt-3 text-heading text-gradient-red" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 600; margin-bottom: 16px;">Tiền phạt của tôi</h1>
+        <p class="text-secondary max-w-md mx-auto fs-15" style="color: var(--text-secondary) !important;">
+            Danh sách tra cứu các khoản phí phát sinh do chậm lịch trả sách hoặc làm hư hại tài sản thư viện.
+        </p>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            var bookTitle = item.Books?.Title
+                ?? item.BorrowDetails?.Books?.Title
+                ?? item.BorrowSlips?.BorrowDetails?.FirstOrDefault(bd => bd.BookId == item.BookId)?.Books?.Title
+                ?? item.BorrowSlips?.BorrowDetails?.FirstOrDefault()?.Books?.Title
+                ?? item.FineDetails?.FirstOrDefault()?.Book?.Title;
+
+            if (string.IsNullOrWhiteSpace(bookTitle) && !string.IsNullOrWhiteSpace(item.Reason))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(item.Reason, @"(?:trả sách|sách)\s+([^0-9\(\.,]+?)(?:\s+\d|\s*\(|$)");
+                if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[1].Value))
+                {
+                    bookTitle = match.Groups[1].Value.Trim();
+                }
+            }
+            if (string.IsNullOrWhiteSpace(bookTitle))
+            {
+                bookTitle = "Sách mượn thư viện";
+            }
+
+            var bookCover = item.Books?.CoverImage
+                ?? item.BorrowDetails?.Books?.CoverImage
+                ?? item.BorrowSlips?.BorrowDetails?.FirstOrDefault(bd => bd.BookId == item.BookId)?.Books?.CoverImage
+                ?? item.BorrowSlips?.BorrowDetails?.FirstOrDefault()?.Books?.CoverImage
+                ?? item.FineDetails?.FirstOrDefault()?.Book?.CoverImage
+                ?? "/images/no-book.png";
+            var conditionAfter = item.BorrowDetails?.ConditionAfter ?? "N/A";
+            var calculationFormula = item.FinesType switch
+            {
+                SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Late => !string.IsNullOrEmpty(item.Reason)
+                    ? item.Reason
+                    : (item.LateDays.HasValue && item.LateFine.HasValue
+                        ? $"Trả trễ {item.LateDays} ngày × 5.000 VNĐ/ngày = {item.LateFine:N0} VNĐ"
+                        : "Trả sách quá hạn"),
+                SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Damaged => item.DamageFine.HasValue
+                    ? $"Sách hư hại ({item.DamagePercent ?? 0}%): {item.DamageFine:N0} VNĐ - {conditionAfter}"
+                    : $"Sách bị hư hại: {conditionAfter}",
+                SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Lost => item.LostFine.HasValue
+                    ? $"Sách bị mất - Phạt 200% giá sách = {item.LostFine:N0} VNĐ"
+                    : "Sách bị mất - Phạt 100% giá trị sách",
+                _ => item.Reason ?? "Không có thông tin"
+            };
+            if (item.FineDetails != null && item.FineDetails.Any())
+            {
+                calculationFormula = string.Join("; ", item.FineDetails.Select(fd => fd.Reason ?? fd.FinesType.ToString()));
+            }
+
+            <div class="col-lg-6">
+                <div class="fine-card @(item.IsPaid ? "card-paid" : "card-unpaid")">
+
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fa-solid fa-book text-secondary mt-1 fs-15 flex-shrink-0"></i>
+                            <h3 class="text-heading fw-bold book-title mb-0" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                                @bookTitle
+                            </h3>
+                        </div>
+                        <div>
+                            @if (item.IsPaid)
+                            {
+                                <span class="badge status-badge-paid text-nowrap">
+                                    <i class="fa-solid fa-circle-check me-1"></i>Đã tất toán
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge status-badge-unpaid text-nowrap">
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i>Chưa thanh toán
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <hr class="card-divider">
+
+                    <!-- Fine Type Badge and Details -->
+                    <div class="reason-box d-flex align-items-start gap-2 mb-3">
+                        @if (item.FinesType == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Damaged || !string.IsNullOrEmpty(item.BorrowDetails?.ConditionAfter))
+                        {
+                            <i class="fa-solid fa-exclamation-triangle text-warning mt-1 flex-shrink-0"></i>
+                            <div class="mb-0 text-heading fs-14">
+                                <span class="badge bg-warning text-dark mb-2">Sách bị hư hại</span>
+                                <!-- TODO: Keep text-dark here because bg-warning is a fixed light background that doesn't change with theme -->
+                                <div class="small text-muted mt-1">
+                                    <strong>Tình trạng:</strong> @(item.BorrowDetails?.ConditionAfter ?? "Chưa có mô tả")
+                                </div>
+                            </div>
+                        }
+                        else if (item.FinesType == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Lost)
+                        {
+                            <i class="fa-solid fa-book-xmark text-danger mt-1 flex-shrink-0"></i>
+                            <div class="mb-0 text-heading fs-14">
+                                <span class="badge bg-danger">Sách bị mất (Phạt 100%)</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-clock text-secondary mt-1 flex-shrink-0"></i>
+                            <div class="mb-0 text-heading fs-14">
+                                <span class="badge bg-secondary">Trả muộn quá hạn</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Original Reason (if different from type) -->
+                    @if (!string.IsNullOrEmpty(item.Reason) && item.FinesType == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Late)
+                    {
+                        <div class="reason-box d-flex align-items-start gap-2 mb-3">
+                            <i class="fa-solid fa-info-circle text-info mt-1 flex-shrink-0"></i>
+                            <p class="mb-0 text-heading fs-14">
+                                <span class="text-secondary fw-semibold">Chi tiết:</span> @item.Reason
+                            </p>
+                        </div>
+                    }
+
+                    <div class="info-row d-flex justify-content-between align-items-center py-2 border-bottom border-dark border-opacity-25">
+                        <span class="text-secondary fs-14">
+                            <i class="fa-solid fa-calendar-day me-2 text-muted"></i>Ngày lập biên bản
+                        </span>
+                        <strong class="text-heading font-monospace">
+                            @item.CreatedDate.ToString("dd/MM/yyyy")
+                        </strong>
+                    </div>
+
+                    <div class="info-row d-flex justify-content-between align-items-center pt-3 pb-2">
+                        <span class="text-secondary fs-14">
+                            <i class="fa-solid fa-hand-holding-dollar me-2 text-muted"></i>Số tiền phạt
+                        </span>
+                        <h3 class="amount-value mb-0 fw-extrabold" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                            @item.Amount.ToString("N0") <span class="fs-14 fw-normal text-secondary">VND</span>
+                        </h3>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-info rounded-pill fw-bold py-2 d-flex align-items-center justify-content-center gap-2 w-100"
+                                        data-bs-toggle="modal" data-bs-target="#fineDetailsModal"
+                                        data-fine-id="@item.Id"
+                                        data-fine-code="@("FN" + item.Id.ToString("D6"))"
+                                        data-book-title="@bookTitle"
+                                        data-book-cover="@bookCover"
+                                        data-fine-amount="@item.Amount.ToString("N0")"
+                                        data-fine-type="@item.FinesType"
+                                        data-reason="@item.Reason"
+                                        data-calculation="@calculationFormula"
+                                        data-created-date="@item.CreatedDate.ToString("dd/MM/yyyy")"
+                                        data-due-date="@(item.BorrowSlips?.DueDate.ToString("dd/MM/yyyy") ?? "N/A")"
+                                        data-returned-date="@(item.BorrowSlips != null && item.BorrowSlips.ReturnDate.HasValue ? item.BorrowSlips.ReturnDate.Value.ToString("dd/MM/yyyy") : "N/A")"
+                                        data-is-paid="@item.IsPaid.ToString().ToLower()"
+                                        data-paid-date="@(item.PaidDate.HasValue ? item.PaidDate.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")"
+                                        data-condition-after="@conditionAfter">
+                                    <i class="fa-solid fa-eye"></i>Xem chi tiết
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                @if (!item.IsPaid)
+                                {
+                                    <button type="button" class="btn btn-pay-now rounded-pill fw-bold py-2 d-flex align-items-center justify-content-center gap-2 w-100"
+                                            data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                            data-fine-id="@item.Id" data-fine-amount="@item.Amount.ToString("N0")">
+                                        <i class="fa-solid fa-credit-card"></i>Thanh toán
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary rounded-pill fw-bold py-2 d-flex align-items-center justify-content-center gap-2 w-100 opacity-50" disabled>
+                                        <i class="fa-solid fa-lock text-muted"></i>Đã thanh toán
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 empty-state-container mt-4">
+            <div class="empty-icon-shield">
+                <i class="fa-solid fa-shield-heart text-success"></i>
+            </div>
+            <h3 class="fw-bold text-heading mt-4" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Tài khoản trong sạch!</h3>
+            <p class="text-secondary max-w-sm mx-auto fs-14" style="color: var(--text-secondary) !important;">
+                Hiện tại bạn không có bất kỳ khoản phí phạt tồn đọng nào trong hệ thống. Hãy tiếp tục duy trì mượn trả đúng hạn nhé!
+            </p>
+        </div>
+    }
+
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: #FFFFFF; border: 1px solid #E2E8F0;">
+            <div class="modal-header border-bottom border-secondary">
+                <h3 class="modal-title text-dark" id="paymentModalLabel" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                    <i class="fa-solid fa-credit-card me-2"></i>Xác nhận thanh toán tiền phạt
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <p class="text-dark mb-0">Số tiền cần thanh toán: <span id="paymentModalAmount" class="fw-bold text-success fs-5"></span> VND</p>
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="mb-4">
+                    <h3 class="text-dark mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;"><i class="fa-solid fa-wallet me-2"></i>Phương thức thanh toán:</h3>
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                    
+                    <div class="payment-method-options">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="paymentMethod" id="qrPayment" value="qr" checked>
+                            <label class="form-check-label text-dark" for="qrPayment">
+                                <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                                <i class="fa-solid fa-qrcode me-2 text-info"></i>Thanh toán bằng Mã QR tài khoản Thư viện
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="paymentMethod" id="vnpayPayment" value="vnpay">
+                            <label class="form-check-label text-dark" for="vnpayPayment">
+                                <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                                <i class="fa-solid fa-credit-card me-2 text-warning"></i>Cổng thanh toán điện tử VNPAY (Tự động duyệt)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Payment Section -->
+                <div id="qrPaymentSection" class="payment-section">
+                    <div class="text-center mb-3">
+                        <div class="qr-placeholder bg-white p-3 rounded mx-auto" style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <img id="qrImage" src="" alt="QR Code" style="max-width: 100%; max-height: 100%;">
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info" style="background: rgba(13, 17, 23, 0.8); border: 1px solid var(--border-color);">
+                        <h3 class="text-white mb-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;"><i class="fa-solid fa-info-circle me-2"></i>Hướng dẫn:</h3>
+                        <ul class="text-secondary mb-0 ps-3">
+                            <li>Quét mã QR bằng ứng dụng ngân hàng để thanh toán</li>
+                            <li>Sau khi chuyển khoản, nhấn "Gửi yêu cầu xác nhận" bên dưới</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- VNPAY Payment Section -->
+                <div id="vnpayPaymentSection" class="payment-section" style="display: none;">
+                    <div class="text-center mb-3">
+                        <div class="vnpay-placeholder bg-white p-4 rounded mx-auto" style="width: 200px; height: 100px; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--brand-base);">
+                            <div class="text-center">
+                                <i class="fa-solid fa-credit-card text-primary fa-3x mb-2"></i>
+                                <p class="text-muted small mb-0">VNPAY Gateway</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning" style="background: rgba(255, 193, 7, 0.1); border: 1px solid var(--warning);">
+                        <h3 class="text-white mb-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;"><i class="fa-solid fa-bolt me-2"></i>Tính năng:</h3>
+                        <ul class="text-secondary mb-0 ps-3">
+                            <li>Thanh toán tự động qua cổng VNPAY</li>
+                            <li>Hệ thống tự động xác nhận sau khi thanh toán thành công</li>
+                            <li>Hỗ trợ thẻ ATM, Visa, MasterCard, ví điện tử</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="fineIdInput" />
+            </div>
+            <div class="modal-footer border-top border-dark">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" id="confirmPaymentBtn" class="btn btn-success">
+                    <i class="fa-solid fa-paper-plane me-2"></i>Gửi yêu cầu xác nhận đã chuyển khoản
+                </button>
+                <button type="button" id="vnpayPaymentBtn" class="btn btn-warning" style="display: none;">
+                    <i class="fa-solid fa-credit-card me-2"></i>Kết nối đến cổng VNPAY
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const paymentModal = document.getElementById('paymentModal');
+        const paymentModalAmount = document.getElementById('paymentModalAmount');
+        const qrImage = document.getElementById('qrImage');
+        const fineIdInput = document.getElementById('fineIdInput');
+        const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+        const vnpayPaymentBtn = document.getElementById('vnpayPaymentBtn');
+        const qrPaymentSection = document.getElementById('qrPaymentSection');
+        const vnpayPaymentSection = document.getElementById('vnpayPaymentSection');
+
+        if (!paymentModal || !paymentModalAmount || !fineIdInput) return;
+
+        // Payment method selection handlers
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'qr') {
+                    if (qrPaymentSection) qrPaymentSection.style.display = 'block';
+                    if (vnpayPaymentSection) vnpayPaymentSection.style.display = 'none';
+                    if (confirmPaymentBtn) confirmPaymentBtn.style.display = 'inline-block';
+                    if (vnpayPaymentBtn) vnpayPaymentBtn.style.display = 'none';
+                } else if (this.value === 'vnpay') {
+                    if (qrPaymentSection) qrPaymentSection.style.display = 'none';
+                    if (vnpayPaymentSection) vnpayPaymentSection.style.display = 'block';
+                    if (confirmPaymentBtn) confirmPaymentBtn.style.display = 'none';
+                    if (vnpayPaymentBtn) vnpayPaymentBtn.style.display = 'inline-block';
+                }
+            });
+        });
+
+        paymentModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const fineId = button.getAttribute('data-fine-id');
+            const amount = button.getAttribute('data-fine-amount');
+            
+            paymentModalAmount.textContent = amount;
+            fineIdInput.value = fineId;
+            
+            if (qrImage) {
+                qrImage.src = `https://img.vietqr.io/image/970418-105884348544-compact2.png?amount=${amount.replace(/,/g, '')}&addInfo=ThanhToanPhat${fineId}`;
+            }
+            
+            const qrPaymentRadio = document.getElementById('qrPayment');
+            if (qrPaymentRadio) qrPaymentRadio.checked = true;
+            if (qrPaymentSection) qrPaymentSection.style.display = 'block';
+            if (vnpayPaymentSection) vnpayPaymentSection.style.display = 'none';
+            if (confirmPaymentBtn) confirmPaymentBtn.style.display = 'inline-block';
+            if (vnpayPaymentBtn) vnpayPaymentBtn.style.display = 'none';
+        });
+
+        if (confirmPaymentBtn) confirmPaymentBtn.addEventListener('click', function() {
+            const fineId = fineIdInput.value;
+            
+            fetch('/Fines/RequestPaymentApproval', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ id: parseInt(fineId) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and redirect to success page
+                    const modal = bootstrap.Modal.getInstance(paymentModal);
+                    modal.hide();
+                    window.location.href = '/BorrowSlips/BookingSuccess?type=payment';
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Có lỗi xảy ra' });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi gửi yêu cầu' });
+            });
+        });
+
+        if (vnpayPaymentBtn) vnpayPaymentBtn.addEventListener('click', function() {
+            const fineId = fineIdInput.value;
+            const amount = paymentModalAmount.textContent.replace(/,/g, '');
+            
+            // Show loading state
+            this.disabled = true;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Đang kết nối...';
+            
+            // Mock VNPAY integration
+            fetch('/Fines/ProcessVNPAYPayment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ 
+                    fineId: parseInt(fineId),
+                    amount: parseFloat(amount)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and redirect to success page
+                    const modal = bootstrap.Modal.getInstance(paymentModal);
+                    modal.hide();
+                    window.location.href = '/BorrowSlips/BookingSuccess?type=payment';
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Có lỗi xảy ra' });
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fa-solid fa-credit-card me-2"></i>Kết nối đến cổng VNPAY';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi kết nối cổng thanh toán' });
+                this.disabled = false;
+                this.innerHTML = '<i class="fa-solid fa-credit-card me-2"></i>Kết nối đến cổng VNPAY';
+            });
+        });
+    });
+</script>
+
+<style>
+    body {
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* Tiện ích kích thước text */
+    .fs-14 {
+        font-size: 14px;
+    }
+
+    .fs-15 {
+        font-size: 15px;
+    }
+
+    .max-w-md {
+        max-width: 500px;
+    }
+
+    .max-w-sm {
+        max-width: 380px;
+    }
+
+    .fw-extrabold {
+        font-weight: 800;
+    }
+
+    /* ================= HEADER STYLE ================= */
+    .text-gradient-red {
+        background: linear-gradient(135deg, var(--text-primary), var(--danger));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .status-pill-danger {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: var(--danger);
+        letter-spacing: 0.5px;
+    }
+
+    .header-animation {
+        animation: fadeInDown 0.6s ease-out;
+    }
+
+    /* ================= FINE CARD STYLE ================= */
+    .fine-card {
+        background: var(--bg-card);
+        border-radius: 20px;
+        padding: 26px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+        border: 1px solid var(--border-color);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .fine-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+
+    .card-unpaid::before {
+        background: linear-gradient(90deg, var(--danger), var(--warning));
+    }
+
+    .card-paid::before {
+        background: linear-gradient(90deg, var(--success), #059669);
+    }
+
+    .fine-card:hover {
+        transform: translateY(-6px);
+    }
+
+    .card-unpaid:hover {
+        box-shadow: 0 15px 30px rgba(239, 68, 68, 0.12);
+    }
+
+    .card-paid:hover {
+        box-shadow: 0 15px 30px rgba(16, 185, 129, 0.08);
+    }
+
+    .book-title {
+        line-height: 1.4;
+        font-size: 18px;
+    }
+
+    .card-divider {
+        border-color: var(--border-color);
+        margin: 16px 0;
+        opacity: 0.5;
+    }
+
+    .reason-box {
+        background: var(--bg-input);
+        border-radius: 10px;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Color States */
+    .card-unpaid .amount-value {
+        color: var(--danger);
+    }
+
+    .card-paid .amount-value {
+        color: var(--success);
+    }
+
+    /* Badge Trạng thái */
+    .status-badge-unpaid {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+    }
+
+    .status-badge-paid {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+    }
+
+    /* Nút bấm thanh toán */
+    .btn-pay-now {
+        background: linear-gradient(135deg, var(--success), #059669);
+        border: none;
+        color: white;
+        transition: filter 0.2s, transform 0.1s;
+    }
+
+        .btn-pay-now:hover {
+            filter: brightness(1.1);
+            color: white;
+        }
+
+        .btn-pay-now:active {
+            transform: scale(0.98);
+        }
+
+    /* ================= EMPTY STATE ================= */
+    .empty-state-container {
+        background: var(--bg-card);
+        border: 1px dashed var(--border-color);
+        border-radius: 20px;
+        padding: 45px 20px;
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .empty-icon-shield {
+        width: 80px;
+        height: 80px;
+        background: rgba(16, 185, 129, 0.05);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 50%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.1);
+    }
+
+    /* ================= KEYFRAMES ANIMATION ================= */
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<!-- Fine Details Modal -->
+<div class="modal fade" id="fineDetailsModal" tabindex="-1" aria-labelledby="fineDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: #FFFFFF; border: 1px solid #E2E8F0;">
+            <div class="modal-header border-bottom border-secondary">
+                <h3 class="modal-title text-dark" id="fineDetailsModalLabel" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                    <i class="fa-solid fa-file-invoice-dollar me-2"></i>Chi tiết phiếu phạt
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center mb-3">
+                            <img id="fineDetailModalBookCover" src="/images/no-book.png" alt="Ảnh bìa sách" onerror="this.onerror=null;this.src='/images/no-book.png';" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 10px; border: 1px solid #E2E8F0;">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h3 class="text-dark fw-bold mb-3" id="fineDetailModalBookTitle" style="color: #0F172A; font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;"></h3>
+                        
+                        <div class="info-row d-flex justify-content-between align-items-center py-2 border-bottom border-dark border-opacity-25">
+                            <span class="text-secondary fs-14">
+                                <i class="fa-solid fa-hashtag me-2 text-muted"></i>Mã phiếu phạt
+                            </span>
+                            <strong class="text-dark font-monospace" style="color: #0F172A !important;" id="fineDetailModalFineCode">---</strong>
+                            <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                        </div>
+                        
+                        <div class="info-row d-flex justify-content-between align-items-center py-2 border-bottom border-dark border-opacity-25">
+                            <span class="text-secondary fs-14">
+                                <i class="fa-solid fa-receipt me-2 text-muted"></i>Lý do phạt
+                            </span>
+                            <span class="badge bg-secondary" id="fineDetailModalFineType"></span>
+                        </div>
+                        
+                        <div class="info-row d-flex justify-content-between align-items-center py-2 border-bottom border-dark border-opacity-25">
+                            <span class="text-secondary fs-14">
+                                <i class="fa-solid fa-calendar-day me-2 text-muted"></i>Ngày lập biên bản
+                            </span>
+                            <strong class="text-dark" style="color: #0F172A !important;" id="fineDetailModalCreatedDate"></strong>
+                            <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                        </div>
+                        
+                        <div class="info-row d-flex justify-content-between align-items-center py-2 border-bottom border-dark border-opacity-25">
+                            <span class="text-secondary fs-14">
+                                <i class="fa-solid fa-calendar-check me-2 text-muted"></i>Hạn trả sách
+                            </span>
+                            <strong class="text-dark" style="color: #0F172A !important;" id="fineDetailModalDueDate"></strong>
+                            <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                        </div>
+                        
+                        <div class="info-row d-flex justify-content-between align-items-center py-2 border-bottom border-dark border-opacity-25">
+                            <span class="text-secondary fs-14">
+                                <i class="fa-solid fa-calendar-xmark me-2 text-muted"></i>Ngày trả sách
+                            </span>
+                            <strong class="text-dark" style="color: #0F172A !important;" id="fineDetailModalReturnedDate"></strong>
+                            <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="reason-box mb-3">
+                    <h6 class="text-dark mb-2"><i class="fa-solid fa-calculator me-2 text-info"></i>Công thức tính phạt:</h6>
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                    <p class="text-dark mb-0 fs-14" style="color: var(--text-secondary) !important;" id="fineDetailModalCalculation"></p>
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                </div>
+                
+                <div class="reason-box mb-3" id="fineDetailModalConditionBox" style="display: none;">
+                    <h6 class="text-dark mb-2"><i class="fa-solid fa-exclamation-triangle me-2 text-warning"></i>Tình trạng sách sau khi trả:</h6>
+                    <p class="text-dark mb-0 fs-14" style="color: var(--text-secondary) !important;" id="fineDetailModalConditionAfter"></p>
+                </div>
+                
+                <div class="alert alert-info" style="background: var(--info-bg); border: 1px solid var(--info);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-dark fw-bold">Tổng số tiền phạt:</span>
+                        <span class="text-success fw-bold fs-4" id="fineDetailModalAmount">0 VND</span>
+                    </div>
+                </div>
+                
+                <div class="info-row d-flex justify-content-between align-items-center py-2">
+                    <span class="text-secondary fs-14">
+                        <i class="fa-solid fa-circle-check me-2 text-muted"></i>Trạng thái thanh toán
+                    </span>
+                    <span class="badge" id="fineDetailModalPaymentStatus"></span>
+                </div>
+                
+                <div id="fineDetailModalPaidDateRow" class="info-row d-flex justify-content-between align-items-center py-2" style="display: none;">
+                    <span class="text-secondary fs-14">
+                        <i class="fa-solid fa-clock me-2 text-muted"></i>Ngày thanh toán
+                    </span>
+                    <strong class="text-dark" style="color: #0F172A !important;" id="fineDetailModalPaidDate"></strong>
+                    <!-- TODO: Keep text-dark here because modal has fixed white background that doesn't change with theme -->
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fineDetailsModal = document.getElementById('fineDetailsModal');
+        if (!fineDetailsModal) return;
+
+        fineDetailsModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+
+            const fineCode = button.getAttribute('data-fine-code');
+            const bookTitle = button.getAttribute('data-book-title');
+            const bookCover = button.getAttribute('data-book-cover');
+            const fineAmount = button.getAttribute('data-fine-amount');
+            const fineType = button.getAttribute('data-fine-type');
+            const calculation = button.getAttribute('data-calculation');
+            const createdDate = button.getAttribute('data-created-date');
+            const dueDate = button.getAttribute('data-due-date');
+            const returnedDate = button.getAttribute('data-returned-date');
+            const isPaid = button.getAttribute('data-is-paid') === 'true';
+            const paidDate = button.getAttribute('data-paid-date');
+            const conditionAfter = button.getAttribute('data-condition-after');
+
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value ?? '';
+            };
+
+            setText('fineDetailModalBookTitle', bookTitle);
+            const coverEl = document.getElementById('fineDetailModalBookCover');
+            if (coverEl) {
+                coverEl.src = bookCover || '/images/no-book.png';
+                coverEl.onerror = function() {
+                    this.onerror = null;
+                    this.src = '/images/no-book.png';
+                };
+            }
+            setText('fineDetailModalFineCode', fineCode ? '#' + fineCode.replace('#', '') : '');
+            setText('fineDetailModalFineType', getFineTypeText(fineType));
+            setText('fineDetailModalCreatedDate', createdDate);
+            setText('fineDetailModalDueDate', dueDate);
+            setText('fineDetailModalReturnedDate', returnedDate);
+            setText('fineDetailModalAmount', (fineAmount || '0') + ' VND');
+            setText('fineDetailModalCalculation', calculation || 'Không có thông tin');
+
+            const paymentStatusBadge = document.getElementById('fineDetailModalPaymentStatus');
+            const paidDateRow = document.getElementById('fineDetailModalPaidDateRow');
+            if (paymentStatusBadge) {
+                if (isPaid) {
+                    paymentStatusBadge.textContent = 'Đã tất toán';
+                    paymentStatusBadge.className = 'badge bg-success';
+                    setText('fineDetailModalPaidDate', paidDate);
+                    if (paidDateRow) paidDateRow.style.display = 'flex';
+                } else {
+                    paymentStatusBadge.textContent = 'Chưa thanh toán';
+                    paymentStatusBadge.className = 'badge bg-danger';
+                    if (paidDateRow) paidDateRow.style.display = 'none';
+                }
+            }
+
+            const conditionBox = document.getElementById('fineDetailModalConditionBox');
+            if (conditionBox) {
+                if (conditionAfter && conditionAfter !== 'N/A') {
+                    setText('fineDetailModalConditionAfter', conditionAfter);
+                    conditionBox.style.display = 'block';
+                } else {
+                    conditionBox.style.display = 'none';
+                }
+            }
+        });
+
+        function getFineTypeText(fineType) {
+            switch (fineType) {
+                case 'Late': return 'Trả muộn quá hạn';
+                case 'Damaged': return 'Sách bị hư hại';
+                case 'Lost': return 'Sách bị mất';
+                default: return 'Khác';
+            }
+        }
+    });
+</script>

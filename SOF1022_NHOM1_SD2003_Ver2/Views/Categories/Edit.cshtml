@@ -1,0 +1,54 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.Categories
+
+@{
+    ViewData["Title"] = "Chỉnh sửa Danh mục";
+}
+
+<div class="container-fluid py-4 px-md-5">
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-light p-3 rounded-circle text-success shadow-sm">
+                <i class="fas fa-tags fa-lg"></i>
+            </div>
+            <div>
+                <h4 class="mb-0 text-dark fw-bold">Quản lý Danh mục</h4>
+                <small class="text-muted">Cập nhật thông tin danh mục trong hệ thống thư viện</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm bg-white rounded-3 overflow-hidden">
+        <div class="card-header bg-white border-bottom py-3 px-4" style="border-left: 4px solid #198754 !important;">
+            <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-edit me-2 text-muted"></i>Biểu mẫu chỉnh sửa danh mục</h5>
+        </div>
+        <div class="card-body p-4 bg-light">
+            <form asp-action="Edit" method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none"></div>
+                <input type="hidden" asp-for="Id" />
+
+                <div class="row g-4">
+                    <div class="col-md-12">
+                        <label asp-for="Name" class="form-label fw-semibold text-secondary">Tên danh mục</label>
+                        <input asp-for="Name" class="form-control form-control-lg border-2 shadow-none rounded-2" placeholder="Nhập tên danh mục..." />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label asp-for="Description" class="form-label fw-semibold text-secondary">Mô tả</label>
+                        <textarea asp-for="Description" class="form-control form-control-lg border-2 shadow-none rounded-2" rows="3" placeholder="Nhập mô tả danh mục..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-3 border-top d-flex gap-2 justify-content-end">
+                    <a asp-action="Index" class="btn btn-light border btn-lg px-4 fs-6 rounded-2 text-secondary"><i class="fas fa-arrow-left me-2"></i>Quay lại</a>
+                    <button type="submit" class="btn btn-success btn-lg px-5 fs-6 rounded-2 shadow-sm"><i class="fas fa-save me-2"></i>Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

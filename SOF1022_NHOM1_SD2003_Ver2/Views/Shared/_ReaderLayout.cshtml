@@ -1,0 +1,1279 @@
+@using Microsoft.AspNetCore.Http
+@using SOF1022_NHOM1_SD2003_Ver2.Datas
+@using Microsoft.EntityFrameworkCore
+
+@{
+    var userId = Context.Session.GetString("UserId");
+    var userName = Context.Session.GetString("UserName");
+    var role = Context.Session.GetString("Role");
+
+    bool isLogin = !string.IsNullOrEmpty(userId);
+
+    string activeBadge = "";
+    string activeBadgeIconUrl = "";
+    string displayUserName = userName ?? "User";
+    SOF1022_NHOM1_SD2003_Ver2.Models.Readers? reader = null;
+
+    if (isLogin && int.TryParse(userId, out int parsedUserId))
+    {
+        var dbContext = Context.RequestServices.GetRequiredService<LibraryDbContext>();
+        reader = dbContext.Readers.FirstOrDefault(r => r.Id == parsedUserId);
+        if (reader != null)
+        {
+            // Use database FullName for display
+            displayUserName = reader.FullName ?? userName ?? "User";
+
+            if (!string.IsNullOrEmpty(reader.ActiveBadge))
+            {
+                activeBadge = reader.ActiveBadge;
+                // Map badge name to icon URL
+                activeBadgeIconUrl = activeBadge switch
+                {
+                    " Học Giả Đại Thừa" => "/images/Icons/hoc-gia-dai-thua.png",
+                    " Chúa Tể Đêm Trường" => "/images/Icons/chua-te-dem-truong.gif",
+                    " Tri Kỷ Văn Học" => "/images/Icons/tri-ky-van-hoc.png",
+                    " Kẻ Chinh Phục Tri Thức" => "/images/Icons/ke-chinh-phuc.png",
+                    " Độc Giả Tập Sự" => "/images/Icons/doc-gia-tap-su.png",
+                    _ => ""
+                };
+            }
+        }
+    }
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+        (function () {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+    <title>@ViewData["Title"] - Thư viện điện tử</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap&subset=vietnamese" rel="stylesheet">
+
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <link href="~/css/design-tokens.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/components.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/reader.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/quick-help.css" rel="stylesheet" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+
+    <!-- Ambient Mesh (Taste-Soft Premium Slow-Drifting Depth) -->
+    <div class="ambient-mesh" aria-hidden="true">
+        <div class="mesh-blob-1"></div>
+        <div class="mesh-blob-2"></div>
+    </div>
+
+    <!-- Floating Pill Navbar Architecture -->
+    <header class="nav-shell-wrapper" style="z-index: 1050 !important;">
+        <nav class="nav-shell navbar navbar-expand-lg">
+            <div class="nav-core">
+                <a class="navbar-brand fw-bold d-flex align-items-center gap-2 text-decoration-none"
+                   asp-controller="Home" asp-action="Index">
+                    <div class="logo-icon-wrapper d-flex align-items-center justify-content-center">
+                        <i class="fa-solid fa-book-open-reader fs-5 text-warning"></i>
+                    </div>
+                    <span class="logo-text">
+                        <span class="logo-word-primary">THƯ VIỆN</span>
+                        <span class="logo-word-accent">ĐIỆN TỬ</span>
+                    </span>
+                </a>
+
+                <button class="navbar-toggler border-0 shadow-none px-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#readerNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="readerNavbar">
+                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0 d-flex align-items-center gap-2 gap-lg-3">
+                        <li class="nav-item">
+                            <a class="nav-link rounded-pill px-3 py-1.5 fw-semibold" asp-controller="Home" asp-action="Index" style="white-space: nowrap;">
+                                <span>Trang chủ</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-pill px-3 py-1.5 fw-semibold" asp-controller="Books" asp-action="Index" style="white-space: nowrap;">
+                                <span>Kho sách</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-pill px-3 py-1.5 fw-semibold" asp-controller="Books" asp-action="Random" style="white-space: nowrap;">
+                                <span>Sách ngẫu nhiên</span>
+                            </a>
+                        </li>
+
+                        @if (role == "Reader")
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="white-space: nowrap;">
+                                    <span>Dịch vụ</span>
+                                </a>
+                                <ul class="dropdown-menu shadow-lg border-0 rounded-4 animate fade-in" style="background-color: var(--bg-card); border: 1px solid var(--hairline);">
+                                    <li>
+                                        <a class="dropdown-item py-2 rounded-3" asp-controller="BorrowSlips" asp-action="Create" style="color: var(--text-primary);">
+                                             Tạo phiếu mượn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 rounded-3" asp-controller="BorrowSlips" asp-action="MyBorrows" style="color: var(--text-primary);">
+                                             Sách đang mượn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 rounded-3" asp-controller="Reservations" asp-action="MyReservation" style="color: var(--text-primary);">
+                                             Đặt trước sách
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 rounded-3" asp-controller="Fines" asp-action="MyFines" style="color: var(--text-primary);">
+                                             Tra cứu tiền phạt
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="white-space: nowrap;">
+                                    <span>Dịch vụ</span>
+                                    <i class="fa-solid fa-lock fs-11 text-muted"></i>
+                                </a>
+                                <ul class="dropdown-menu shadow-lg border-0 rounded-4 animate fade-in" style="background-color: var(--bg-card); border: 1px solid var(--hairline);">
+                                    <li>
+                                        <a class="dropdown-item py-2 locked-service rounded-3" href="#" style="color: var(--text-primary);">
+                                             Tạo phiếu mượn <i class="fa-solid fa-lock ms-2 fs-11 text-muted"></i>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 locked-service rounded-3" href="#" style="color: var(--text-primary);">
+                                             Sách đang mượn <i class="fa-solid fa-lock ms-2 fs-11 text-muted"></i>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 locked-service rounded-3" href="#" style="color: var(--text-primary);">
+                                             Đặt trước sách <i class="fa-solid fa-lock ms-2 fs-11 text-muted"></i>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 locked-service rounded-3" href="#" style="color: var(--text-primary);">
+                                             Tra cứu tiền phạt <i class="fa-solid fa-lock ms-2 fs-11 text-muted"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="ms-auto d-flex align-items-center gap-2 layout-auth-zone">
+                        <!-- Dark Mode Toggle -->
+                        <button class="theme-toggle" id="themeToggle" type="button" title="Chuyển chế độ sáng/tối">
+                            <i class="fa-solid fa-moon" id="themeIcon"></i>
+                        </button>
+                        
+                        @if (!isLogin)
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-taste-gold shadow-sm">
+                                <span>Đăng nhập</span>
+                                <span class="btn-taste-circle"><i class="fa-solid fa-right-to-bracket"></i></span>
+                            </a>
+                            <a asp-controller="Account" asp-action="Register" class="btn btn-taste-ghost">
+                                <span>Đăng ký</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <partial name="_NotificationBellPartial" />
+
+                            @if (role != "Reader" && !string.IsNullOrEmpty(role))
+                            {
+                                <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" title="Vào trang quản trị">
+                                    <i class="fa-solid fa-gauge-high me-1"></i>Quản trị
+                                </a>
+                            }
+
+                            <button class="btn btn-taste-ghost rounded-pill px-3 py-1.5 d-flex align-items-center" type="button" data-bs-toggle="modal" data-bs-target="#profileModal">
+                                @{
+                                    var tempReader = new SOF1022_NHOM1_SD2003_Ver2.Models.Readers { FullName = displayUserName, Avatar = reader?.Avatar };
+                                }
+                                <div style="width: 24px; height: 24px;" class="me-2">
+                                    @await Html.PartialAsync("_AvatarPartial", tempReader)
+                                </div>
+                                <span class="fw-semibold">@displayUserName</span>
+                                @if (!string.IsNullOrEmpty(activeBadgeIconUrl))
+                                {
+                                    <img id="globalNavbarBadge" src="@activeBadgeIconUrl" style="width: 18px; height: 18px; object-fit: contain; margin-left: 6px;" title="@activeBadge" />
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-wrapper reader-content-wrap">
+        @Html.AntiForgeryToken()
+        @RenderBody()
+    </main>
+
+    @if (ViewData["HideFooter"] == null || !(bool)ViewData["HideFooter"])
+    {
+    <footer class="footer-reader">
+        <div class="container">
+            <div class="row" style="gap: var(--card-gap);">
+                <style>
+                    @@media (max-width: 991px) {
+                        .footer-reader .row {
+                            gap: var(--section-gap-sm) !important;
+                        }
+                    }
+                </style>
+                <div class="col-lg-4">
+                    <h3 class="fw-bold text-heading mb-3 d-flex align-items-center gap-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">
+                        <i class="fa-solid fa-book-open-reader text-emerald"></i> THƯ VIỆN ĐIỆN TỬ
+                    </h3>
+                    <p class="text-secondary fs-14 lh-lg">
+                        Hệ thống quản lý thư viện hiện đại, mang lại trải nghiệm tìm kiếm, mượn trả tài liệu kỹ thuật số tối ưu và nhanh chóng nhất cho độc giả.
+                    </p>
+                </div>
+                <div class="col-lg-2 offset-lg-1">
+                    <h3 class="text-heading fw-bold uppercase tracking-wider mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Khám phá</h3>
+                    <ul class="footer-menu ps-0 mb-0">
+                        <li><a asp-controller="Home" asp-action="Index" class="text-subtle">Trang chủ</a></li>
+                        <li><a asp-controller="Books" asp-action="Index" class="text-subtle">Kho sách</a></li>
+                        <li><a href="#" class="text-subtle">Chính sách mượn</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2">
+                    <h3 class="text-heading fw-bold uppercase tracking-wider mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Dịch vụ</h3>
+                    <ul class="footer-menu ps-0 mb-0 text-secondary fs-14">
+                        <li class="py-1"><i class="fa-solid fa-angle-right me-1 fs-11" style="color: var(--brand-base);"></i> Đặt trước sách</li>
+                        <li class="py-1"><i class="fa-solid fa-angle-right me-1 fs-11" style="color: var(--brand-base);"></i> Gia hạn phiếu</li>
+                        <li class="py-1"><i class="fa-solid fa-angle-right me-1 fs-11" style="color: var(--brand-base);"></i> Đọc trực tuyến</li>
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h3 class="text-heading fw-bold uppercase tracking-wider mb-3" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Liên hệ</h3>
+                    <div class="d-flex flex-column gap-2 text-secondary fs-14">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-envelope flex-shrink-0" style="color: var(--brand-base);"></i> library@gmail.com
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-phone flex-shrink-0" style="color: var(--brand-base);"></i> 0123 456 789
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-location-dot flex-shrink-0" style="color: var(--brand-base);"></i> FPT Polytechnic
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4 border-secondary opacity-25">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 text-secondary" style="font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;">
+                <span>&copy; @DateTime.Now.Year Library Management System. Vanguard Soft Edition.</span>
+                <div class="d-flex gap-3 social-links">
+                    <a href="#" style="color: var(--brand-base);"><i class="fab fa-facebook fa-lg"></i></a>
+                    <a href="#" style="color: var(--brand-base);"><i class="fab fa-youtube fa-lg"></i></a>
+                    <a href="#" style="color: var(--brand-base);"><i class="fab fa-instagram fa-lg"></i></a>
+                    <a href="#" style="color: var(--brand-base);"><i class="fab fa-github fa-lg"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    }
+
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+            <div class="modal-content logout-modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: var(--bg-card, #ffffff) !important; border: 1px solid var(--border-color, #e2e8f0) !important;">
+                <div class="modal-body text-center py-4 px-4">
+                    <div class="logout-icon-circle mb-3 mx-auto d-flex align-items-center justify-content-center shadow-sm" style="width: 68px; height: 68px; border-radius: 50%; background: #fee2e2; color: #dc2626; border: 3px solid #fecaca;">
+                        <i class="fa-solid fa-right-from-bracket fs-2"></i>
+                    </div>
+                    <h4 class="logout-title fw-bold mb-2" style="color: var(--text-primary, #0f172a) !important; font-size: 21px;">Đăng xuất tài khoản?</h4>
+                    <p class="logout-desc mb-4" style="color: var(--text-secondary, #334155) !important; font-size: 15px; font-weight: 500;">Phiên làm việc hiện tại của bạn sẽ lập tức kết thúc.</p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <button type="button" class="btn btn-logout-cancel flex-fill fw-semibold py-2 px-3 rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                        <a asp-controller="Account" asp-action="Logout" class="btn btn-danger flex-fill fw-bold py-2 px-3 rounded-pill shadow-sm">Đăng xuất</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4" style="background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color) !important;">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <!-- Profile Header -->
+                    <div class="text-center mb-4">
+                        <div style="width: 80px; height: 80px; margin: 0 auto;" class="mb-3">
+                            @{
+                                var modalReader = new SOF1022_NHOM1_SD2003_Ver2.Models.Readers { FullName = displayUserName, Avatar = reader?.Avatar };
+                            }
+                            @await Html.PartialAsync("_AvatarPartial", modalReader)
+                        </div>
+                        <h3 class="text-heading fw-bold mb-1" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@displayUserName</h3>
+                        @if (!string.IsNullOrEmpty(activeBadge))
+                        {
+                            <span class="badge bg-emerald-soft text-emerald fs-12 px-3 py-1 rounded-pill">
+                                <i class="fas fa-award me-1"></i>@activeBadge
+                            </span>
+                        }
+                    </div>
+
+                    <!-- Profile Info -->
+                    <div class="rounded-3 p-3 mb-3" style="background-color: var(--bg-deep); border: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-envelope text-muted me-3" style="width: 20px;"></i>
+                            <div>
+                                <small class="text-secondary d-block">Email</small>
+                                <span class="text-heading fs-14 fw-semibold" id="profileEmail">Đang tải...</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-0">
+                            <i class="fas fa-phone text-muted me-3" style="width: 20px;"></i>
+                            <div>
+                                <small class="text-secondary d-block">Số điện thoại</small>
+                                <span class="text-heading fs-14 fw-semibold" id="profilePhone">Đang tải...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Change Display Name -->
+                    <div class="rounded-3 p-3 mb-3" style="background-color: var(--bg-deep); border: 1px solid var(--border-color);">
+                        <label class="text-secondary fs-13 mb-2 fw-medium">Tên hiển thị</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="editDisplayName" value="@userName" maxlength="30" style="background-color: var(--bg-card); color: var(--text-primary); border-color: var(--border-color);" />
+                            <button class="btn btn-warning fw-semibold px-3" type="button" id="updateDisplayNameBtn" title="Lưu thay đổi">
+                                <i class="fas fa-floppy-disk"></i>
+                            </button>
+                        </div>
+                        <div id="displayNameFeedback" class="fs-12 mt-2"></div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Account" asp-action="Profile" class="btn btn-outline-secondary rounded-3 py-2 text-heading d-flex align-items-center justify-content-center gap-2">
+                            <i class="fas fa-id-card"></i><span>Hồ sơ cá nhân đầy đủ</span>
+                        </a>
+                        <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-outline-secondary rounded-3 py-2 text-heading d-flex align-items-center justify-content-center gap-2">
+                            <i class="fas fa-lock"></i><span>Đổi mật khẩu</span>
+                        </a>
+                        @if (role != "Reader" && !string.IsNullOrEmpty(role))
+                        {
+                            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-warning rounded-3 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                                <i class="fas fa-screwdriver-wrench"></i><span>Trang quản trị (@role)</span>
+                            </a>
+                        }
+                        <hr class="my-2" style="border-color: var(--border-color);" />
+                        <a href="#" class="btn btn-danger rounded-3 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                            <i class="fas fa-right-from-bracket"></i><span>Đăng xuất</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/quick-help.js"></script>
+    <script>
+        // Đảm bảo không bao giờ bị kẹt backdrop sau khi đóng modal
+        document.addEventListener('hidden.bs.modal', function () {
+            if (!document.querySelector('.modal.show')) {
+                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        });
+
+        // Handle locked services for anonymous users
+        document.addEventListener('DOMContentLoaded', function() {
+            const lockedServices = document.querySelectorAll('.locked-service');
+            lockedServices.forEach(function(service) {
+                service.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Bạn cần đăng nhập',
+                        text: 'Vui lòng đăng nhập để sử dụng đầy đủ các dịch vụ trực tuyến của Thư viện (Đặt trước, gia hạn, theo dõi phiếu mượn).',
+                        showCancelButton: true,
+                        confirmButtonText: 'Đăng nhập ngay',
+                        cancelButtonText: 'Đăng ký',
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '/Account/Login';
+                        } else if (result.dismiss === Swal.DismissReason.cancel) {
+                            window.location.href = '/Account/Register';
+                        }
+                    });
+                });
+            });
+        });
+
+        // Load user profile data when modal opens
+        document.getElementById('profileModal').addEventListener('show.bs.modal', async function() {
+            try {
+                const response = await fetch('/Account/GetProfileData');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('profileEmail').textContent = data.email || 'Chưa cập nhật';
+                    document.getElementById('profilePhone').textContent = data.phone || 'Chưa cập nhật';
+                    document.getElementById('editDisplayName').value = data.displayName || '';
+                }
+            } catch (error) {
+                console.error('Error loading profile data:', error);
+            }
+        });
+
+        // Update display name
+        let validationTimeout;
+        document.getElementById('editDisplayName').addEventListener('input', function() {
+            clearTimeout(validationTimeout);
+            const value = this.value.trim();
+            const feedback = document.getElementById('displayNameFeedback');
+            
+            if (value.length === 0) {
+                feedback.textContent = '';
+                feedback.className = 'fs-12 mt-2';
+                return;
+            }
+
+            validationTimeout = setTimeout(() => validateDisplayName(value), 500);
+        });
+
+        async function validateDisplayName(displayName) {
+            try {
+                const response = await fetch('/Account/ValidateDisplayName', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `displayName=${encodeURIComponent(displayName)}`
+                });
+                const result = await response.json();
+                const feedback = document.getElementById('displayNameFeedback');
+                
+                if (result.isValid) {
+                    feedback.textContent = result.message;
+                    feedback.className = 'fs-12 mt-2 text-success';
+                    document.getElementById('updateDisplayNameBtn').disabled = false;
+                } else {
+                    feedback.textContent = result.message;
+                    feedback.className = 'fs-12 mt-2 text-danger';
+                    document.getElementById('updateDisplayNameBtn').disabled = true;
+                }
+            } catch (error) {
+                console.error('Validation error:', error);
+            }
+        }
+
+        document.getElementById('updateDisplayNameBtn').addEventListener('click', async function() {
+            const displayName = document.getElementById('editDisplayName').value.trim();
+            const btn = this;
+            
+            if (!displayName) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng nhập tên hiển thị' });
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            try {
+                const response = await fetch('/Account/UpdateDisplayName', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: `displayName=${encodeURIComponent(displayName)}`
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: result.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: result.message });
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra, vui lòng thử lại' });
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i>';
+            }
+        });
+
+        // Dark Mode Toggle Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const html = document.documentElement;
+
+            // Check for saved theme preference or default to light
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            html.setAttribute('data-theme', savedTheme);
+            html.setAttribute('data-bs-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+
+            // Toggle theme on button click
+            themeToggle.addEventListener('click', function() {
+                const currentTheme = html.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                
+                html.setAttribute('data-theme', newTheme);
+                html.setAttribute('data-bs-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(newTheme);
+            });
+
+            function updateThemeIcon(theme) {
+                if (theme === 'dark') {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                } else {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                }
+            }
+        });
+    </script>
+    
+    <!-- Notification System -->
+    <script src="~/js/notification.js"></script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Quick Help Panel & PolyLib AI Assistant -->
+    @await Html.PartialAsync("_QuickHelpPanel")
+    @await Html.PartialAsync("_AiChatWidget")
+
+    <style>
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                background-color: var(--bg-deep);
+                color: var(--text-primary);
+                font-family: 'Inter', system-ui, sans-serif;
+                overflow-x: hidden;
+                transition: background-color 0.3s ease, color 0.3s ease;
+            }
+
+            /* Tiện ích kích thước */
+            .fs-11 {
+                font-size: 11px;
+            }
+
+            .fs-13 {
+                font-size: 13px;
+            }
+
+            .fs-14 {
+                font-size: 14px;
+            }
+
+            .fs-15 {
+                font-size: 15px;
+            }
+
+            .text-emerald {
+                color: var(--emerald-base) !important;
+            }
+
+            .tracking-wider {
+                letter-spacing: 0.05em;
+            }
+
+            /* Fix display name input text color */
+            #editDisplayName {
+                color: #1a1a1a !important;
+                background-color: #ffffff !important;
+            }
+
+            #editDisplayName::placeholder {
+                color: #999999 !important;
+            }
+
+            /* Floating Pill Navbar Styling (Taste-Soft) */
+            .navbar {
+                background: transparent;
+                border: none;
+                padding: 0;
+            }
+
+            .logo-icon-wrapper {
+                width: 36px;
+                height: 36px;
+                border-radius: 12px;
+                background: var(--brand-soft);
+                border: 1px solid rgba(245, 158, 11, 0.35);
+                box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+                flex-shrink: 0;
+            }
+
+            .logo-text {
+                letter-spacing: -0.02em;
+                font-size: 17.5px;
+                font-family: var(--sans);
+                font-weight: 800;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                white-space: nowrap;
+            }
+
+            /* Light mode logo (high contrast against light navbar) */
+            .logo-word-primary {
+                color: #0F172A !important;
+                -webkit-text-fill-color: #0F172A !important;
+                text-shadow: none !important;
+                transition: color 0.25s ease;
+            }
+
+            .logo-word-accent {
+                color: #D97706 !important;
+                -webkit-text-fill-color: #D97706 !important;
+                text-shadow: none !important;
+                transition: color 0.25s ease;
+            }
+
+            /* Dark mode logo (luminous against dark navbar) */
+            [data-theme="dark"] .logo-word-primary,
+            html[data-theme="dark"] .logo-word-primary,
+            body[data-theme="dark"] .logo-word-primary,
+            .navbar-dark .logo-word-primary,
+            .bg-dark .logo-word-primary {
+                color: #FFFFFF !important;
+                -webkit-text-fill-color: #FFFFFF !important;
+                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8) !important;
+            }
+
+            [data-theme="dark"] .logo-word-accent,
+            html[data-theme="dark"] .logo-word-accent,
+            body[data-theme="dark"] .logo-word-accent,
+            .navbar-dark .logo-word-accent,
+            .bg-dark .logo-word-accent {
+                color: #F59E0B !important;
+                -webkit-text-fill-color: #F59E0B !important;
+                text-shadow: 0 0 16px rgba(245, 158, 11, 0.6) !important;
+            }
+
+            .nav-link {
+                color: var(--text-secondary) !important;
+                font-weight: 600;
+                font-size: 15px;
+                transition: color 0.2s ease, transform 0.2s ease;
+                white-space: nowrap;
+            }
+
+            .nav-link:hover, .nav-link.active {
+                color: var(--brand-base) !important;
+                transform: translateY(-1px);
+            }
+
+            .navbar-toggler {
+                border: 1px solid var(--border-color);
+                padding: 6px 10px;
+                border-radius: 8px;
+            }
+
+            [data-theme="dark"] .navbar-toggler-icon {
+                filter: invert(1);
+            }
+
+                .nav-link.btn-brand-outline {
+                    color: var(--text-secondary) !important;
+                }
+
+                .nav-link.btn-brand-outline:hover {
+                    color: var(--brand-base) !important;
+                    border-color: var(--brand-base) !important;
+                    background-color: var(--brand-soft);
+                }
+
+            .nav-custom-icon {
+                width: 20px;
+                height: 20px;
+                object-fit: contain;
+                vertical-align: middle;
+                transition: transform 0.2s ease;
+            }
+
+                .nav-link:hover .nav-custom-icon {
+                    transform: scale(1.15);
+                }
+
+            .dropdown-menu {
+                background-color: var(--dropdown-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 14px;
+                padding: 8px;
+                box-shadow: var(--shadow-md);
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+            }
+
+            .dropdown-item {
+                color: var(--text-secondary);
+                border-radius: 8px;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+
+                .dropdown-item:hover {
+                    background-color: var(--brand-soft);
+                    color: var(--brand-base);
+                }
+
+            .book-card.card-elevated {
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .book-card.card-elevated:hover {
+                transform: translateY(-4px);
+                box-shadow: var(--shadow-lg);
+            }
+
+            .bg-dark-smooth {
+                background-color: rgba(0,0,0,0.03);
+            }
+
+            /* Buttons Styling */
+            .btn-emerald {
+                background-color: var(--emerald-base);
+                color: white;
+                border: none;
+            }
+
+                .btn-emerald:hover {
+                    background-color: var(--emerald-hover);
+                    color: white;
+                    transform: translateY(-1px);
+                }
+
+            .btn-emerald-soft {
+                background-color: var(--emerald-soft);
+                color: var(--emerald-base);
+                border: 1px solid rgba(16, 185, 129, 0.2);
+            }
+
+                .btn-emerald-soft:hover {
+                    background-color: rgba(16, 185, 129, 0.2);
+                    color: var(--emerald-base);
+                }
+
+            .btn {
+                transition: transform 0.2s, background-color 0.2s;
+            }
+
+                .btn:active {
+                    transform: scale(0.98);
+                }
+
+            /* Main Content Wrapper (Taste-Soft) */
+            .main-wrapper {
+                padding-top: 20px;
+                min-height: calc(100dvh - 300px);
+            }
+
+            /* Footer Custom */
+            .footer-reader {
+                background-color: var(--footer-bg);
+                padding: 65px 0 35px;
+                border-top: 1px solid var(--border-color);
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+            }
+
+            .footer-menu {
+                list-style: none;
+            }
+
+                .footer-menu li {
+                    padding: 6px 0;
+                }
+
+                .footer-menu a {
+                    color: #8b949e;
+                    text-decoration: none;
+                    font-size: 14px;
+                    transition: all 0.25s;
+                }
+
+                    .footer-menu a:hover {
+                        color: var(--brand-base);
+                        padding-left: 6px;
+                    }
+
+            .social-links a {
+                transition: color 0.2s;
+            }
+
+                .social-links a:hover {
+                    color: var(--brand-base) !important;
+                }
+
+            /* Custom UI Modal */
+            .bg-dark-card {
+                background-color: var(--bg-card);
+                border: 1px solid var(--border-color);
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+            }
+
+            /* Global Dark Mode Styles for Common Elements */
+            [data-theme="dark"] .card {
+                background-color: #1A1D24;
+                border-color: #30363D;
+            }
+
+            [data-theme="dark"] .card-header {
+                background-color: #21262D;
+                border-color: #30363D;
+            }
+
+            [data-theme="dark"] .card.bg-white {
+                background-color: #1A1D24;
+            }
+
+            [data-theme="dark"] .card.bg-light {
+                background-color: #21262D;
+            }
+
+            [data-theme="dark"] .form-control,
+            [data-theme="dark"] .form-select {
+                background-color: #0D1117;
+                border-color: #30363D;
+                color: #F0F6FC;
+            }
+
+            [data-theme="dark"] .form-control:focus,
+            [data-theme="dark"] .form-select:focus {
+                background-color: #0D1117;
+                border-color: #10B981;
+                color: #F0F6FC;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+            }
+
+            [data-theme="dark"] .form-control::placeholder {
+                color: #6E7681;
+            }
+
+            [data-theme="dark"] .table {
+                color: #F0F6FC;
+            }
+
+            [data-theme="dark"] .table thead th {
+                background-color: #21262D;
+                border-color: #30363D;
+            }
+
+            [data-theme="dark"] .table tbody tr {
+                background-color: #1A1D24;
+                border-color: #30363D;
+            }
+
+            [data-theme="dark"] .table tbody tr:hover {
+                background-color: #21262D;
+            }
+
+            [data-theme="dark"] .alert {
+                background-color: #21262D;
+                border-color: #30363D;
+            }
+
+            [data-theme="dark"] .alert-info {
+                background-color: rgba(16, 185, 129, 0.15);
+                border-color: #10B981;
+                color: #10B981;
+            }
+
+            [data-theme="dark"] .alert-warning {
+                background-color: rgba(245, 158, 11, 0.15);
+                border-color: #f59e0b;
+                color: #f59e0b;
+            }
+
+            [data-theme="dark"] .alert-danger {
+                background-color: rgba(239, 68, 68, 0.15);
+                border-color: #ef4444;
+                color: #ef4444;
+            }
+
+            [data-theme="dark"] .alert-success {
+                background-color: rgba(16, 185, 129, 0.15);
+                border-color: #10B981;
+                color: #10B981;
+            }
+
+            [data-theme="dark"] .text-muted {
+                color: #94A3B8 !important;
+            }
+
+            [data-theme="dark"] .text-secondary {
+                color: #CBD5E1 !important;
+            }
+
+            [data-theme="dark"] .btn-close {
+                filter: invert(1);
+            }
+
+            [data-theme="dark"] .text-dark {
+                color: var(--text-primary) !important;
+            }
+
+            [data-theme="dark"] .bg-white {
+                background-color: var(--bg-card) !important;
+                color: var(--text-primary) !important;
+            }
+
+            [data-theme="dark"] .bg-light {
+                background-color: var(--bg-deep) !important;
+                color: var(--text-primary) !important;
+            }
+
+            [data-theme="dark"] .modal-content {
+                background-color: var(--bg-card) !important;
+                border-color: var(--border-color) !important;
+                color: var(--text-primary) !important;
+            }
+
+            [data-theme="dark"] .modal-header,
+            [data-theme="dark"] .modal-footer {
+                border-color: var(--border-color) !important;
+            }
+
+            [data-theme="dark"] .dropdown-menu {
+                background-color: var(--bg-card) !important;
+                border-color: var(--border-color) !important;
+            }
+
+            [data-theme="dark"] .dropdown-item {
+                color: var(--text-primary) !important;
+            }
+
+            [data-theme="dark"] .dropdown-item:hover,
+            [data-theme="dark"] .dropdown-item:focus {
+                background-color: var(--accent-light) !important;
+                color: var(--emerald-base) !important;
+            }
+
+            [data-theme="dark"] .btn-outline-secondary {
+                background-color: rgba(255, 255, 255, 0.08) !important;
+                color: #FFFFFF !important;
+                border: 1.5px solid #64748B !important;
+                font-weight: 600 !important;
+            }
+
+            [data-theme="dark"] .btn-outline-secondary i {
+                color: #60A5FA !important;
+            }
+
+            [data-theme="dark"] .btn-outline-secondary:hover {
+                background-color: #FFFFFF !important;
+                color: #0F172A !important;
+                border-color: #FFFFFF !important;
+            }
+
+            [data-theme="dark"] .btn-outline-secondary:hover i {
+                color: #0F172A !important;
+            }
+
+            /* Profile Modal explicit high contrast */
+            #profileModal .btn-outline-secondary {
+                border: 1.5px solid #CBD5E1;
+                color: #1E293B;
+                background-color: #FFFFFF;
+                font-weight: 600;
+            }
+            #profileModal .btn-outline-secondary i {
+                color: #2563EB;
+            }
+            #profileModal .btn-outline-secondary:hover {
+                background-color: #F8FAFC;
+                color: #0F172A;
+                border-color: #94A3B8;
+            }
+
+            [data-theme="dark"] #profileModal .btn-outline-secondary {
+                background-color: rgba(255, 255, 255, 0.09) !important;
+                border: 1.5px solid #64748B !important;
+                color: #FFFFFF !important;
+                font-weight: 600 !important;
+            }
+            [data-theme="dark"] #profileModal .btn-outline-secondary i {
+                color: #60A5FA !important;
+            }
+            [data-theme="dark"] #profileModal .btn-outline-secondary:hover {
+                background-color: #FFFFFF !important;
+                color: #0F172A !important;
+                border-color: #FFFFFF !important;
+            }
+            [data-theme="dark"] #profileModal .btn-outline-secondary:hover i {
+                color: #0F172A !important;
+            }
+
+            [data-theme="dark"] #profileModal .form-control {
+                background-color: #14171F !important;
+                color: #F8FAFC !important;
+                border-color: #334155 !important;
+            }
+            [data-theme="dark"] #profileModal .form-control:focus {
+                border-color: #60A5FA !important;
+                box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25) !important;
+            }
+
+            [data-theme="dark"] .btn-outline-dark {
+                background-color: #FFFFFF !important;
+                color: #0F172A !important;
+                border: 1.5px solid #FFFFFF !important;
+                font-weight: 600 !important;
+            }
+
+            [data-theme="dark"] .btn-outline-dark:hover {
+                background-color: #E2E8F0 !important;
+                color: #000000 !important;
+            }
+
+            [data-theme="dark"] .btn-outline-primary {
+                background-color: rgba(59, 130, 246, 0.15) !important;
+                color: #93C5FD !important;
+                border: 1.5px solid #3B82F6 !important;
+                font-weight: 600 !important;
+            }
+
+            [data-theme="dark"] .btn-outline-primary:hover {
+                background-color: #2563EB !important;
+                color: #FFFFFF !important;
+                border-color: #2563EB !important;
+            }
+
+            [data-theme="dark"] .btn-brand-outline {
+                background-color: rgba(255, 255, 255, 0.08) !important;
+                color: #FFFFFF !important;
+                border: 1.5px solid #94A3B8 !important;
+                font-weight: 600 !important;
+            }
+
+            [data-theme="dark"] .btn-brand-outline:hover {
+                background-color: #FFFFFF !important;
+                color: #0F172A !important;
+                border-color: #FFFFFF !important;
+            }
+
+            [data-theme="dark"] .btn-outline-emerald {
+                background-color: rgba(224, 165, 39, 0.15) !important;
+                color: #FBBF24 !important;
+                border: 2px solid #F59E0B !important;
+                font-weight: 700 !important;
+            }
+
+            [data-theme="dark"] .btn-outline-emerald:hover {
+                background-color: #F59E0B !important;
+                color: #14171F !important;
+            }
+
+            [data-theme="dark"] .badge.bg-primary-subtle {
+                background-color: rgba(37, 99, 235, 0.25) !important;
+                color: #93C5FD !important;
+                border: 1px solid rgba(59, 130, 246, 0.4) !important;
+            }
+
+            [data-theme="dark"] .badge.bg-success-subtle {
+                background-color: rgba(16, 185, 129, 0.25) !important;
+                color: #6EE7B7 !important;
+                border: 1px solid rgba(16, 185, 129, 0.4) !important;
+            }
+
+            [data-theme="dark"] .badge.bg-warning-subtle {
+                background-color: rgba(245, 158, 11, 0.25) !important;
+                color: #FCD34D !important;
+                border: 1px solid rgba(245, 158, 11, 0.4) !important;
+            }
+
+            [data-theme="dark"] .badge.bg-danger-subtle {
+                background-color: rgba(239, 68, 68, 0.25) !important;
+                color: #FCA5A5 !important;
+                border: 1px solid rgba(239, 68, 68, 0.4) !important;
+            }
+
+            [data-theme="dark"] .badge.bg-light {
+                background-color: #232733 !important;
+                color: #F1F5F9 !important;
+                border: 1px solid #3E4456 !important;
+            }
+
+            [data-theme="dark"] .badge.bg-white {
+                background-color: #232733 !important;
+                color: #F1F5F9 !important;
+                border: 1px solid #3E4456 !important;
+            }
+
+            [data-theme="dark"] .list-group-item {
+                background-color: var(--bg-card) !important;
+                color: var(--text-primary) !important;
+                border-color: var(--border-color) !important;
+            }
+
+            [data-theme="dark"] .pagination .page-link {
+                background-color: var(--bg-card) !important;
+                color: var(--text-primary) !important;
+                border-color: var(--border-color) !important;
+            }
+
+            [data-theme="dark"] .pagination .page-item.active .page-link {
+                background-color: var(--brand-base) !important;
+                border-color: var(--brand-base) !important;
+                color: #ffffff !important;
+            }
+
+            /* Dark Mode Toggle Button */
+            .theme-toggle {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 1px solid var(--border-color);
+                background: var(--bg-card);
+                color: var(--text-primary);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                padding: 0;
+            }
+
+            .theme-toggle:hover {
+                background: var(--accent-light);
+                color: var(--emerald-base);
+                transform: rotate(15deg);
+            }
+
+            .theme-toggle i {
+                font-size: 18px;
+            }
+
+            .bg-danger-soft {
+                background-color: rgba(239, 68, 68, 0.1);
+            }
+
+            .icon-logout-box {
+                width: 65px;
+                height: 65px;
+            }
+
+            /* Animations classes */
+            .animate {
+                animation-duration: 0.2s;
+                animation-fill-mode: both;
+            }
+
+            @@keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(8px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .fade-in {
+                animation-name: fadeIn;
+            }
+
+            /* Custom Scrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: var(--bg-deep);
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #21262d;
+                border-radius: 10px;
+            }
+
+                ::-webkit-scrollbar-thumb:hover {
+                    background: #30363d;
+                }
+
+            @@media(max-width: 991.98px) {
+                .nav-shell {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    border-radius: 22px !important;
+                }
+
+                .nav-core {
+                    width: 100% !important;
+                    flex-wrap: wrap !important;
+                    border-radius: 18px !important;
+                }
+
+                .navbar-collapse {
+                    background: var(--bg-card);
+                    margin: 12px 0 4px;
+                    padding: 16px;
+                    border-radius: 16px;
+                    border: 1px solid var(--hairline);
+                    width: 100%;
+                }
+
+                .layout-auth-zone {
+                    margin-top: 15px;
+                    flex-wrap: wrap;
+                }
+
+                .footer-reader {
+                    text-align: center;
+                }
+
+                    .footer-reader .offset-lg-1 {
+                        margin-left: 0;
+                    }
+
+                .footer-menu a:hover {
+                    padding-left: 0;
+                }
+            }
+    </style>
+</body>
+</html>

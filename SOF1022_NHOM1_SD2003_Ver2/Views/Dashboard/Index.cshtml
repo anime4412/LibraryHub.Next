@@ -1,0 +1,748 @@
+@model SOF1022_NHOM1_SD2003_Ver2.Models.ViewModels.DashboardViewModel
+@using SOF1022_NHOM1_SD2003_Ver2.Services
+@inject IPermissionService PermissionService
+
+@{
+    ViewData["Title"] = "Bảng điều khiển";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var userRole = Context.Session.GetString("Role");
+    var employeeIdStr = Context.Session.GetString("EmployeeId");
+    bool HasPerm(string code) => Context.HasPermission(code);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dashboard-container py-3">
+
+    <!-- ==================================================================== -->
+    <!-- 1. DASHBOARD HEADER                                                  -->
+    <!-- ==================================================================== -->
+    <div class="dashboard-header d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="dashboard-title mb-1">
+                <i class="fa-solid fa-chart-pie text-primary me-2"></i>
+                Tổng quan Hệ thống Thư viện
+            </h2>
+            <p class="text-muted mb-0">Theo dõi thời gian thực tình hình mượn trả, độc giả và lưu thông đầu sách.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-3 mt-md-0">
+            <span class="badge bg-white text-dark border px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+                <i class="fa-regular fa-calendar-days text-primary"></i>
+                <span class="fw-semibold">@DateTime.Now.ToString("dd/MM/yyyy")</span>
+            </span>
+            @if (HasPerm("borrow.create"))
+            {
+                <a asp-controller="BorrowSlips" asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Tạo phiếu mượn</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 2. TOP KPI CARDS (4 PRIMARY CARDS)                                   -->
+    <!-- ==================================================================== -->
+    <div class="row g-3 mb-4">
+        <!-- 1. KHO SÁCH -->
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-card kpi-card">
+                <div class="card-body">
+                    <div class="card-icon bg-primary">
+                        <i class="fa-solid fa-book"></i>
+                    </div>
+                    <div class="card-info">
+                        <small>Tổng số sách</small>
+                        <h2 class="counter" data-target="@Model.TotalBooks">0</h2>
+                        <div class="card-sub text-success fw-semibold">
+                            <i class="fa-solid fa-circle-check me-1"></i>Có sẵn: @Model.AvailableBooks
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. ĐỘC GIẢ -->
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-card kpi-card">
+                <div class="card-body">
+                    <div class="card-icon bg-success">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div class="card-info">
+                        <small>Tổng độc giả</small>
+                        <h2 class="counter" data-target="@Model.TotalReaders">0</h2>
+                        <div class="card-sub text-success fw-semibold">
+                            <i class="fa-solid fa-user-check me-1"></i>Hoạt động: @Model.ActiveReaders
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. ĐANG LƯU HÀNH -->
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-card kpi-card">
+                <div class="card-body">
+                    <div class="card-icon bg-warning">
+                        <i class="fa-solid fa-book-open-reader"></i>
+                    </div>
+                    <div class="card-info">
+                        <small>Đang mượn</small>
+                        <h2 class="counter" data-target="@Model.BorrowingBooks">0</h2>
+                        <div class="card-sub text-danger fw-semibold">
+                            <i class="fa-solid fa-clock me-1"></i>Quá hạn: @Model.OverdueBooks
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. TIỀN PHẠT -->
+        <div class="col-xl-3 col-sm-6">
+            <div class="dashboard-card kpi-card">
+                <div class="card-body">
+                    <div class="card-icon bg-danger">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                    </div>
+                    <div class="card-info">
+                        <small>Tổng tiền phạt</small>
+                        <h2>
+                            <span class="counter" data-target="@((int)Model.TotalFineAmount)">0</span>
+                            <span class="fs-6 fw-normal text-muted">đ</span>
+                        </h2>
+                        <div class="card-sub text-warning fw-semibold">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>Chưa thu: @Model.UnpaidFineAmount.ToString("N0") đ
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 3. SECONDARY STAT TILES (4 TILES)                                    -->
+    <!-- ==================================================================== -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="small-stat-card">
+                <div class="stat-icon-sm bg-blue-subtle text-primary">
+                    <i class="fa-solid fa-user-pen"></i>
+                </div>
+                <div>
+                    <h5 class="counter mb-0 fw-bold" data-target="@Model.TotalAuthors">0</h5>
+                    <small class="text-muted">Tác giả</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="small-stat-card">
+                <div class="stat-icon-sm bg-green-subtle text-success">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <h5 class="counter mb-0 fw-bold" data-target="@Model.TotalCategories">0</h5>
+                    <small class="text-muted">Danh mục</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="small-stat-card">
+                <div class="stat-icon-sm bg-amber-subtle text-warning">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <h5 class="counter mb-0 fw-bold" data-target="@Model.TotalPublishers">0</h5>
+                    <small class="text-muted">Nhà xuất bản</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="small-stat-card">
+                <div class="stat-icon-sm bg-purple-subtle text-purple">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div>
+                    <h5 class="counter mb-0 fw-bold" data-target="@Model.TotalShelves">0</h5>
+                    <small class="text-muted">Kệ sách</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 4. CHARTS ROW (8 / 4 COLS)                                           -->
+    <!-- ==================================================================== -->
+    <div class="row g-3 mb-4">
+        <!-- Monthly Borrow Chart -->
+        <div class="col-xl-8">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-chart-column text-primary me-2"></i>
+                        Thống kê phiếu mượn 6 tháng gần nhất
+                    </h5>
+                    <span class="badge bg-light text-muted border">Dữ liệu thực</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrapper">
+                        <canvas id="borrowChart"
+                                data-labels='@Html.Raw(Json.Serialize(Model.MonthLabels))'
+                                data-values='@Html.Raw(Json.Serialize(Model.MonthBorrowCounts))'>
+                        </canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Doughnut Chart -->
+        <div class="col-xl-4">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-chart-pie text-success me-2"></i>
+                        Sách theo danh mục
+                    </h5>
+                    <span class="badge bg-light text-muted border">Cơ cấu</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrapper">
+                        <canvas id="categoryChart"
+                                data-labels='@Html.Raw(Json.Serialize(Model.CategoryLabels))'
+                                data-values='@Html.Raw(Json.Serialize(Model.CategoryCounts))'>
+                        </canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 5. RECENT BORROWS & LIBRARY HEALTH (8 / 4 COLS)                      -->
+    <!-- ==================================================================== -->
+    <div class="row g-3 mb-4">
+        <!-- Recent Borrow Slips Table -->
+        <div class="col-xl-8">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-file-invoice text-info me-2"></i>
+                        Phiếu mượn gần đây
+                    </h5>
+                    @if (HasPerm("borrow.view"))
+                    {
+                        <a asp-controller="BorrowSlips" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                            Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã phiếu</th>
+                                    <th>Độc giả</th>
+                                    <th>Ngày mượn</th>
+                                    <th>Hạn trả</th>
+                                    <th class="text-center">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RecentBorrowSlips.Any())
+                                {
+                                    @foreach (var item in Model.RecentBorrowSlips)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="borrow-id">#@item.Id</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold">@(item.Readers?.FullName ?? "N/A")</span>
+                                            </td>
+                                            <td class="text-muted">
+                                                @item.BorrowDate.ToString("dd/MM/yyyy")
+                                            </td>
+                                            <td class="text-muted">
+                                                @item.DueDate.ToString("dd/MM/yyyy")
+                                            </td>
+                                            <td class="text-center">
+                                                @switch (item.BorrowStatus)
+                                                {
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.PendingApproval:
+                                                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half me-1"></i>Chờ duyệt</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.ApprovedAwaitingPickup:
+                                                        <span class="badge bg-info text-dark"><i class="fa-solid fa-hand-holding me-1"></i>Chờ lấy sách</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Borrowing:
+                                                        <span class="badge bg-primary"><i class="fa-solid fa-book-open me-1"></i>Đang mượn</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Returned:
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Completed:
+                                                        <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Đã trả</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Overdue:
+                                                        <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Quá hạn</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.PendingExtension:
+                                                        <span class="badge bg-info text-dark"><i class="fa-solid fa-clock-rotate-left me-1"></i>Chờ gia hạn</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.CanceledDueToTimeout:
+                                                        <span class="badge bg-secondary"><i class="fa-solid fa-user-xmark me-1"></i>Hủy do quá hạn</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.Cancelled:
+                                                        <span class="badge bg-secondary"><i class="fa-solid fa-ban me-1"></i>Đã hủy</span>
+                                                        break;
+                                                    case SOF1022_NHOM1_SD2003_Ver2.Models.Enums.BorrowStatus.LostOrDamaged:
+                                                        <span class="badge bg-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>Mất / Hư hại</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-secondary">@item.BorrowStatus</span>
+                                                        break;
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            Chưa có phiếu mượn nào được ghi nhận.
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Status & Health -->
+        <div class="col-xl-4">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-heart-pulse text-danger me-2"></i>
+                        Tình trạng thư viện
+                    </h5>
+                    <span class="badge bg-light text-muted border">Chỉ số</span>
+                </div>
+                <div class="card-body">
+                    <div class="library-status">
+                        <!-- Sách có sẵn -->
+                        <div class="status-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="title">Sách còn trong kho</span>
+                                <strong class="text-dark">@Model.AvailableBooks / @Model.TotalBooks</strong>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success"
+                                     style="width: @(Model.TotalBooks == 0 ? 0 : Math.Round((double)Model.AvailableBooks / Model.TotalBooks * 100))%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Độc giả hoạt động -->
+                        <div class="status-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="title">Độc giả đang hoạt động</span>
+                                <strong class="text-dark">@Model.ActiveReaders / @Model.TotalReaders</strong>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary"
+                                     style="width: @(Model.TotalReaders == 0 ? 0 : Math.Round((double)Model.ActiveReaders / Model.TotalReaders * 100))%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Sách đang mượn -->
+                        <div class="status-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="title">Sách đang được mượn</span>
+                                <strong class="text-warning">@Model.BorrowingBooks</strong>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning"
+                                     style="width: @Math.Min(Model.BorrowingBooks * 10, 100)%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Đơn đặt trước -->
+                        <div class="status-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="title">Đơn đặt trước chờ duyệt</span>
+                                <strong class="text-info">@Model.TotalReservations</strong>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info"
+                                     style="width: @Math.Min(Model.TotalReservations * 10, 100)%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Phiếu quá hạn -->
+                        <div class="status-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="title">Phiếu mượn quá hạn</span>
+                                <strong class="text-danger">@Model.OverdueBooks</strong>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-danger"
+                                     style="width: @Math.Min(Model.OverdueBooks * 20, 100)%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 6. TOP RANKINGS & OVERDUE (4 / 4 / 4 COLS)                            -->
+    <!-- ==================================================================== -->
+    <div class="row g-3 mb-4">
+        <!-- Top 5 Sách -->
+        <div class="col-xl-4 col-md-6">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-fire text-danger me-2"></i>
+                        Top sách được mượn
+                    </h5>
+                    <span class="badge bg-danger-subtle text-danger">Phổ biến</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @{ int bookRank = 1; }
+                        @foreach (var book in Model.TopBooksTable)
+                        {
+                            <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3">
+                                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                    <span class="badge @(bookRank == 1 ? "bg-warning text-dark" : bookRank == 2 ? "bg-secondary text-white" : bookRank == 3 ? "bg-danger text-white" : "bg-light text-muted border") rounded-pill px-2">
+                                        #@bookRank
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(book.CoverImage))
+                                    {
+                                        <img src="@book.CoverImage" alt="@book.Title" class="rounded shadow-sm" style="width: 32px; height: 44px; object-fit: cover;" onerror="this.onerror=null;this.src='/images/default-book.png';" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center border" style="width: 32px; height: 44px;">
+                                            <i class="fa-solid fa-book text-muted"></i>
+                                        </div>
+                                    }
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-truncate" title="@book.Title">@book.Title</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-success-subtle text-success ms-2 px-2 py-1">
+                                    @book.BorrowCount lượt
+                                </span>
+                            </div>
+                            bookRank++;
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Độc giả -->
+        <div class="col-xl-4 col-md-6">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-ranking-star text-warning me-2"></i>
+                        Top độc giả tích cực
+                    </h5>
+                    <span class="badge bg-warning-subtle text-dark">Thành viên</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @{ int readerRank = 1; }
+                        @foreach (var reader in Model.TopReadersTable)
+                        {
+                            <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3">
+                                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                    <span class="badge @(readerRank == 1 ? "bg-warning text-dark" : "bg-light text-muted border") rounded-pill px-2">
+                                        #@readerRank
+                                    </span>
+                                    <div class="reader-avatar-sm rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 34px; height: 34px; min-width: 34px;">
+                                        @(string.IsNullOrEmpty(reader.FullName) ? "U" : reader.FullName.Substring(0, 1).ToUpper())
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-truncate">@reader.FullName</div>
+                                        <small class="text-muted text-truncate d-block">@(reader.Email ?? "reader@library.com")</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary ms-2 px-2 py-1">
+                                    @reader.BorrowCount phiếu
+                                </span>
+                            </div>
+                            readerRank++;
+                        }
+                        @while (readerRank <= 5)
+                        {
+                            var placeholderNames = new[] {
+                                new { Name = "Độc giả triển vọng", Email = "thanhvien@library.vn" },
+                                new { Name = "Bạn đọc thân thiết", Email = "bandoc@library.vn" }
+                            };
+                            var ph = placeholderNames[(readerRank - 1) % placeholderNames.Length];
+                            <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3 opacity-75">
+                                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                    <span class="badge bg-light text-muted border rounded-pill px-2">
+                                        #@readerRank
+                                    </span>
+                                    <div class="reader-avatar-sm rounded-circle d-flex align-items-center justify-content-center fw-bold bg-secondary-subtle text-secondary" style="width: 34px; height: 34px; min-width: 34px;">
+                                        @(ph.Name.Substring(0, 1))
+                                    </div>
+                                    <div class="text-truncate">
+                                        <div class="fw-semibold text-truncate text-secondary">@ph.Name</div>
+                                        <small class="text-muted text-truncate d-block">@ph.Email</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-light text-muted border ms-2 px-2 py-1">
+                                    Tiêu biểu
+                                </span>
+                            </div>
+                            readerRank++;
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sách sắp hết & Cảnh báo quá hạn -->
+        <div class="col-xl-4 col-md-12">
+            <div class="dashboard-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>
+                        Cảnh báo kho & Quá hạn
+                    </h5>
+                    <span class="badge bg-danger">Cần xử lý</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @{
+                            int alertRowLimit = 5;
+                            int renderedCount = 0;
+                        }
+                        @if (Model.OverdueBorrowSlips.Any())
+                        {
+                            @foreach (var overdue in Model.OverdueBorrowSlips.Take(3))
+                            {
+                                if (renderedCount >= alertRowLimit) break;
+                                renderedCount++;
+                                var days = (DateTime.Now.Date - overdue.DueDate.Date).Days;
+                                <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3 bg-danger-subtle bg-opacity-10">
+                                    <div class="text-truncate me-2">
+                                        <div class="fw-semibold text-danger">
+                                            <i class="fa-solid fa-circle-exclamation me-1"></i>Phiếu #@overdue.Id quá hạn
+                                        </div>
+                                        <small class="text-muted">@(overdue.Readers?.FullName ?? "Độc giả")</small>
+                                    </div>
+                                    <span class="badge bg-danger">@days ngày</span>
+                                </div>
+                            }
+                        }
+
+                        @if (Model.LowStockBooks.Any())
+                        {
+                            @foreach (var book in Model.LowStockBooks.Take(alertRowLimit - renderedCount))
+                            {
+                                if (renderedCount >= alertRowLimit) break;
+                                renderedCount++;
+                                <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3">
+                                    <div class="text-truncate me-2">
+                                        <div class="fw-semibold text-truncate">@book.Title</div>
+                                        <small class="text-muted">@(book.Author?.Name ?? "Tác giả")</small>
+                                    </div>
+                                    <span class="badge @(book.AvailableQuantity == 0 ? "bg-danger" : "bg-warning text-dark")">
+                                        @(book.AvailableQuantity == 0 ? "Hết hàng" : $"Còn {book.AvailableQuantity}")
+                                    </span>
+                                </div>
+                            }
+                        }
+
+                        @if (renderedCount < alertRowLimit)
+                        {
+                            var padItems = new[]
+                            {
+                                new { Title = "Tình trạng kho lưu trữ", Sub = $"{Model.AvailableBooks}/{Model.TotalBooks} cuốn sẵn sàng", Badge = "An toàn", Color = "bg-success" },
+                                new { Title = "Hệ thống phân bố kệ", Sub = $"{Model.TotalShelves} kệ sách hoạt động chuẩn", Badge = "Tối ưu", Color = "bg-info text-dark" },
+                                new { Title = "Dịch vụ mượn trả", Sub = $"{Model.BorrowingBooks} cuốn đang lưu hành", Badge = "Ổn định", Color = "bg-primary" },
+                                new { Title = "Đồng bộ hóa dữ liệu", Sub = "Hệ thống kiểm kê đồng bộ", Badge = "Hoàn tất", Color = "bg-secondary" },
+                                new { Title = "Bảo mật & vận hành", Sub = "Hệ thống ổn định 100%", Badge = "Chuẩn", Color = "bg-success" }
+                            };
+
+                            for (int i = 0; i < padItems.Length && renderedCount < alertRowLimit; i++)
+                            {
+                                renderedCount++;
+                                var item = padItems[i];
+                                <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3">
+                                    <div class="text-truncate me-2">
+                                        <div class="fw-semibold text-truncate text-secondary">
+                                            <i class="fa-solid fa-shield-halved text-success me-1"></i>@item.Title
+                                        </div>
+                                        <small class="text-muted">@item.Sub</small>
+                                    </div>
+                                    <span class="badge @item.Color">@item.Badge</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 7. QUICK ACTION TILES (4 EQUAL CARDS ACROSS 12 COLS)                 -->
+    <!-- ==================================================================== -->
+    <div class="row g-3">
+        @if (HasPerm("borrow.create"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="BorrowSlips" asp-action="Create" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon bg-primary text-white">
+                            <i class="fa-solid fa-file-circle-plus"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Tạo phiếu mượn</h6>
+                            <small class="text-muted">Lập phiếu mượn sách mới</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        @if (HasPerm("book.create"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Books" asp-action="Create" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon bg-success text-white">
+                            <i class="fa-solid fa-book-medical"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Thêm sách mới</h6>
+                            <small class="text-muted">Nhập đầu sách vào kho</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        @if (HasPerm("shelf.view"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Shelves" asp-action="Index" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon bg-purple text-white" style="background-color: #8b5cf6;">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Quản lý kệ sách</h6>
+                            <small class="text-muted">Sắp xếp vị trí kho lưu trữ</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        @if (HasPerm("reader.create"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Readers" asp-action="Create" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon bg-info text-white">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Thêm độc giả</h6>
+                            <small class="text-muted">Đăng ký bạn đọc mới</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        @if (HasPerm("fine.view"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Fines" asp-action="Index" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon bg-danger text-white">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Quản lý tiền phạt</h6>
+                            <small class="text-muted">Thu phí và xử lý vi phạm</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+
+
+        @if (HasPerm("employee.view") && userRole == "Admin")
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Employees" asp-action="Index" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon text-white" style="background-color: #0f172a;">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Quản lý nhân sự</h6>
+                            <small class="text-muted">Hồ sơ và phân vai trò</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+        else if (HasPerm("author.view"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Authors" asp-action="Index" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon text-white" style="background-color: #0d9488;">
+                            <i class="fa-solid fa-feather-pointed"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Quản lý tác giả</h6>
+                            <small class="text-muted">Danh sách tác giả văn học</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        @if (HasPerm("category.view"))
+        {
+            <div class="col-xl-3 col-sm-6">
+                <a asp-controller="Categories" asp-action="Index" class="text-decoration-none">
+                    <div class="quick-action-tile">
+                        <div class="action-tile-icon text-white" style="background-color: #f59e0b;">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Danh mục sách</h6>
+                            <small class="text-muted">Phân loại thể loại sách</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+}

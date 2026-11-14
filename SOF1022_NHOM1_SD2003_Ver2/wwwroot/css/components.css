@@ -1,0 +1,425 @@
+/* ==========================================================================
+   WEB PROTOTYPE TASTE-SOFT - COMPONENT ARCHITECTURE
+   Double-bezel cards, Button-in-button CTAs, Floating Pill Navbar, Ambient Mesh
+   ========================================================================== */
+
+/* ==========================================================================
+   1. AMBIENT MESH (Fixed, slow-drifting radial blobs, pointer-events: none)
+   ========================================================================== */
+.ambient-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient-mesh .mesh-blob-1,
+.ambient-mesh .mesh-blob-2 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.14;
+  will-change: transform;
+}
+
+.ambient-mesh .mesh-blob-1 {
+  width: 760px;
+  height: 760px;
+  background: radial-gradient(circle at 35% 35%, var(--brand-base), transparent 65%);
+  top: -200px;
+  left: -180px;
+  animation: mesh-drift-1 28s var(--ease) infinite alternate;
+}
+
+.ambient-mesh .mesh-blob-2 {
+  width: 620px;
+  height: 620px;
+  background: radial-gradient(circle at 60% 60%, #C9B79A, transparent 65%);
+  top: 140px;
+  right: -160px;
+  animation: mesh-drift-2 36s var(--ease) infinite alternate;
+}
+
+[data-theme="dark"] .ambient-mesh .mesh-blob-1 {
+  background: radial-gradient(circle at 35% 35%, #F59E0B, transparent 65%);
+  opacity: 0.10;
+}
+
+[data-theme="dark"] .ambient-mesh .mesh-blob-2 {
+  background: radial-gradient(circle at 60% 60%, #3B82F6, transparent 65%);
+  opacity: 0.08;
+}
+
+@keyframes mesh-drift-1 {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(90px, 70px, 0); }
+}
+
+@keyframes mesh-drift-2 {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-70px, 50px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-mesh .mesh-blob-1,
+  .ambient-mesh .mesh-blob-2 {
+    animation: none;
+  }
+}
+
+/* Ensure foreground content stacks above ambient mesh */
+.main-wrapper {
+  position: relative;
+  z-index: auto; /* Avoid stacking context trap for modals */
+}
+
+.footer-reader {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Bootstrap Modal Stacking & Floating Navbar Clearance
+   ========================================================================== */
+.modal-backdrop {
+  z-index: 1060 !important;
+}
+
+.modal {
+  z-index: 1070 !important;
+}
+
+.modal-dialog {
+  margin-top: 4.5rem !important;
+  margin-bottom: 2rem !important;
+}
+
+.modal-dialog.modal-dialog-centered {
+  min-height: calc(100% - 6.5rem) !important;
+  margin-top: 4.5rem !important;
+  margin-bottom: 2rem !important;
+}
+
+/* ==========================================================================
+   2. FLOATING PILL NAVBAR ARCHITECTURE
+   ========================================================================== */
+.nav-shell-wrapper {
+  position: sticky;
+  top: 16px;
+  z-index: 1050 !important;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding: 0 16px;
+}
+
+.nav-shell {
+  position: relative;
+  z-index: 1051;
+  pointer-events: auto;
+  margin: 0 auto;
+  padding: 5px;
+  width: max-content;
+  max-width: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--navbar-bg);
+  backdrop-filter: saturate(160%) blur(24px);
+  -webkit-backdrop-filter: saturate(160%) blur(24px);
+  border: 1px solid var(--hairline);
+  box-shadow:
+    0 1px 0 var(--innerlight) inset,
+    0 16px 36px -16px rgba(10, 10, 12, 0.12);
+  transition: background 400ms var(--ease), border-color 400ms var(--ease), box-shadow 400ms var(--ease);
+}
+
+.nav-core {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 5px 10px 5px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 var(--innerlight);
+  transition: background 400ms var(--ease);
+}
+
+[data-theme="dark"] .nav-core {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   3. DOUBLE-BEZEL CARD PATTERN (Concentric Radii Architecture)
+   ========================================================================== */
+.double-bezel {
+  padding: 6px;
+  border-radius: var(--shell-radius);
+  background: rgba(255, 255, 255, 0.70);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-md);
+  transition: transform 600ms var(--ease), box-shadow 600ms var(--ease), border-color 600ms var(--ease);
+}
+
+[data-theme="dark"] .double-bezel {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: var(--hairline);
+}
+
+.double-bezel:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--hairline-strong);
+}
+
+.double-bezel-core {
+  border-radius: var(--core-radius);
+  background: var(--bg-card);
+  padding: 24px;
+  box-shadow: inset 0 1px 0 var(--innerlight);
+  height: 100%;
+}
+
+[data-theme="dark"] .double-bezel-core {
+  background: var(--bg-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   4. BUTTON-IN-BUTTON CTAs (Haptic Pill with Embedded Trailing Icon)
+   ========================================================================== */
+.btn-taste-cta {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px;
+  padding: 7px 8px 7px 22px !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--ink) !important;
+  color: #FFFFFF !important;
+  font-family: var(--sans);
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  letter-spacing: -0.01em;
+  border: 1px solid var(--hairline) !important;
+  box-shadow: 0 10px 24px -8px rgba(10, 10, 12, 0.22) !important;
+  transition: transform 400ms var(--ease), box-shadow 400ms var(--ease) !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  white-space: nowrap !important;
+}
+
+[data-theme="dark"] .btn-taste-cta {
+  background: #F5F5F7 !important;
+  color: #0A0A0C !important;
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.btn-taste-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -8px rgba(10, 10, 12, 0.32) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .btn-taste-cta:hover {
+  color: #0A0A0C !important;
+}
+
+.btn-taste-cta:active {
+  transform: scale(0.98);
+}
+
+.btn-taste-cta .btn-taste-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #FFFFFF;
+  transition: transform 300ms var(--ease);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .btn-taste-cta .btn-taste-circle {
+  background: rgba(10, 10, 12, 0.12);
+  color: #0A0A0C;
+}
+
+.btn-taste-cta:hover .btn-taste-circle {
+  transform: translateX(3px) scale(1.06);
+}
+
+/* Button-in-Button Variant: Warm Amber Gold */
+.btn-taste-gold {
+  background: var(--brand-base) !important;
+  color: #0A0A0C !important;
+  box-shadow: 0 10px 25px -6px rgba(245, 158, 11, 0.38) !important;
+  border-radius: var(--radius-pill) !important;
+  font-weight: 700 !important;
+  border: none !important;
+  transition: all 300ms var(--ease) !important;
+}
+
+.btn-taste-gold:hover {
+  background: var(--brand-hover) !important;
+  color: #0A0A0C !important;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px -6px rgba(245, 158, 11, 0.48) !important;
+}
+
+.btn-taste-gold .btn-taste-circle {
+  background: rgba(0, 0, 0, 0.12);
+  color: #0A0A0C;
+}
+
+/* Ghost & Secondary Taste Pills */
+.btn-taste-ghost {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px;
+  padding: 9px 20px !important;
+  border-radius: var(--radius-pill) !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-family: var(--sans);
+  font-weight: 600 !important;
+  font-size: 14.5px !important;
+  border: 1px solid var(--hairline-strong) !important;
+  transition: all 300ms var(--ease) !important;
+  text-decoration: none !important;
+}
+
+.btn-taste-ghost:hover {
+  background: rgba(10, 10, 12, 0.04) !important;
+  border-color: var(--text-primary) !important;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .btn-taste-ghost:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ==========================================================================
+   5. EYEBROW TAGS (Uppercase Mono Pill with Trailing Tracking)
+   ========================================================================== */
+.eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  border-radius: var(--radius-pill);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: rgba(245, 158, 11, 0.10);
+  color: var(--brand-hover);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  margin-bottom: 12px;
+}
+
+[data-theme="dark"] .eyebrow-pill {
+  background: rgba(245, 158, 11, 0.14);
+  color: #FBBF24;
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+/* ==========================================================================
+   6. UNIVERSAL BUTTON & INPUT ANTI-CLIPPING RULES
+   ========================================================================== */
+.btn {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45rem;
+  line-height: 1.3 !important;
+  vertical-align: middle;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  font-family: var(--sans);
+  transition: transform 300ms var(--ease), box-shadow 300ms var(--ease), background 300ms var(--ease);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.form-control {
+  background-color: var(--bg-input) !important;
+  border: 1px solid var(--hairline-strong) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1rem;
+  font-size: 14.5px;
+  font-family: var(--sans);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.form-select {
+  background-color: var(--bg-input) !important;
+  border: 1px solid var(--hairline-strong) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-md);
+  padding: 0.55rem 2rem 0.55rem 0.85rem !important;
+  background-position: right 0.75rem center !important;
+  background-size: 14px 10px !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  font-family: var(--sans);
+  white-space: nowrap !important;
+  text-overflow: ellipsis;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--brand-base) !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18) !important;
+  outline: none;
+}
+
+/* ==========================================================================
+   7. HIGH-CONTRAST LOGO TOKENS
+   ========================================================================== */
+.logo-word-primary {
+  color: #0A0A0C !important;
+  -webkit-text-fill-color: #0A0A0C !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: color 0.25s var(--ease);
+}
+
+.logo-word-accent {
+  color: #D97706 !important;
+  -webkit-text-fill-color: #D97706 !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: color 0.25s var(--ease);
+}
+
+[data-theme="dark"] .logo-word-primary,
+html[data-theme="dark"] .logo-word-primary,
+body[data-theme="dark"] .logo-word-primary,
+.navbar-dark .logo-word-primary,
+.bg-dark .logo-word-primary {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="dark"] .logo-word-accent,
+html[data-theme="dark"] .logo-word-accent,
+body[data-theme="dark"] .logo-word-accent,
+.navbar-dark .logo-word-accent,
+.bg-dark .logo-word-accent {
+  color: #FBBF24 !important;
+  -webkit-text-fill-color: #FBBF24 !important;
+  text-shadow: 0 0 16px rgba(245, 158, 11, 0.6) !important;
+}

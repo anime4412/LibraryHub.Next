@@ -1,0 +1,25 @@
+## Visual Studio / .NET
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+
+## Sensitive configuration / secrets
+appsettings.Local.json
+appsettings.*.Local.json
+*.secrets.json
+appsettings.secrets.backup
+
+## Build / Publish outputs
+publish_release/
+[Pp]ublish/
+*.zip
+
+## Temporary / Logs
+*.log
+.DS_Store
+Thumbs.db

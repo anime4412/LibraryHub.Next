@@ -1,0 +1,538 @@
+@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Authors>
+
+@{
+    ViewData["Title"] = "Quản lý tác giả";
+}
+
+<div class="container-fluid py-4">
+
+    <!-- ========================================= -->
+    <!-- PAGE HEADER -->
+    <!-- ========================================= -->
+
+    <div class="card border-0 shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="row align-items-center">
+
+                <div class="col-lg-8">
+
+                    <h2 class="fw-bold mb-1">
+
+                        <i class="fa-solid fa-user-pen text-primary me-2"></i>
+
+                        Quản lý tác giả
+
+                    </h2>
+
+                    <p class="text-muted mb-0">
+
+                        Quản lý thông tin tác giả trong hệ thống thư viện
+
+                    </p>
+
+                </div>
+
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+
+                    @if (Context.HasPermission("author.create"))
+                    {
+                        <a asp-action="Create"
+                           class="btn btn-primary">
+                            <i class="fa-solid fa-plus me-2"></i>
+                            Thêm tác giả
+                        </a>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- ALERT MESSAGES -->
+    <!-- ========================================= -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- ========================================= -->
+    <!-- STATISTICS -->
+    <!-- ========================================= -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Tổng tác giả
+
+                    </div>
+
+                    <h3 class="fw-bold mt-2">
+
+                        @Model.Count()
+
+                    </h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Đang hiển thị
+
+                    </div>
+
+                    <h3 class="fw-bold text-success mt-2">
+
+                        @Model.Count()
+
+                    </h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Từ khóa tìm kiếm
+
+                    </div>
+
+                    <h5 class="fw-semibold mt-2">
+
+                        @(string.IsNullOrWhiteSpace(ViewBag.SearchString)
+                            ? "Tất cả tác giả"
+                            : ViewBag.SearchString)
+
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- SEARCH -->
+    <!-- ========================================= -->
+
+    <div class="card border-0 shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <form asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-lg-10">
+
+                        <label class="form-label fw-semibold">
+
+                            Tìm kiếm tác giả
+
+                        </label>
+
+                        <input class="form-control"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               placeholder="Nhập tên tác giả..." />
+
+                    </div>
+
+                    <div class="col-lg-2 d-grid">
+
+                        <button class="btn btn-primary">
+
+                            <i class="fa-solid fa-magnifying-glass me-2"></i>
+
+                            Tìm kiếm
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+    <!-- ========================================= -->
+    <!-- AUTHORS TABLE -->
+    <!-- ========================================= -->
+
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-header bg-white">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <h5 class="fw-bold mb-0">
+
+                    Danh sách tác giả
+
+                </h5>
+
+                <span class="text-muted">
+
+                    Tổng cộng @Model.Count() tác giả
+
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="width:90px">
+
+                            ID
+
+                        </th>
+
+                        <th style="width:90px">
+
+                            Avatar
+
+                        </th>
+
+                        <th>
+
+                            Tên tác giả
+
+                        </th>
+
+                        <th>
+
+                            Tiểu sử
+
+                        </th>
+
+                        <th style="width:170px">
+
+                            Trạng thái
+
+                        </th>
+
+                        <th style="width:240px" class="text-center">
+
+                            Thao tác
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Model)
+                    {
+
+                        <tr>
+
+                            <!-- ID -->
+
+                            <td>
+
+                                <span class="badge bg-secondary">
+
+                                    #@item.Id
+
+                                </span>
+
+                            </td>
+
+                            <!-- Avatar -->
+
+                            <td>
+
+                                <div class="rounded-circle bg-primary text-white
+                                    d-flex align-items-center
+                                    justify-content-center fw-bold"
+                                     style="width:48px;height:48px;">
+
+                                    @if (!string.IsNullOrWhiteSpace(item.Name))
+                                    {
+                                        @item.Name.Substring(0, 1).ToUpper()
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-solid fa-user"></i>
+                                    }
+
+                                </div>
+
+                            </td>
+
+                            <!-- Name -->
+
+                            <td>
+
+                                <div class="fw-bold">
+
+                                    @item.Name
+
+                                </div>
+
+                            </td>
+
+                            <!-- Biography -->
+
+                            <td>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Biography))
+                                {
+                                    @(item.Biography.Length > 120
+                                        ? item.Biography.Substring(0, 120) + "..."
+                                        : item.Biography)
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+
+                                        Chưa có tiểu sử
+
+                                    </span>
+                                }
+
+                            </td>
+
+                            <!-- Status -->
+
+                            <td>
+
+                                <span class="badge bg-success">
+
+                                    Đang hoạt động
+
+                                </span>
+
+                            </td>
+
+                            <!-- Actions -->
+
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.Id"
+                                       class="btn btn-outline-primary btn-sm" title="Chi tiết">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    @if (Context.HasPermission("author.edit"))
+                                    {
+                                        <a asp-action="Edit"
+                                           asp-route-id="@item.Id"
+                                           class="btn btn-outline-warning btn-sm" title="Sửa">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+                                    }
+                                    @if (Context.HasPermission("author.delete"))
+                                    {
+                                        <a asp-action="Delete"
+                                           asp-route-id="@item.Id"
+                                           class="btn btn-outline-danger btn-sm" title="Xóa">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+
+                        </tr>
+
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+    <!-- ========================================= -->
+    <!-- EMPTY STATE -->
+    <!-- ========================================= -->
+    @if (!Model.Any())
+    {
+        <div class="card border-0 shadow-sm mt-4">
+
+            <div class="card-body text-center py-5">
+
+                <i class="fa-solid fa-user-pen fa-5x text-secondary mb-4"></i>
+
+                <h3 class="fw-bold">
+
+                    Chưa có tác giả nào
+
+                </h3>
+
+                <p class="text-muted">
+
+                    Hiện tại hệ thống chưa có dữ liệu tác giả.
+                    Hãy thêm tác giả đầu tiên để bắt đầu quản lý.
+
+                </p>
+
+                <a asp-action="Create"
+                   class="btn btn-primary px-4">
+
+                    <i class="fa-solid fa-plus me-2"></i>
+
+                    Thêm tác giả
+
+                </a>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+<style>
+
+    /* ===================================== */
+
+    .card {
+        border-radius: 14px;
+    }
+
+    /* ===================================== */
+
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* ===================================== */
+
+    .table {
+        margin-bottom: 0;
+    }
+
+        .table thead th {
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        /* ===================================== */
+
+        .table tbody tr {
+            transition: .25s ease;
+        }
+
+            .table tbody tr:hover {
+                background: #f8fbff;
+            }
+
+    /* ===================================== */
+
+    .form-control {
+        height: 46px;
+        border-radius: 8px;
+    }
+
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: none;
+        }
+
+    /* ===================================== */
+
+    .btn {
+        border-radius: 8px;
+    }
+
+    /* ===================================== */
+
+    .badge {
+        font-weight: 600;
+        padding: 7px 12px;
+    }
+
+    /* ===================================== */
+
+    .rounded-circle {
+        font-size: 18px;
+    }
+
+    /* ===================================== */
+
+    .text-muted {
+        color: #6c757d !important;
+    }
+
+    /* ===================================== */
+
+    @@media(max-width:992px) {
+
+        .table {
+            min-width: 1000px;
+        }
+    }
+
+    @@media(max-width:768px) {
+
+        h2 {
+            font-size: 28px;
+        }
+    }
+
+</style>

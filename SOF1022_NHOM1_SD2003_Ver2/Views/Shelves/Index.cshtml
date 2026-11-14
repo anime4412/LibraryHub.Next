@@ -1,0 +1,790 @@
+@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Shelves>
+
+@{
+    ViewData["Title"] = "Quản lý kệ sách";
+}
+
+<div class="container-fluid py-4">
+
+    <div class="card border-0 shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="row align-items-center">
+
+                <div class="col-lg-8">
+
+                    <h2 class="fw-bold mb-1">
+
+                        <i class="fa-solid fa-layer-group text-success me-2"></i>
+
+                        Quản lý kệ sách
+
+                    </h2>
+
+                    <p class="text-muted mb-0">
+
+                        Quản lý vị trí lưu trữ và sắp xếp sách trong hệ thống thư viện
+
+                    </p>
+
+                </div>
+
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+
+                    @if (Context.HasPermission("shelf.create"))
+                    {
+                        <a asp-action="Create"
+                           class="btn btn-success">
+                            <i class="fa-solid fa-plus me-2"></i>
+                            Thêm kệ sách
+                        </a>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- ALERT MESSAGES -->
+    <!-- ========================================= -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Tổng số kệ sách
+
+                    </div>
+
+                    <h3 class="fw-bold mt-2">
+
+                        @Model.Count()
+
+                    </h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Đang hiển thị
+
+                    </div>
+
+                    <h3 class="fw-bold text-success mt-2">
+
+                        @Model.Count()
+
+                    </h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="text-muted">
+
+                        Từ khóa tìm kiếm
+
+                    </div>
+
+                    <h5 class="fw-semibold mt-2">
+
+                        @(string.IsNullOrWhiteSpace(ViewBag.SearchString)
+                            ? "Tất cả kệ sách"
+                            : ViewBag.SearchString)
+
+                    </h5>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <form asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-lg-10">
+
+                        <label class="form-label fw-semibold">
+
+                            Tìm kiếm kệ sách
+
+                        </label>
+
+                        <input class="form-control"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               placeholder="Nhập tên kệ sách..." />
+
+                    </div>
+
+                    <div class="col-lg-2 d-grid">
+
+                        <button class="btn btn-success">
+
+                            <i class="fa-solid fa-magnifying-glass me-2"></i>
+
+                            Tìm kiếm
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-header bg-white">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <h5 class="fw-bold mb-0">
+
+                    Danh sách kệ sách
+
+                </h5>
+
+                <span class="text-muted">
+
+                    Tổng cộng @Model.Count() kệ sách
+
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="width:90px">
+
+                            ID
+
+                        </th>
+
+                        <th style="width:90px">
+
+                            Icon
+
+                        </th>
+
+                        <th>
+
+                            Tên kệ
+
+                        </th>
+
+                        <th>
+
+                            Sức chứa
+
+                        </th>
+
+                        <th style="width:170px">
+
+                            Trạng thái
+
+                        </th>
+
+                        <th style="width:240px"
+                            class="text-center">
+
+                            Thao tác
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Model)
+                    {
+
+                        <tr>
+
+                            <td>
+
+                                <span class="badge bg-secondary">
+
+                                    #@item.Id
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <div class="rounded-circle
+                                    bg-success
+                                    text-white
+                                    d-flex
+                                    align-items-center
+                                    justify-content-center"
+                                     style="width:48px;height:48px;">
+
+                                    <i class="fa-solid fa-layer-group"></i>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                <div class="fw-bold">
+
+                                    @item.Name
+
+                                </div>
+
+                                <div class="text-muted small">
+
+                                    @item.Area
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                @{
+                                    int currentCount = ViewBag.ShelfOccupancy != null && ((Dictionary<int, int>)ViewBag.ShelfOccupancy).ContainsKey(item.Id) ? ((Dictionary<int, int>)ViewBag.ShelfOccupancy)[item.Id] : 0;
+                                    int capacity = item.Capacity;
+                                    double percentage = capacity > 0 ? (double)currentCount / capacity * 100 : 0;
+                                    double progressWidth = Math.Min(100, Math.Max(0, percentage));
+                                    string progressClass = percentage > 100 ? "bg-danger" : (percentage >= 95 ? "bg-danger" : (percentage >= 75 ? "bg-warning" : "bg-success"));
+                                    bool isOverloaded = currentCount > capacity;
+                                }
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex justify-content-between small">
+                                        <span>Sức chứa:</span>
+                                        <span class="fw-semibold @(isOverloaded ? "text-danger fw-bold" : "")">
+                                            @currentCount / @capacity cuốn
+                                            @if (isOverloaded)
+                                            {
+                                                <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Vượt sức chứa"></i>
+                                            }
+                                        </span>
+                                    </div>
+
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar @progressClass" style="width: @progressWidth%" role="progressbar" aria-valuenow="@currentCount" aria-valuemin="0" aria-valuemax="@capacity"></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                @if (isOverloaded)
+                                {
+                                    <span class="badge bg-danger shadow-sm">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Quá tải
+                                    </span>
+                                }
+                                else if (percentage >= 95)
+                                {
+                                    <span class="badge bg-danger">
+                                        Đầy
+                                    </span>
+                                }
+                                else if (percentage >= 75)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Sắp đầy
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        Còn chỗ
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a asp-action="Details"
+                                           asp-route-id="@item.Id"
+                                           class="btn btn-outline-primary btn-sm" title="Chi tiết">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        @if (percentage >= 100 && Context.HasPermission("shelf.edit"))
+                                        {
+                                            <button onclick="openTransferModal(@item.Id)" class="btn btn-outline-info btn-sm" title="Điều chuyển sách">
+                                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                                            </button>
+                                        }
+                                        @if (Context.HasPermission("shelf.edit"))
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@item.Id"
+                                               class="btn btn-outline-warning btn-sm" title="Sửa">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </a>
+                                        }
+                                        @if (Context.HasPermission("shelf.delete"))
+                                        {
+                                            <a asp-action="Delete"
+                                               asp-route-id="@item.Id"
+                                               class="btn btn-outline-danger btn-sm" title="Xóa">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </a>
+                                        }
+                                    </div>
+                            </td>
+
+                        </tr>
+
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card border-0 shadow-sm mt-4">
+
+            <div class="card-body text-center py-5">
+
+                <i class="fa-solid fa-layer-group fa-5x text-secondary mb-4"></i>
+
+                <h3 class="fw-bold">
+
+                    Chưa có kệ sách nào
+
+                </h3>
+
+                <p class="text-muted">
+
+                    Hệ thống hiện chưa có dữ liệu kệ sách.
+                    Hãy tạo kệ sách đầu tiên để bắt đầu quản lý.
+
+                </p>
+
+                <a asp-action="Create"
+                   class="btn btn-success px-4">
+
+                    <i class="fa-solid fa-plus me-2"></i>
+
+                    Thêm kệ sách
+
+                </a>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+<!-- Transfer Modal Container -->
+<div id="transferModalContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function openTransferModal(shelfId) {
+        fetch(`/Shelves/GetTransferBooks/${shelfId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    Swal.fire('Lỗi', data.message, 'error');
+                    return;
+                }
+
+                // Build modal HTML dynamically
+                const modalHtml = `
+                    <div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fa-solid fa-arrow-right-arrow-left me-2"></i>Điều chuyển sách từ ${data.currentShelf.name}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" id="sourceShelfId" value="${data.currentShelf.id}" />
+                                    
+                                    <div class="alert alert-info">
+                                        <i class="fa-solid fa-info-circle me-2"></i>
+                                        Chọn sách và kệ đích để điều chuyển. Sách sẽ được chuyển sang kệ có đủ chỗ trống.
+                                    </div>
+
+                                    <!-- Books on this shelf -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Chọn sách trên kệ:</label>
+                                        <select class="form-select" id="bookSelect">
+                                            <option value="">-- Chọn sách --</option>
+                                            ${data.books.map(book => `
+                                                <option value="${book.id}" data-quantity="${book.quantity}" data-title="${book.title}">
+                                                    ${book.title} (${book.quantity} cuốn)
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+
+                                    <!-- Quantity to transfer -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Số lượng chuyển:</label>
+                                        <input type="number" class="form-control" id="transferQuantity" min="1" max="0" placeholder="Nhập số lượng" disabled />
+                                        <small class="text-muted" id="quantityHint"></small>
+                                    </div>
+
+                                    <!-- Target shelf -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Kệ đích:</label>
+                                        <select class="form-select" id="targetShelfSelect">
+                                            <option value="">-- Chọn kệ đích --</option>
+                                            ${data.availableShelves.map(shelf => `
+                                                <option value="${shelf.id}" data-available="${shelf.availableSpace}">
+                                                    ${shelf.name} (${shelf.code}) - Còn trống ${shelf.availableSpace} chỗ
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+
+                                    <!-- Capacity warning -->
+                                    <div id="capacityWarning" class="alert alert-warning d-none">
+                                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                                        <span id="capacityWarningText"></span>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                                    <button type="button" class="btn btn-primary" id="confirmTransferBtn" disabled>
+                                        <i class="fa-solid fa-check me-2"></i>Xác nhận chuyển
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('transferModalContainer').innerHTML = modalHtml;
+                
+                // Initialize modal and event listeners
+                const modalElement = document.getElementById('transferModal');
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+
+                // Book selection change
+                document.getElementById('bookSelect').addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const quantity = parseInt(selectedOption.dataset.quantity);
+                    const quantityInput = document.getElementById('transferQuantity');
+                    const quantityHint = document.getElementById('quantityHint');
+                    
+                    if (this.value) {
+                        quantityInput.disabled = false;
+                        quantityInput.max = quantity;
+                        quantityInput.value = quantity;
+                        quantityHint.textContent = `Tối đa: ${quantity} cuốn`;
+                    } else {
+                        quantityInput.disabled = true;
+                        quantityInput.value = '';
+                        quantityHint.textContent = '';
+                    }
+                    
+                    validateTransferForm();
+                });
+                
+                // Quantity change
+                document.getElementById('transferQuantity').addEventListener('input', function() {
+                    validateTransferForm();
+                });
+                
+                // Target shelf change
+                document.getElementById('targetShelfSelect').addEventListener('change', function() {
+                    validateTransferForm();
+                });
+                
+                // Confirm transfer
+                document.getElementById('confirmTransferBtn').addEventListener('click', function() {
+                    const sourceShelfIdEl = document.getElementById('sourceShelfId');
+                    const targetShelfSelectEl = document.getElementById('targetShelfSelect');
+                    const bookSelectEl = document.getElementById('bookSelect');
+                    const transferQuantityEl = document.getElementById('transferQuantity');
+                    
+                    // Defensive null checks
+                    if (!sourceShelfIdEl || !targetShelfSelectEl || !bookSelectEl || !transferQuantityEl) {
+                        Swal.fire('Lỗi', 'Không tìm thấy các trường dữ liệu trong modal', 'error');
+                        return;
+                    }
+                    
+                    const sourceShelfId = parseInt(sourceShelfIdEl.value);
+                    const targetShelfId = parseInt(targetShelfSelectEl.value);
+                    const bookId = parseInt(bookSelectEl.value);
+                    const quantity = parseInt(transferQuantityEl.value);
+                    
+                    // Validate values
+                    if (!bookId || !targetShelfId || isNaN(quantity) || quantity <= 0) {
+                        Swal.fire('Lỗi', 'Vui lòng chọn sách, kệ đích và số lượng hợp lệ!', 'warning');
+                        return;
+                    }
+                    
+                    const requestData = {
+                        sourceShelfId: sourceShelfId,
+                        targetShelfId: targetShelfId,
+                        bookId: bookId,
+                        quantity: quantity
+                    };
+                    
+                    fetch('/Shelves/TransferBooks', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            modal.hide();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công',
+                                text: data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: 'Có lỗi xảy ra khi điều chuyển sách'
+                        });
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error loading transfer modal:', error);
+                Swal.fire('Lỗi', 'Không thể tải modal điều chuyển', 'error');
+            });
+    }
+    
+    function validateTransferForm() {
+        const bookSelect = document.getElementById('bookSelect');
+        const quantityInput = document.getElementById('transferQuantity');
+        const targetShelfSelect = document.getElementById('targetShelfSelect');
+        const confirmBtn = document.getElementById('confirmTransferBtn');
+        const capacityWarning = document.getElementById('capacityWarning');
+        const capacityWarningText = document.getElementById('capacityWarningText');
+        
+        // Defensive null checks
+        if (!bookSelect || !quantityInput || !targetShelfSelect || !confirmBtn) {
+            return;
+        }
+        
+        const isValid = bookSelect.value && 
+                        quantityInput.value && 
+                        parseInt(quantityInput.value) > 0 && 
+                        targetShelfSelect.value;
+        
+        confirmBtn.disabled = !isValid;
+        
+        // Check capacity
+        if (isValid && capacityWarning && capacityWarningText) {
+            const quantity = parseInt(quantityInput.value);
+            const targetOption = targetShelfSelect.options[targetShelfSelect.selectedIndex];
+            if (targetOption && targetOption.dataset.available) {
+                const availableSpace = parseInt(targetOption.dataset.available);
+                
+                if (quantity > availableSpace) {
+                    capacityWarning.classList.remove('d-none');
+                    capacityWarningText.textContent = `Số lượng chuyển (${quantity}) vượt quá chỗ trống của kệ đích (${availableSpace}).`;
+                    confirmBtn.disabled = true;
+                } else {
+                    capacityWarning.classList.add('d-none');
+                }
+            }
+        } else if (capacityWarning) {
+            capacityWarning.classList.add('d-none');
+        }
+    }
+</script>
+
+<style>
+
+    /* ======================================= */
+
+    .card {
+        border: none;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    /* ======================================= */
+
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* ======================================= */
+
+    .table {
+        margin-bottom: 0;
+    }
+
+        .table thead th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 700;
+            white-space: nowrap;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        /* ======================================= */
+
+        .table tbody tr {
+            transition: .25s ease;
+        }
+
+            .table tbody tr:hover {
+                background: #f1fdf9;
+            }
+
+    /* ======================================= */
+
+    .form-control {
+        height: 46px;
+        border-radius: 8px;
+    }
+
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #198754;
+        }
+
+    /* ======================================= */
+
+    .btn {
+        border-radius: 8px;
+    }
+
+    /* ======================================= */
+
+    .badge {
+        padding: 7px 12px;
+        font-weight: 600;
+    }
+
+    /* ======================================= */
+
+    .rounded-circle {
+        font-size: 18px;
+    }
+
+    /* ======================================= */
+
+    .text-muted {
+        color: #6c757d !important;
+    }
+
+    /* ======================================= */
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    /* ======================================= */
+
+    /* Đã sửa lỗi ở đây bằng cách dùng 2 dấu @@ */
+    @@media(max-width:992px) {
+
+        .table {
+            min-width: 950px;
+        }
+    }
+
+    @@media(max-width:768px) {
+
+        h2 {
+            font-size: 28px;
+        }
+    }
+
+</style>

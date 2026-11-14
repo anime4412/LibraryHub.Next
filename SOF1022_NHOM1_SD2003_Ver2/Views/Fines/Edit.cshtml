@@ -1,0 +1,69 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.Fines
+
+@{
+    ViewData["Title"] = "Chỉnh sửa phạt";
+}
+
+<h1>Chỉnh sửa</h1>
+
+<h4>Thông tin phạt</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group">
+                <label asp-for="BorrowSlipId" class="control-label">Mã phiếu mượn</label>
+                <input asp-for="BorrowSlipId" class="form-control" />
+                <span asp-validation-for="BorrowSlipId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Amount" class="control-label">Số tiền phạt</label>
+                <input asp-for="Amount" class="form-control" />
+                <span asp-validation-for="Amount" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Reason" class="control-label">Lý do phạt</label>
+                <input asp-for="Reason" class="form-control" />
+                <span asp-validation-for="Reason" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CreatedDate" class="control-label">Ngày tạo</label>
+                <input asp-for="CreatedDate" class="form-control" />
+                <span asp-validation-for="CreatedDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PaidDate" class="control-label">Ngày thanh toán</label>
+                <input asp-for="PaidDate" class="form-control" />
+                <span asp-validation-for="PaidDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FinesType" class="control-label">Loại phạt</label>
+                <input asp-for="FinesType" class="form-control" />
+                <span asp-validation-for="FinesType" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IsPaid" class="control-label">Đã thanh toán</label>
+                <input asp-for="IsPaid" class="form-check-input" />
+                <span asp-validation-for="IsPaid" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="BorrowSlips" class="control-label">Phiếu mượn</label>
+                <input asp-for="BorrowSlips" class="form-control" />
+                <span asp-validation-for="BorrowSlips" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Lưu" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Quay lại danh sách</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

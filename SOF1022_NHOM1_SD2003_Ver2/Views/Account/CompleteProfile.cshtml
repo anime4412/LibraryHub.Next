@@ -1,0 +1,318 @@
+﻿@{
+    ViewData["Title"] = "Hoàn thành hồ sơ";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Thư viện</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .onboarding-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @@keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .onboarding-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            color: white;
+            font-size: 36px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .onboarding-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .onboarding-subtitle {
+            font-size: 15px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .form-control {
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 2px solid #e9ecef;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            color: #333333;
+            background-color: #ffffff;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            color: #333333;
+            background-color: #ffffff;
+        }
+
+        .form-control::placeholder {
+            color: #999999;
+        }
+
+        .btn-complete {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 28px;
+            font-weight: 600;
+            font-size: 16px;
+            color: white;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-complete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-complete:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .validation-feedback {
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        .validation-feedback.valid {
+            color: #28a745;
+        }
+
+        .validation-feedback.invalid {
+            color: #dc3545;
+        }
+
+        .loading-spinner {
+            display: none;
+        }
+
+        .btn-complete.loading .loading-spinner {
+            display: inline-block;
+        }
+
+        .btn-complete.loading .btn-text {
+            display: none;
+        }
+
+        .requirements-list {
+            font-size: 13px;
+            color: #666;
+            margin-top: 16px;
+            padding-left: 20px;
+        }
+
+        .requirements-list li {
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-card">
+        <div class="onboarding-icon">
+            <i class="fas fa-user-edit"></i>
+        </div>
+        <h1 class="onboarding-title">Chào mừng bạn!</h1>
+        <p class="onboarding-subtitle">
+            Để bắt đầu, hãy chọn một tên hiển thị độc đáo để mọi người có thể nhận biết bạn trong cộng đồng thư viện.
+        </p>
+
+        <form id="completeProfileForm">
+            <div class="mb-3">
+                <label for="displayName" class="form-label fw-semibold">Tên hiển thị</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="displayName" 
+                       name="displayName" 
+                       placeholder="Nhập tên hiển thị của bạn..."
+                       maxlength="30"
+                       autocomplete="off">
+                <div id="validationFeedback" class="validation-feedback"></div>
+                <ul class="requirements-list mb-0">
+                    <li><i class="fas fa-check-circle text-success me-1"></i> 3-30 ký tự</li>
+                    <li><i class="fas fa-check-circle text-success me-1"></i> Chỉ chứa chữ cái, số và khoảng trắng</li>
+                    <li><i class="fas fa-check-circle text-success me-1"></i> Không trùng với người khác</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn btn-complete" id="submitBtn">
+                <span class="btn-text">Bắt đầu khám phá <i class="fas fa-arrow-right ms-2"></i></span>
+                <span class="loading-spinner">
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    Đang xử lý...
+                </span>
+            </button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const displayNameInput = document.getElementById('displayName');
+        const validationFeedback = document.getElementById('validationFeedback');
+        const submitBtn = document.getElementById('submitBtn');
+        const form = document.getElementById('completeProfileForm');
+
+        let validationTimeout;
+
+        displayNameInput.addEventListener('input', function() {
+            clearTimeout(validationTimeout);
+            const value = this.value.trim();
+
+            if (value.length === 0) {
+                validationFeedback.textContent = '';
+                validationFeedback.className = 'validation-feedback';
+                return;
+            }
+
+            validationTimeout = setTimeout(() => validateDisplayName(value), 500);
+        });
+
+        async function validateDisplayName(displayName) {
+            try {
+                const response = await fetch('/Account/ValidateDisplayName', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `displayName=${encodeURIComponent(displayName)}`
+                });
+
+                const result = await response.json();
+
+                if (result.isValid) {
+                    validationFeedback.textContent = result.message;
+                    validationFeedback.className = 'validation-feedback valid';
+                    submitBtn.disabled = false;
+                } else {
+                    validationFeedback.textContent = result.message;
+                    validationFeedback.className = 'validation-feedback invalid';
+                    submitBtn.disabled = true;
+                }
+            } catch (error) {
+                console.error('Validation error:', error);
+            }
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const displayName = displayNameInput.value.trim();
+
+            if (!displayName) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Vui lòng nhập tên hiển thị'
+                });
+                return;
+            }
+
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/Account/CompleteProfile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        displayName: displayName
+                    })
+                });
+
+                // Safe parsing to prevent SyntaxError on empty responses
+                const text = await response.text();
+                const data = text ? JSON.parse(text) : {};
+
+                if (!response.ok) {
+                    throw new Error(data.message || `Lỗi máy chủ (${response.status}): Không thể xử lý yêu cầu.`);
+                }
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = data.redirectUrl || '/Home/Index';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: data.message
+                    });
+                    submitBtn.classList.remove('loading');
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: error.message || 'Có lỗi xảy ra, vui lòng thử lại'
+                });
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Focus input on load
+        displayNameInput.focus();
+    </script>
+</body>
+</html>

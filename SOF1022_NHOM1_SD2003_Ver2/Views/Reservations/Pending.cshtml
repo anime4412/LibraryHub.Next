@@ -1,0 +1,290 @@
+﻿@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Reservations>
+
+@using SOF1022_NHOM1_SD2003_Ver2.Models.Enums
+
+@{
+    ViewData["Title"] = "Duyệt phiếu đặt trước";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container-fluid py-4">
+
+    <!-- PAGE HEADER -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h2 class="fw-bold mb-1" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+                        <i class="fa-solid fa-clipboard-check text-primary me-2"></i>
+                        Duyệt Phiếu Đặt Trước
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Xử lý và duyệt các yêu cầu đặt trước sách đang chờ
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <button id="batchApproveBtn" class="btn btn-success" disabled>
+                        <i class="fa-solid fa-check-double me-2"></i>
+                        Duyệt các phiếu đã chọn
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                        <i class="fa-solid fa-arrow-left me-2"></i>
+                        Quay lại
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATISTICS -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Tổng chờ duyệt</div>
+                    <h3 class="fw-bold mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count()</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Đã chọn</div>
+                    <h3 class="fw-bold text-primary mt-2" id="selectedCount" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Sắp hết hạn</div>
+                    <h3 class="fw-bold text-warning mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => m.ExpirationDate.HasValue && m.ExpirationDate.Value < DateTime.Now.AddDays(2))</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Đã quá hạn</div>
+                    <h3 class="fw-bold text-danger mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => m.ExpirationDate.HasValue && m.ExpirationDate.Value < DateTime.Now)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PENDING TABLE -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold mb-0" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Danh sách chờ duyệt</h3>
+                <span class="text-muted">Tổng cộng @Model.Count() phiếu</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50px">
+                            <input type="checkbox" class="select-all" id="selectAll" />
+                        </th>
+                        <th style="width:100px">Mã</th>
+                        <th style="width:150px">Độc giả</th>
+                        <th>Sách</th>
+                        <th style="width:120px">Ngày đặt</th>
+                        <th style="width:120px">Hết hạn</th>
+                        <th style="width:140px">Trạng thái</th>
+                        <th style="width:150px">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="fa-solid fa-check-circle fa-4x text-success mb-3 opacity-50"></i>
+                                <h3 class="fw-bold" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Không có phiếu nào chờ duyệt</h3>
+                                <p class="text-muted">Tất cả các yêu cầu đặt trước đã được xử lý</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            var readerName = item.Reader?.FullName ?? "Độc giả ẩn danh";
+                            var bookTitle = item.Book?.Title ?? "Tài liệu đã bị xóa";
+                            var avatarLetter = !string.IsNullOrWhiteSpace(readerName) ? readerName.Substring(0, 1).ToUpper() : "R";
+                            var isExpiringSoon = item.ExpirationDate.HasValue && item.ExpirationDate.Value < DateTime.Now.AddDays(2);
+                            var isExpired = item.ExpirationDate.HasValue && item.ExpirationDate.Value < DateTime.Now;
+
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="select-item" value="@item.Id" />
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">#@item.Id</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-2" style="width:36px;height:36px;font-size:14px;">
+                                            @avatarLetter
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-truncate" style="max-width:150px;" title="@readerName">
+                                                @readerName
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width:250px;" title="@bookTitle">
+                                        <i class="fa-solid fa-book-open text-muted me-1"></i>
+                                        @bookTitle
+                                    </div>
+                                </td>
+                                <td>
+                                    @item.ReservationDate.ToString("dd/MM/yyyy")
+                                </td>
+                                <td>
+                                    @if (item.ExpirationDate.HasValue)
+                                    {
+                                        <span class="@(isExpired ? "text-danger fw-bold" : isExpiringSoon ? "text-warning fw-bold" : "")">
+                                            @item.ExpirationDate.Value.ToString("dd/MM/yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning-subtle text-warning">
+                                        <i class="fa-solid fa-clock me-1"></i>Chờ xử lý
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" style="gap: 12px;">
+                                        <a asp-action="Approve" asp-route-id="@item.Id" class="btn btn-success" title="Duyệt">
+                                            <i class="fa-solid fa-check"></i>
+                                        </a>
+                                        <a asp-action="Cancel" asp-route-id="@item.Id" class="btn btn-danger" title="Từ chối">
+                                            <i class="fa-solid fa-times"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 14px;
+    }
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .table {
+        margin-bottom: 0;
+    }
+    .table thead th {
+        font-weight: 700;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+    }
+    .table tbody td {
+        vertical-align: middle;
+    }
+    .table tbody tr {
+        transition: .25s ease;
+    }
+    .table tbody tr:hover {
+        background: #f8fbff;
+    }
+    .btn {
+        border-radius: 8px;
+    }
+    .badge {
+        font-weight: 600;
+        padding: 6px 10px;
+    }
+    @@media(max-width:992px) {
+        .table {
+            min-width: 1000px;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        // Select All functionality
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.select-item');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateBatchApproveButton();
+        });
+
+        // Individual checkbox change
+        document.querySelectorAll('.select-item').forEach(cb => {
+            cb.addEventListener('change', updateBatchApproveButton);
+        });
+
+        function updateBatchApproveButton() {
+            const selected = document.querySelectorAll('.select-item:checked');
+            const btn = document.getElementById('batchApproveBtn');
+            const countEl = document.getElementById('selectedCount');
+            btn.disabled = selected.length === 0;
+            countEl.textContent = selected.length;
+        }
+
+        // Batch Approve
+        document.getElementById('batchApproveBtn').addEventListener('click', async function() {
+            const selected = Array.from(document.querySelectorAll('.select-item:checked')).map(cb => parseInt(cb.value));
+            
+            if (selected.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn ít nhất một phiếu để duyệt' });
+                return;
+            }
+
+            const { isConfirmed } = await Swal.fire({
+                title: 'Xác nhận',
+                text: `Bạn có chắc chắn muốn duyệt ${selected.length} phiếu đã chọn?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Huỷ'
+            });
+            if (!isConfirmed) {
+                return;
+            }
+
+            fetch('/Reservations/BatchApprove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ ids: selected })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Thông báo', text: data.message });
+                    location.reload();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi: ' + data.message });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi duyệt hàng loạt' });
+            });
+        });
+    </script>
+}

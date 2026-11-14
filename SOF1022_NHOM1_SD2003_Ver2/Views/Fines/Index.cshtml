@@ -1,0 +1,306 @@
+@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Fines>
+
+@{
+    ViewData["Title"] = "Quản lý tiền phạt";
+}
+
+<div class="container-fluid" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+        <style>
+            @@media (max-width: 991px) {
+                .container-fluid {
+                    padding-top: var(--section-gap-sm) !important;
+                    padding-bottom: var(--section-gap-sm) !important;
+                }
+            }
+        </style>
+
+    <!-- PAGE HEADER -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h2 class="fw-bold mb-1" style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 600; margin-bottom: 12px;">
+                        <i class="fa-solid fa-sack-dollar text-primary me-2"></i>
+                        Quản lý Tiền Phạt
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Theo dõi các khoản phạt phát sinh, trạng thái thanh toán và lịch sử giao dịch
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <a asp-action="History" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                        Lịch sử
+                    </a>
+                    <a asp-action="Unpaid" class="btn btn-danger ms-2">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                        Chưa thanh toán
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATISTICS -->
+    <div class="row mb-4" style="gap: var(--card-gap);">
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Tổng phiếu phạt</div>
+                    <h3 class="fw-bold mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count()</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Chưa thanh toán</div>
+                    <h3 class="fw-bold text-danger mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => !m.IsPaid)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Đã thanh toán</div>
+                    <h3 class="fw-bold text-success mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Count(m => m.IsPaid)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted">Tổng tiền phạt</div>
+                    <h3 class="fw-bold text-primary mt-2" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">@Model.Sum(m => m.Amount).ToString("N0") VNĐ</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-10">
+                        <label class="form-label fw-semibold">Tìm kiếm</label>
+                        <input class="form-control"
+                               name="searchString"
+                               value="@ViewBag.SearchString"
+                               placeholder="Mã phiếu, tên độc giả, lý do vi phạm..." />
+                    </div>
+                    <div class="col-lg-2 d-grid">
+                        <button class="btn btn-primary">
+                            <i class="fa-solid fa-magnifying-glass me-2"></i>
+                            Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FINES TABLE -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold mb-0" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Danh sách khoản phạt</h3>
+                <span class="text-muted">Tổng cộng @Model.Count() phiếu</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:100px">Mã phạt</th>
+                        <th style="width:150px">Độc giả</th>
+                        <th style="width:120px">Liên kết phiếu</th>
+                        <th>Chi tiết sự cố</th>
+                        <th style="width:120px">Số tiền phạt</th>
+                        <th style="width:140px">Trạng thái</th>
+                        <th style="width:200px">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="fa-solid fa-shield-heart fa-4x text-success mb-3 opacity-50"></i>
+                                <h3 class="fw-bold" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Hệ thống trong lành</h3>
+                                <p class="text-muted">Không tìm thấy hồ sơ vi phạm hoặc khoản tiền phạt tồn đọng</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            var readerName = item.BorrowSlips?.Readers?.FullName ?? "N/A";
+                            var borrowCode = item.BorrowSlips?.BorrowCode ?? "Không rõ";
+                            var avatarLetter = !string.IsNullOrWhiteSpace(readerName) && readerName != "N/A" ? readerName.Substring(0, 1).ToUpper() : "N";
+                            
+                            // Build summary label for consolidated fines
+                            var fineDetails = item.FineDetails?.ToList() ?? new List<FineDetails>();
+                            var incidentCount = fineDetails.Count;
+                            var damagedCount = fineDetails.Count(fd => fd.FinesType == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Damaged);
+                            var lostCount = fineDetails.Count(fd => fd.FinesType == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Lost);
+                            var lateCount = fineDetails.Count(fd => fd.FinesType == SOF1022_NHOM1_SD2003_Ver2.Models.Enums.FinesType.Late);
+                            
+                            string summaryLabel = "";
+                            if (incidentCount > 0)
+                            {
+                                var parts = new List<string>();
+                                if (damagedCount > 0) parts.Add($"{damagedCount} Hư hỏng");
+                                if (lostCount > 0) parts.Add($"{lostCount} Mất sách");
+                                if (lateCount > 0) parts.Add($"{lateCount} Trễ hạn");
+                                summaryLabel = $"{incidentCount} sự cố: " + string.Join(", ", parts);
+                            }
+                            else
+                            {
+                                // Fallback for old fines without details
+                                summaryLabel = item.Books?.Title ?? item.Reason ?? "Không rõ";
+                            }
+
+                            <tr>
+                                <!-- Mã phạt -->
+                                <td>
+                                    <span class="badge bg-secondary">#@item.Id</span>
+                                </td>
+
+                                <!-- Độc giả -->
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-2" style="width:36px;height:36px;font-size:14px;">
+                                            @avatarLetter
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-truncate" style="max-width:150px;" title="@readerName">
+                                                @readerName
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Liên kết phiếu -->
+                                <td>
+                                    <span class="badge bg-dark-subtle border border-secondary border-opacity-25 text-warning font-monospace px-2 py-1 fs-12">
+                                        @borrowCode
+                                    </span>
+                                </td>
+
+                                <!-- Chi tiết sự cố -->
+                                <td>
+                                    <div class="text-truncate" style="max-width:250px;" title="@summaryLabel">
+                                        <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>
+                                        @summaryLabel
+                                    </div>
+                                    @if (incidentCount > 0)
+                                    {
+                                        <small class="text-muted d-block">Tổng: @item.Amount.ToString("N0") VNĐ</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted d-block">@item.FinesType</small>
+                                    }
+                                </td>
+
+                                <!-- Số tiền phạt -->
+                                <td>
+                                    <span class="fw-bold @(item.IsPaid ? "text-success" : "text-danger")">
+                                        @item.Amount.ToString("N0") VNĐ
+                                    </span>
+                                </td>
+
+                                <!-- Trạng thái -->
+                                <td>
+                                    @if (item.IsPaid)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">
+                                            <i class="fa-solid fa-circle-check me-1"></i>Đã tất toán
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger">
+                                            <i class="fa-solid fa-circle-exclamation me-1"></i>Chờ xử lý
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Thao tác -->
+                                <td>
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        @if (!item.IsPaid && Context.HasPermission("fine.process_payment"))
+                                        {
+                                            <a asp-action="Pay" asp-route-id="@item.Id" class="btn btn-success btn-sm">
+                                                <i class="fa-solid fa-cash-register me-1"></i>Thu tiền
+                                            </a>
+                                        }
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info btn-sm" title="Chi tiết">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a asp-action="PrintReceipt" asp-route-id="@item.Id" target="_blank" class="btn btn-outline-secondary btn-sm" title="In biên lai thu tiền">
+                                            <i class="fa-solid fa-print"></i>
+                                        </a>
+                                    </div>
+                                    
+                                    <small class="text-muted d-block mt-1" style="font-size:12px;">
+                                        <i class="fa-solid fa-calendar-plus me-1"></i>@item.CreatedDate.ToString("dd/MM/yyyy")
+                                    </small>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 14px;
+    }
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .table {
+        margin-bottom: 0;
+    }
+    .table thead th {
+        font-weight: 700;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+    }
+    .table tbody td {
+        vertical-align: middle;
+    }
+    .table tbody tr {
+        transition: .25s ease;
+    }
+    .table tbody tr:hover {
+        background: #f8fbff;
+    }
+    .form-control {
+        height: 38px;
+        border-radius: 8px;
+    }
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: none;
+    }
+    .btn {
+        border-radius: 8px;
+    }
+    .badge {
+        font-weight: 600;
+        padding: 6px 10px;
+    }
+    @@media(max-width:992px) {
+        .table {
+            min-width: 1000px;
+        }
+    }
+</style>

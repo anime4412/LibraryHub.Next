@@ -1,0 +1,147 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.Readers
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+}
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body text-center py-5">
+                    <div class="avatar-circle mb-3">
+                        <i class="fas fa-user-shield fa-3x"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1">@Model.FullName</h4>
+                    <p class="text-muted mb-3">Quản trị viên</p>
+                    <div class="badge bg-primary">Admin</div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Thông tin tài khoản</h6>
+                    <div class="mb-3">
+                        <label class="text-muted small">Email</label>
+                        <div class="fw-medium">@Model.Email</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Mã nhân viên</label>
+                        <div class="fw-medium">@Model.ReaderCode</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Ngày đăng ký</label>
+                        <div class="fw-medium">@Model.RegisterDate.ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Trạng thái</label>
+                        <div>
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Đã khóa</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold">Chỉnh sửa hồ sơ</h5>
+                </div>
+                <div class="card-body">
+                    <form id="adminProfileForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Họ và tên</label>
+                                <input type="text" class="form-control" value="@Model.FullName" disabled>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Email</label>
+                                <input type="email" class="form-control" value="@Model.Email" disabled>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Số điện thoại</label>
+                                <input type="text" class="form-control" id="phone" name="phone" value="@Model.Phone">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">CCCD/CMND</label>
+                                <input type="text" class="form-control" value="@Model.IdentityNumber" disabled>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Địa chỉ</label>
+                            <textarea class="form-control" id="address" name="address" rows="3">@Model.Address</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-outline-primary">
+                                <i class="fas fa-key me-2"></i>Đổi mật khẩu
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('adminProfileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+            
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            formData.append('phone', phone);
+            formData.append('address', address);
+            
+            try {
+                const response = await fetch('/Account/UpdateAdminProfile', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: result.message,
+                        confirmButtonText: 'Đóng'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: result.message,
+                        confirmButtonText: 'Đóng'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Đã xảy ra lỗi hệ thống. Vui lòng thử lại.',
+                    confirmButtonText: 'Đóng'
+                });
+            }
+        });
+    </script>
+}

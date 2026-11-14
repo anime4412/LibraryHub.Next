@@ -1,0 +1,249 @@
+﻿@model IEnumerable<SOF1022_NHOM1_SD2003_Ver2.Models.Fines>
+
+@{
+    ViewData["Title"] = "Khoản phạt chưa thanh toán";
+    var userRole = Context.Session.GetString("Role");
+    var isAdmin = userRole == "Admin" || userRole == "Librarian";
+}
+
+<div class="fine-hero">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+            <div>
+                <h1 class="hero-title d-flex align-items-center mb-1" style="font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 600; margin-bottom: 16px;">
+                    <i class="fa-solid fa-triangle-exclamation text-danger me-3"></i>Khoản phạt chưa thanh toán
+                </h1>
+                <p class="hero-sub mb-0">
+                    Danh sách các khoản phạt chưa được thanh toán cần xử lý
+                </p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                @if (isAdmin)
+                {
+                    <a asp-action="Index" class="btn btn-outline-light rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
+                    </a>
+                }
+                else
+                {
+                    <a asp-action="MyFines" class="btn btn-outline-light rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <div class="stats-indicator-bar me-3"></div>
+        <div>
+            <h3 class="fw-bold mb-0 text-white fs-4" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Danh sách chưa thanh toán</h3>
+            <span class="text-secondary fs-14">
+                Tổng cộng <strong class="text-white">@Model.Count()</strong> khoản phạt chưa thanh toán
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col-xl-4 col-lg-6 col-md-6">
+                <div class="fine-card fine-unpaid">
+                    <div class="fine-header">
+                        <div class="fine-code d-flex align-items-center">
+                            <i class="fa-solid fa-receipt text-secondary me-2"></i>
+                            Mã phạt: <span class="text-white fw-bold ms-1">#@item.Id</span>
+                        </div>
+                        <span class="badge badge-unpaid">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>Chờ xử lý
+                        </span>
+                    </div>
+
+                    <div class="fine-body">
+                        <div class="fine-amount-box">
+                            <div class="fine-amount-label">Số tiền phạt</div>
+                            <div class="fine-amount-value">
+                                @item.Amount.ToString("N0") <span class="currency-symbol">VND</span>
+                            </div>
+                        </div>
+
+                        <div class="fine-details-list">
+                            <div class="fine-info">
+                                <i class="fa-solid fa-user text-secondary me-2"></i>
+                                <span class="text-secondary">Độc giả:</span>
+                                <span class="text-white fw-semibold ms-1">@item.BorrowSlips?.Readers?.FullName</span>
+                            </div>
+                            <div class="fine-info">
+                                <i class="fa-solid fa-book text-secondary me-2"></i>
+                                <span class="text-secondary">Mã phiếu mượn:</span>
+                                <span class="text-white fw-semibold ms-1">@item.BorrowSlipId</span>
+                            </div>
+                            <div class="fine-info">
+                                <i class="fa-solid fa-calendar text-secondary me-2"></i>
+                                <span class="text-secondary">Ngày tạo:</span>
+                                <span class="text-white ms-1">@item.CreatedDate.ToString("dd/MM/yyyy")</span>
+                            </div>
+                            <div class="fine-info">
+                                <i class="fa-solid fa-comment text-secondary me-2"></i>
+                                <span class="text-secondary">Lý do:</span>
+                                <span class="text-white ms-1">@item.Reason</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fine-footer">
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-glow w-100">
+                            <i class="fa-solid fa-credit-card me-2"></i>Xử lý thanh toán
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fa-solid fa-check-circle fa-5x text-success mb-4"></i>
+            <h3 class="fw-bold text-white" style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Không có khoản phạt nào</h3>
+            <p class="text-secondary">Tất cả khoản phạt đã được thanh toán</p>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .fine-hero {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+            border-radius: 0 0 30px 30px;
+            margin-bottom: 2rem;
+        }
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+        }
+        .hero-sub {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+        }
+        .fine-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .fine-unpaid {
+            border-left: 4px solid #FF6B6B;
+        }
+        .fine-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .fine-body {
+            padding: 1.5rem;
+        }
+        .fine-amount-box {
+            background: rgba(255, 107, 107, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .fine-amount-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .fine-amount-value {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .currency-symbol {
+            font-size: 1rem;
+            margin-left: 0.5rem;
+        }
+        .fine-details-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .fine-info {
+            display: flex;
+            align-items: center;
+        }
+        .badge-unpaid {
+            background: var(--danger);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .fine-footer {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-glow {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+        }
+        .stats-indicator-bar {
+            width: 4px;
+            height: 40px;
+            background: linear-gradient(180deg, #FF6B6B 0%, #FF8E8E 100%);
+            border-radius: 2px;
+        }
+        
+        /* Force absolute structural existence and kill zero-scale/display-none modifiers */
+        .empty-state .btn, .empty-state a, .empty-state .d-flex,
+        .empty-box .btn, .empty-box a, .empty-box .d-flex,
+        .text-center .btn, .text-center a, .text-center .d-flex,
+        .hero .btn, .empty-state-actions, .actions-wrapper {
+            display: inline-flex !important;
+            transform: scale(1) !important;
+            transform: translateY(0) !important;
+            pointer-events: auto !important;
+            height: auto !important;
+            width: auto !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transition: none !important;
+        }
+
+        /* Neutralize any parent hover transformations that collapse or alter layout sizes */
+        .empty-state:hover, .empty-box:hover, .text-center:hover {
+            transform: none !important;
+        }
+
+        /* Color contrast fixes - Change white text to dark gray for light backgrounds */
+        .fine-hero .hero-title,
+        .fine-hero .hero-sub,
+        .fine-hero h1,
+        .fine-hero h2,
+        .fine-hero h3,
+        .fine-hero h4,
+        .fine-hero h5,
+        .fine-hero h6 {
+            color: var(--text-primary) !important;
+        }
+        .text-secondary {
+            color: var(--text-secondary) !important;
+        }
+    </style>
+}

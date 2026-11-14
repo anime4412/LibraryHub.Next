@@ -1,0 +1,1472 @@
+﻿@model SOF1022_NHOM1_SD2003_Ver2.Models.ViewModels.BookDetailViewModel
+
+@{
+    ViewData["Title"] = "Chi tiết sách";
+    var bookId = Model.Book?.Id ?? 0;
+    var userId = Context.Session.GetString("UserId");
+    var userRole = Context.Session.GetString("Role") ?? "";
+    var isAdmin = userRole == "Admin" || userRole == "Librarian";
+    var isVerified = (Context.Session.GetString("IsVerified") == "true") || isAdmin;
+}
+
+@Html.AntiForgeryToken()
+
+<input type="hidden" name="UserId" value="@userId" />
+<input type="hidden" id="isUserVerified" value="@(isVerified ? "true" : "false")" />
+
+<link rel="stylesheet" href="~/css/book-details.css" asp-append-version="true">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<div class="book-details-page">
+    
+    <section class="hero-section" style="padding-top: var(--section-gap); padding-bottom: var(--section-gap);">
+        <style>
+            @@media (max-width: 991px) {
+                .hero-section {
+                    padding-top: var(--section-gap-sm) !important;
+                    padding-bottom: var(--section-gap-sm) !important;
+                }
+            }
+        </style>
+        <div class="container">
+            <div class="row align-items-start" style="gap: var(--card-gap);">
+                
+                <div class="col-lg-4 book-cover-section">
+                    <div class="double-bezel">
+                        <div class="double-bezel-core cover-wrapper p-2">
+                            <div class="cover-image">
+                                @if (string.IsNullOrEmpty(Model.Book?.CoverImage))
+                                {
+                                    <img src="/images/no-book.png" alt="Ảnh bìa sách" />
+                                }
+                                else
+                                {
+                                    <img src="@Model.Book.CoverImage" alt="@Model.Book.Title" onerror="this.onerror=null;this.src='/images/no-book.png';" />
+                                }
+                            </div>
+                            
+                            <div class="cover-badges">
+                                <div class="stat-badge">
+                                    <i class="bi bi-book"></i>
+                                    <span>Còn @(Model.RealAvailableCount) quyển</span>
+                                </div>
+                                @if (!Model.IsAvailable && Model.RealAvailableCount == 0)
+                                {
+                                    <div class="stat-badge" style="background: var(--warning);">
+                                        <i class="bi bi-clock"></i>
+                                        <span>Đã có người giữ chỗ</span>
+                                    </div>
+                                }
+                                <div class="stat-badge">
+                                    <i class="bi bi-eye"></i>
+                                    <span id="badge-view-count">@Model.Book?.ViewCount.ToString("N0") lượt xem</span>
+                                </div>
+                                <div class="stat-badge">
+                                    <i class="bi bi-heart"></i>
+                                    <span id="badge-favorite-count">@Model.FavoriteCount.ToString("N0") yêu thích</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8 book-info-section">
+                    <div class="eyebrow-pill mb-2">
+                        <i class="bi bi-book-half"></i> CHI TIẾT TÁC PHẨM
+                    </div>
+                    <h1 class="book-title text-heading" style="font-family: var(--font-display); font-size: clamp(1.8rem, 3.2vw, 2.5rem); font-weight: 700; margin-bottom: 16px; letter-spacing: -0.02em;">@Model.Book?.Title</h1>
+                    
+                    <div class="book-meta">
+                        <div class="meta-item">
+                            <i class="bi bi-person-fill text-warning"></i>
+                            @if (Model.Book?.Author != null)
+                            {
+                                <a asp-controller="Books" asp-action="Index" asp-route-authorId="@Model.Book.AuthorsId" class="meta-link fw-semibold" title="Xem tất cả sách của tác giả này">
+                                    @(Model.Book.Author.Name)
+                                </a>
+                            }
+                            else
+                            {
+                                <span>Đang cập nhật</span>
+                            }
+                        </div>
+                        <div class="meta-item">
+                            <i class="bi bi-tag-fill text-primary"></i>
+                            @if (Model.Book?.Category != null)
+                            {
+                                <a asp-controller="Books" asp-action="Index" asp-route-categoryId="@Model.Book.CategoriesId" class="meta-link fw-semibold" title="Xem danh mục này">
+                                    @(Model.Book.Category.Name)
+                                </a>
+                            }
+                            else
+                            {
+                                <span>Chung</span>
+                            }
+                        </div>
+                        <div class="meta-item">
+                            <i class="bi bi-building text-info"></i>
+                            <span>@(Model.Book?.Publisher?.Name ?? "-")</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="bi bi-calendar-event text-danger"></i>
+                            <span>@(Model.Book?.PublishYear > 0 ? $"Năm {Model.Book.PublishYear}" : "-")</span>
+                        </div>
+                        @if (Model.Book?.Shelf != null)
+                        {
+                            <div class="meta-item meta-shelf-item">
+                                <i class="bi bi-geo-alt-fill text-success"></i>
+                                <span>Kệ: <strong class="text-success">@Model.Book.Shelf.Name</strong> (@(Model.Book.Shelf.Area ?? "Khu chung"))</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Book?.Edition))
+                        {
+                            <div class="meta-item">
+                                <i class="bi bi-bookmark-star-fill text-secondary"></i>
+                                <span>@Model.Book.Edition</span>
+                            </div>
+                        }
+                        @if (Model.Book?.MinimumAge > 0)
+                        {
+                            <div class="meta-item">
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2 py-1">@Model.Book.MinimumAge+ tuổi</span>
+                            </div>
+                        }
+                    </div>
+
+                    @if (Model.IsCurrentlyBorrowing && Model.CurrentBorrowDueDate.HasValue)
+                    {
+                        var remainingDays = (Model.CurrentBorrowDueDate.Value.Date - DateTime.Now.Date).Days;
+                        <div class="borrow-status-alert mb-3 p-3 rounded-3 d-flex align-items-center gap-3 @(remainingDays < 0 ? "borrow-overdue" : remainingDays <= 2 ? "borrow-warning" : "borrow-active")">
+                            <div class="borrow-status-icon fs-3">
+                                @if (remainingDays < 0)
+                                {
+                                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                }
+                                else if (remainingDays <= 2)
+                                {
+                                    <i class="bi bi-clock-history text-warning"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-circle-fill text-info"></i>
+                                }
+                            </div>
+                            <div class="borrow-status-info flex-grow-1">
+                                <div class="fw-bold fs-6">
+                                    @(remainingDays < 0 ? "Sách đang quá hạn trả!" : "Bạn đang mượn cuốn sách này")
+                                </div>
+                                <div class="small opacity-90">
+                                    Hạn trả sách: <strong>@Model.CurrentBorrowDueDate.Value.ToString("dd/MM/yyyy")</strong>
+                                    @if (remainingDays < 0)
+                                    {
+                                        <span class="text-danger fw-bold ms-1">(Đã quá hạn @Math.Abs(remainingDays) ngày - Phí phạt ước tính: @((Math.Abs(remainingDays) * 5000).ToString("N0")) VNĐ)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ms-1">(Còn lại <strong>@remainingDays ngày</strong> để trả hoặc gia hạn)</span>
+                                    }
+                                </div>
+                            </div>
+                            <a asp-controller="BorrowSlips" asp-action="MyBorrows" class="btn btn-sm btn-outline-dark fw-bold text-nowrap">
+                                <i class="bi bi-clock-history me-1"></i> Xem phiếu mượn
+                            </a>
+                        </div>
+                    }
+
+                    <div class="rating-display">
+                        <div class="stars">
+                            @* Logic hiển thị sao động dựa vào số điểm trung bình sẽ được tính toán qua JS hoặc Backend *@
+                            <span id="rating-stars-container"></span>
+                        </div>
+                        <div class="rating-value">@Model.AverageRating.ToString("F1")</div>
+                        <div class="rating-count">(@Model.ReviewCount đánh giá)</div>
+                    </div>
+
+                    <div class="action-buttons d-flex flex-wrap align-items-center gap-3 my-4">
+                        @if (Model.IsCurrentlyBorrowing)
+                        {
+                            <button type="button" class="btn btn-secondary px-4 py-2 rounded-pill fw-semibold" disabled>
+                                <i class="bi bi-book-check me-2"></i> Đang mượn
+                            </button>
+                            @if (Model.CurrentBorrowDueDate.HasValue)
+                            {
+                                <small class="text-muted d-block w-100">
+                                    <i class="bi bi-calendar-x"></i> Hạn trả: @Model.CurrentBorrowDueDate.Value.ToString("dd/MM/yyyy")
+                                </small>
+                            }
+                        }
+                        else if (Model.IsAvailable)
+                        {
+                            <a asp-controller="BorrowSlips"
+                               asp-action="Create"
+                               asp-route-bookId="@Model.Book?.Id"
+                               class="btn btn-taste-gold">
+                                <span>Mượn sách ngay</span>
+                                <span class="btn-taste-circle"><i class="bi bi-arrow-right"></i></span>
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Reservations"
+                               asp-action="Create"
+                               asp-route-bookId="@Model.Book?.Id"
+                               class="btn btn-taste-gold">
+                                <span>Đăng ký trước</span>
+                                <span class="btn-taste-circle"><i class="bi bi-calendar-plus"></i></span>
+                            </a>
+                        }
+
+                        <button type="button" class="btn btn-taste-ghost @(Model.IsFavorited ? "active" : "")" data-action="favorite" data-book-id="@Model.Book?.Id">
+                            <i class="bi @(Model.IsFavorited ? "bi-heart-fill text-danger" : "bi-heart") me-2"></i>
+                            <span class="favorite-text">@(Model.IsFavorited ? "Đã yêu thích" : "Yêu thích")</span>
+                        </button>
+
+                        <button type="button" class="btn btn-taste-ghost" data-bs-toggle="modal" data-bs-target="#ebookReaderModal" onclick="startEbookReader(@(Model.Book?.Id ?? 0), '@(Model.Book?.Title?.Replace("'", "\\'") ?? "")')">
+                            <i class="bi bi-book-half me-2 text-warning"></i>
+                            <span>Đọc trực tuyến</span>
+                        </button>
+                    </div>
+
+                    <div class="quick-stats" style="gap: var(--card-gap);">
+                        <div class="stat-card card-elevated">
+                            <div class="stat-card-icon"><i class="bi bi-eye"></i></div>
+                            <div class="stat-card-value" id="stat-views">@Model.Book?.ViewCount.ToString("N0")</div>
+                            <div class="stat-card-label">Lượt xem</div>
+                        </div>
+                        <div class="stat-card card-elevated">
+                            <div class="stat-card-icon"><i class="bi bi-book"></i></div>
+                            <div class="stat-card-value">@Model.BorrowCount.ToString("N0")</div>
+                            <div class="stat-card-label">Lượt mượn</div>
+                        </div>
+                        <div class="stat-card card-elevated">
+                            <div class="stat-card-icon"><i class="bi bi-heart"></i></div>
+                            <div class="stat-card-value" id="stat-favorites">@Model.FavoriteCount.ToString("N0")</div>
+                            <div class="stat-card-label">Yêu thích</div>
+                        </div>
+                        <div class="stat-card card-elevated">
+                            <div class="stat-card-icon"><i class="bi bi-chat"></i></div>
+                            <div class="stat-card-value" id="stat-comments">@(Model.Comments?.Count ?? 0)</div>
+                            <div class="stat-card-label">Bình luận</div>
+                        </div>
+                        <div class="stat-card card-elevated">
+                            <div class="stat-card-icon"><i class="bi bi-star"></i></div>
+                            <div class="stat-card-value">@Model.AverageRating.ToString("F1")</div>
+                            <div class="stat-card-label">Đánh giá</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="tabs-section">
+        <div class="container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="description">Giới thiệu</button>
+                <button class="tab-btn" data-tab="info">Thông tin chi tiết</button>
+                <button class="tab-btn" data-tab="author">Hồ sơ tác giả</button>
+                <button class="tab-btn" data-tab="reviews">Đánh giá</button>
+                <button class="tab-btn" data-tab="comments">Bình luận</button>
+                <button class="tab-btn" data-tab="related">Sách liên quan</button>
+            </div>
+
+            <div class="tab-content active" data-tab="description">
+                <div class="description-card card-elevated">
+                    <h3 style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Giới thiệu sách</h3>
+                    <div class="description-text" id="descriptionText">
+                        @(Model.Book?.Description ?? "Chưa có thông tin giới thiệu về cuốn sách này.")
+                    </div>
+                    <button class="expand-btn" id="expandBtn" style="display: none;">
+                        <i class="bi bi-chevron-down"></i> Xem thêm
+                    </button>
+                </div>
+            </div>
+
+            <div class="tab-content" data-tab="info">
+                <div class="detailed-info-container">
+                    <!-- Section 1: Thời gian & Mượn trả -->
+                    <div class="info-group-card card-elevated mb-4">
+                        <div class="info-group-header">
+                            <i class="bi bi-calendar-check-fill text-warning fs-5"></i>
+                            <h4 class="mb-0 fw-bold fs-6 text-uppercase text-heading">Thông tin Thời gian & Quy định Mượn trả</h4>
+                        </div>
+                        <div class="info-grid mt-3">
+                            <div class="info-item">
+                                <div class="info-item-icon bg-warning-subtle text-warning"><i class="bi bi-calendar3"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Năm xuất bản gốc</div>
+                                    <div class="info-item-value fw-bold text-dark">@(Model.Book?.PublishYear > 0 ? $"Năm {Model.Book.PublishYear}" : "Đang cập nhật")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-info-subtle text-info"><i class="bi bi-bookmark-star"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Ấn bản / Lần in</div>
+                                    <div class="info-item-value">@(string.IsNullOrWhiteSpace(Model.Book?.Edition) ? "Ấn bản tiêu chuẩn" : Model.Book.Edition)</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-primary-subtle text-primary"><i class="bi bi-clock-history"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Lượt mượn gần nhất</div>
+                                    <div class="info-item-value">@(Model.Book?.LastBorrowDate.HasValue == true ? Model.Book.LastBorrowDate.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa có lượt mượn gần đây")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-success-subtle text-success"><i class="bi bi-hourglass-split"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Thời hạn mượn quy định</div>
+                                    <div class="info-item-value text-success fw-bold">14 ngày tiêu chuẩn</div>
+                                    <small class="text-muted d-block mt-1">Gia hạn trực tuyến tối đa 2 lần (+7 ngày/lần)</small>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-danger-subtle text-danger"><i class="bi bi-shield-check"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Độ tuổi độc giả</div>
+                                    <div class="info-item-value">@(Model.Book?.MinimumAge > 0 ? $"Khuyến nghị từ {Model.Book.MinimumAge} tuổi trở lên" : "Mọi độ tuổi độc giả")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-secondary-subtle text-secondary"><i class="bi bi-cash-coin"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Phí trễ hạn nếu quá hạn</div>
+                                    <div class="info-item-value text-danger">5.000 VNĐ / ngày</div>
+                                    <small class="text-muted d-block mt-1">Vui lòng hoàn trả đúng hạn</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Kỹ thuật & Định danh -->
+                    <div class="info-group-card card-elevated mb-4">
+                        <div class="info-group-header">
+                            <i class="bi bi-upc-scan text-primary fs-5"></i>
+                            <h4 class="mb-0 fw-bold fs-6 text-uppercase text-heading">Thông số Kỹ thuật & Định danh Sách</h4>
+                        </div>
+                        <div class="info-grid mt-3">
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-upc-scan"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Mã chuẩn ISBN</div>
+                                    <div class="info-item-value font-monospace fw-bold">@(Model.Book?.ISBN ?? "-")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-translate"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Ngôn ngữ tài liệu</div>
+                                    <div class="info-item-value">@(string.IsNullOrWhiteSpace(Model.Book?.Language) ? "Tiếng Việt" : Model.Book.Language)</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-file-text"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Độ dày / Số trang</div>
+                                    <div class="info-item-value">@(Model.Book?.PageCount > 0 ? $"{Model.Book.PageCount} trang" : "Đang cập nhật")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-currency-dollar"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Giá bìa niêm yết</div>
+                                    <div class="info-item-value fw-bold text-success">@(Model.Book?.Price > 0 ? $"{Model.Book.Price.ToString("N0")} VNĐ" : "Miễn phí lưu hành nội bộ")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-folder"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Danh mục thể loại</div>
+                                    <div class="info-item-value">
+                                        @if (Model.Book?.Category != null)
+                                        {
+                                            <a asp-controller="Books" asp-action="Index" asp-route-categoryId="@Model.Book.CategoriesId" class="info-link fw-semibold">
+                                                @Model.Book.Category.Name
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-tags"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Từ khóa phân loại</div>
+                                    <div class="info-item-value d-flex flex-wrap gap-1 mt-1">
+                                        @if (!string.IsNullOrWhiteSpace(Model.Book?.Keywords))
+                                        {
+                                            foreach (var kw in Model.Book.Keywords.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+                                            {
+                                                <span class="badge bg-light text-dark border px-2 py-1">@kw.Trim()</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark border px-2 py-1">Sách tuyển chọn</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Vị trí Kệ sách & Tình trạng Lưu kho -->
+                    <div class="info-group-card card-elevated mb-4">
+                        <div class="info-group-header">
+                            <i class="bi bi-geo-alt-fill text-success fs-5"></i>
+                            <h4 class="mb-0 fw-bold fs-6 text-uppercase text-heading">Vị trí Lưu trữ & Quản lý Kho Thư viện</h4>
+                        </div>
+                        <div class="info-grid mt-3">
+                            <div class="info-item">
+                                <div class="info-item-icon bg-success-subtle text-success"><i class="bi bi-bookshelf"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Kệ sách trưng bày</div>
+                                    <div class="info-item-value fw-bold text-success">@(Model.Book?.Shelf?.Name ?? "Chưa phân kệ")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-success-subtle text-success"><i class="bi bi-pin-map"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Khu vực / Tầng</div>
+                                    <div class="info-item-value">@(Model.Book?.Shelf?.Area ?? "Khu chung thư viện")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-success-subtle text-success"><i class="bi bi-qr-code"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Mã định vị ô kệ</div>
+                                    <div class="info-item-value font-monospace">@(Model.Book?.Shelf?.LocationCode ?? Model.Book?.Shelf?.Code ?? "Chưa có mã định vị")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-success-subtle text-success"><i class="bi bi-layers"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Sức chứa tối đa của kệ</div>
+                                    <div class="info-item-value">@(Model.Book?.Shelf?.Capacity ?? 300) cuốn</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon bg-primary-subtle text-primary"><i class="bi bi-box-seam"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Tổng số lượng trong kho</div>
+                                    <div class="info-item-value fw-bold">@Model.Book?.Quantity cuốn</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon @(Model.RealAvailableCount > 0 ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger")"><i class="bi bi-check2-circle"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Khả dụng cho mượn ngay</div>
+                                    <div class="info-item-value fw-bold @(Model.RealAvailableCount > 0 ? "text-success" : "text-danger")">
+                                        @Model.RealAvailableCount cuốn
+                                        @(Model.RealAvailableCount > 0 ? "(Sẵn sàng)" : "(Đang tạm hết)")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Nhà xuất bản -->
+                    <div class="info-group-card card-elevated">
+                        <div class="info-group-header">
+                            <i class="bi bi-building text-info fs-5"></i>
+                            <h4 class="mb-0 fw-bold fs-6 text-uppercase text-heading">Nhà Xuất bản & Đơn vị Phát hành</h4>
+                        </div>
+                        <div class="info-grid mt-3">
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-building"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Tên nhà xuất bản</div>
+                                    <div class="info-item-value fw-bold text-dark">@(Model.Book?.Publisher?.Name ?? "-")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-geo"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Trụ sở liên hệ</div>
+                                    <div class="info-item-value">@(Model.Book?.Publisher?.Address ?? "Đang cập nhật")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-telephone"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Số điện thoại</div>
+                                    <div class="info-item-value">@(Model.Book?.Publisher?.Phone ?? "1900 xxxx")</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-item-icon"><i class="bi bi-envelope"></i></div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Hòm thư điện tử</div>
+                                    <div class="info-item-value">@(Model.Book?.Publisher?.Email ?? "contact@nxb.vn")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Hồ sơ tác giả -->
+            <div class="tab-content" data-tab="author">
+                <div class="author-profile-card card-elevated">
+                    <div class="author-header">
+                        <div class="author-avatar-badge">
+                            @{
+                                var authorInitial = !string.IsNullOrWhiteSpace(Model.Book?.Author?.Name) 
+                                    ? Model.Book.Author.Name.Substring(0, 1).ToUpper() 
+                                    : "TG";
+                            }
+                            <div class="author-avatar-circle">
+                                <span>@authorInitial</span>
+                            </div>
+                        </div>
+                        <div class="author-header-info">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h3 class="author-name">@(Model.Book?.Author?.Name ?? "Chưa rõ tác giả")</h3>
+                                <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1 rounded-pill">
+                                    <i class="bi bi-award-fill me-1"></i> Tác giả tiêu biểu
+                                </span>
+                            </div>
+                            <p class="author-tagline text-muted">Hồ sơ nhà văn & thông tin tác giả lưu trữ tại Thư viện số</p>
+                        </div>
+                    </div>
+
+                    <div class="author-meta-grid">
+                        <div class="author-meta-box">
+                            <div class="author-meta-icon"><i class="bi bi-calendar-heart text-danger"></i></div>
+                            <div>
+                                <div class="author-meta-label">Ngày sinh</div>
+                                <div class="author-meta-value">
+                                    @(Model.Book?.Author?.DateOfBirth.HasValue == true 
+                                        ? Model.Book.Author.DateOfBirth.Value.ToString("dd/MM/yyyy") 
+                                        : "Đang cập nhật")
+                                </div>
+                            </div>
+                        </div>
+                        <div class="author-meta-box">
+                            <div class="author-meta-icon"><i class="bi bi-globe-americas text-primary"></i></div>
+                            <div>
+                                <div class="author-meta-label">Quốc tịch</div>
+                                <div class="author-meta-value">
+                                    @(string.IsNullOrWhiteSpace(Model.Book?.Author?.Nationality) 
+                                        ? "Đang cập nhật" 
+                                        : Model.Book.Author.Nationality)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="author-meta-box">
+                            <div class="author-meta-icon"><i class="bi bi-journal-album text-success"></i></div>
+                            <div>
+                                <div class="author-meta-label">Tác phẩm tại thư viện</div>
+                                <div class="author-meta-value">
+                                    @(Model.Book?.Author?.Books?.Count ?? 1) tác phẩm
+                                </div>
+                            </div>
+                        </div>
+                        <div class="author-meta-box">
+                            <div class="author-meta-icon"><i class="bi bi-bookmark-check text-warning"></i></div>
+                            <div>
+                                <div class="author-meta-label">Cuốn đang xem</div>
+                                <div class="author-meta-value text-truncate" style="max-width: 200px;" title="@Model.Book?.Title">
+                                    @(Model.Book?.Title ?? "-")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="author-biography-section">
+                        <h4 class="author-section-title">
+                            <i class="bi bi-feather me-2 text-warning"></i> Tiểu sử & Sự nghiệp
+                        </h4>
+                        <div class="author-bio-content">
+                            @if (!string.IsNullOrWhiteSpace(Model.Book?.Author?.Biography))
+                            {
+                                <p class="author-bio-text">@Model.Book.Author.Biography</p>
+                            }
+                            else
+                            {
+                                <div class="alert alert-light border d-flex align-items-center gap-2">
+                                    <i class="bi bi-info-circle text-muted"></i>
+                                    <span class="text-muted">Thông tin tiểu sử chi tiết của tác giả đang được ban biên tập thư viện cập nhật thêm.</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (Model.Book?.Author != null)
+                    {
+                        <div class="author-footer-action mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <span class="text-muted small">
+                                <i class="bi bi-search me-1"></i> Tìm thấy @(Model.Book.Author.Books?.Count ?? 1) đầu sách cùng tác giả trong hệ thống
+                            </span>
+                            <a asp-controller="Books" asp-action="Index" asp-route-authorId="@Model.Book.AuthorsId" class="btn btn-warning fw-bold px-4 py-2 text-dark shadow-sm">
+                                <i class="bi bi-collection me-2"></i> Khám phá tất cả sách của @Model.Book.Author.Name
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="tab-content" data-tab="reviews">
+                <div class="rating-distribution">
+                    <h3 style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Đánh giá của bạn</h3>
+
+                    @if (Model.HasBorrowedBook)
+                    {
+                        <div class="user-rating-section">
+                            <div class="star-rating" id="starRating" data-book-id="@Model.Book?.Id">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <span class="star" data-value="@i">
+                                        <i class="bi bi-star"></i>
+                                    </span>
+                                }
+                            </div>
+                            <div class="rating-feedback" id="ratingFeedback"></div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="rating-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>Chỉ độc giả đã mượn cuốn sách này mới có thể gửi đánh giá.</span>
+                        </div>
+                    }
+
+                    <hr class="border-secondary my-4" />
+
+                    <h3 style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Phân tích đánh giá từ độc giả</h3>
+                    @* Toàn bộ phần này nên render vòng lặp dựa trên dữ liệu thật từ Model.RatingAnalytics *@
+                    @* Tạm thời giữ cấu trúc để JS đổ dữ liệu sau *@
+                    <div id="rating-rows-container">
+                        </div>
+                </div>
+            </div>
+
+            <div class="tab-content" data-tab="comments">
+                <div class="comments-section">
+                    <div class="comments-header">
+                        <h3 style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Bình luận (<span id="comment-count-text">@(Model.Comments?.Count ?? 0)</span>)</h3>
+                        @if (!string.IsNullOrEmpty(userId))
+                        {
+                            <button type="button" class="write-comment-btn" data-bs-toggle="modal" data-bs-target="#commentModal">
+                                <i class="bi bi-pencil-square me-1"></i> Viết bình luận
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="write-comment-btn" onclick="promptLoginForComment()">
+                                <i class="bi bi-pencil-square me-1"></i> Viết bình luận
+                            </button>
+                        }
+                    </div>
+
+                    <div class="comments-list" id="comments-container">
+                        @if (Model.Comments != null && Model.Comments.Any())
+                        {
+                            foreach (var comment in Model.Comments)
+                            {
+                                <div class="comment-item">
+                                    <div class="comment-header">
+                                        @{
+                                            var avatarUrl = string.IsNullOrEmpty(comment.Reader?.Avatar) 
+                                                ? "https://ui-avatars.com/api/?name=" + System.Web.HttpUtility.UrlEncode(comment.Reader?.FullName ?? "User") + "&background=10b981&color=fff&size=100"
+                                                : comment.Reader.Avatar;
+                                            var readerCode = comment.Reader?.ReaderCode;
+                                            var currentUserId = Context.Session.GetString("UserId");
+                                            var isOwnComment = !string.IsNullOrEmpty(currentUserId) && 
+                                                              int.TryParse(currentUserId, out int parsedUserId) && 
+                                                              comment.ReaderId == parsedUserId;
+                                            var profileLink = !string.IsNullOrEmpty(readerCode) 
+                                                ? (isOwnComment ? "/Account/Profile" : $"/Account/Profile?id={readerCode}")
+                                                : "#";
+                                        }
+                                        @if (!string.IsNullOrEmpty(readerCode))
+                                        {
+                                            <a href="@profileLink" class="comment-avatar-link" style="text-decoration: none; cursor: pointer;">
+                                                <div class="comment-avatar" style="background-image: url('@avatarUrl'); background-size: cover; background-position: center; width: 40px; height: 40px; border-radius: 50%; border: 2px solid #00ffcc;"></div>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <div class="comment-avatar" style="background-image: url('@avatarUrl'); background-size: cover; background-position: center; width: 40px; height: 40px; border-radius: 50%; border: 2px solid #00ffcc; cursor: default;"></div>
+                                        }
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(readerCode))
+                                            {
+                                                <a href="@profileLink" class="comment-author-link" style="text-decoration: none; color: inherit; cursor: pointer;">
+                                                    <div class="comment-author">@comment.Reader?.FullName</div>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <div class="comment-author">@comment.Reader?.FullName</div>
+                                            }
+                                            <div class="comment-date">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                        </div>
+                                    </div>
+                                    <div class="comment-text">@comment.Content</div>
+                                    <div class="comment-actions">
+                                        <button class="comment-action like-btn" data-comment-id="@comment.Id">
+                                            <i class="bi bi-hand-thumbs-up"></i>
+                                            <span class="like-count">@comment.Likes</span>
+                                        </button>
+                                        <button class="comment-action reply-btn" data-comment-id="@comment.Id">
+                                            <i class="bi bi-reply"></i>
+                                            Trả lời
+                                        </button>
+                                        @if (comment.Replies != null && comment.Replies.Any())
+                                        {
+                                            <button class="comment-action view-replies-btn" data-comment-id="@comment.Id">
+                                                <i class="bi bi-chat-dots"></i>
+                                                <span>Xem @comment.Replies.Count câu trả lời</span>
+                                            </button>
+                                        }
+                                        @if (!isOwnComment)
+                                        {
+                                            <button class="comment-action report-btn" data-comment-id="@comment.Id">
+                                                <i class="bi bi-flag"></i>
+                                                Báo cáo
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="replies-container" id="replies-@comment.Id"></div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted no-comments">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" data-tab="related">
+                <div class="related-section">
+                    <h3 style="font-family: var(--font-sans); font-size: var(--text-xl); font-weight: 600; margin-bottom: 8px;">Sách liên quan</h3>
+
+                    @if (Model.RelatedBooks == null || !Model.RelatedBooks.Any())
+                    {
+                        <p class="text-muted p-3 text-center">Không có sách liên quan nào.</p>
+                    }
+                    else
+                    {
+                        <div class="related-books-carousel-wrapper" style="position: relative; width: 100%; display: block;">
+                            <div class="row flex-nowrap overflow-hidden" id="relatedBooksTrack" style="margin: 0; padding: 10px 0;">
+                                @foreach (var relatedBook in Model.RelatedBooks)
+                                {
+                                    <div class="col-6 col-sm-4 col-md-3 related-book-item" style="flex: 0 0 auto; padding: 0 10px;">
+                                        <div class="card h-100 text-body" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; color: var(--text-primary) !important;">
+                                            <a href="@Url.Action("Details", "Books", new { id = relatedBook.Id })" style="text-decoration: none; color: inherit;">
+                                                <img src="@(string.IsNullOrEmpty(relatedBook.CoverImage) ? "/images/no-book.png" : relatedBook.CoverImage)" class="card-img-top" style="height: 180px; object-fit: cover; width: 100%;" alt="@relatedBook.Title" onerror="this.onerror=null;this.src='/images/no-book.png';" />
+                                                <div class="card-body p-2">
+                                                    <h4 class="card-title text-truncate mb-1" style="font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">@relatedBook.Title</h4>
+                                                    <p class="card-text text-muted text-truncate mb-0" style="font-size: 12px;">@relatedBook.Author?.Name</p>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+<div class="floating-buttons">
+    <button class="floating-btn" data-action="scrollTop" title="Lên đầu trang">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+</div>
+
+<!-- Verification Modal -->
+<div class="modal fade" id="verificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    Cần cập nhật thông tin
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn cần cập nhật thông tin cá nhân (SĐT, địa chỉ) trước khi mượn sách.</p>
+                <p class="text-muted small">Việc này giúp chúng tôi liên hệ với bạn khi cần thiết.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <a href="/Account/Profile" class="btn btn-primary">
+                    <i class="bi bi-person-gear me-2"></i>Cập nhật ngay
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive E-Book Reader Modal (Giới hạn đọc thử Chương 1) -->
+<style>
+    #ebookReaderModal, 
+    #ebookReaderModal * {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        letter-spacing: normal !important;
+        -webkit-font-smoothing: antialiased !important;
+    }
+    #ebookReaderContainer .btn-group .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+    }
+</style>
+<div class="modal fade" id="ebookReaderModal" tabindex="-1" aria-labelledby="ebookReaderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" id="ebookReaderContainer">
+            <!-- Reader Control Bar -->
+            <div class="modal-header d-flex justify-content-between align-items-center py-2 px-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-book-half text-primary fs-4"></i>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="modal-title mb-0 fw-bold" id="ebookReaderBookTitle">@Model.Book?.Title</h6>
+                            <span class="badge bg-warning text-dark px-2 py-1 small" style="font-size: 11px;"><i class="bi bi-eye me-1"></i>Đọc thử Chương 1</span>
+                        </div>
+                        <small class="text-muted" id="ebookReaderAuthor">Tác giả: @(Model.Book?.Author?.Name ?? "Đang cập nhật")</small>
+                    </div>
+                </div>
+                <!-- Controls -->
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Font controls -->
+                    <div class="btn-group btn-group-sm me-1">
+                        <button type="button" class="btn btn-outline-secondary px-2" onclick="adjustEbookFontSize(-1)" title="Thu nhỏ chữ">A-</button>
+                        <button type="button" class="btn btn-outline-secondary px-2" onclick="adjustEbookFontSize(1)" title="Phóng to chữ">A+</button>
+                    </div>
+                    <!-- Theme toggle -->
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary active px-2 d-inline-flex align-items-center gap-1" id="btnThemeLight" onclick="setEbookTheme('light')" title="Giao diện Sáng">
+                            <i class="bi bi-brightness-high"></i> <span class="small d-none d-sm-inline">Sáng</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary px-2 d-inline-flex align-items-center gap-1" id="btnThemeSepia" onclick="setEbookTheme('sepia')" title="Giao diện Giấy ấm">
+                            <i class="bi bi-book"></i> <span class="small d-none d-sm-inline">Ấm</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary px-2 d-inline-flex align-items-center gap-1" id="btnThemeDark" onclick="setEbookTheme('dark')" title="Giao diện Tối">
+                            <i class="bi bi-moon"></i> <span class="small d-none d-sm-inline">Tối</span>
+                        </button>
+                    </div>
+                    <!-- Close -->
+                    <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Reader Body -->
+            <div class="modal-body p-4" id="ebookContentArea" style="min-height: 480px; font-size: 17px; line-height: 1.85; font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif) !important;">
+                <!-- Limitation Banner -->
+                <div class="alert alert-warning border-0 d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border-left: 5px solid #F59E0B !important;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-warning text-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+                            <i class="bi bi-book-half fs-5"></i>
+                        </div>
+                        <div>
+                            <strong class="d-block text-dark" style="font-size: 15px;">Bản đọc trực tuyến: Chỉ đọc thử Chương 1</strong>
+                            <span class="text-secondary small">Bạn đang đọc thử miễn phí Chương 1 của cuốn sách. Để đọc toàn bộ tác phẩm nguyên bản, vui lòng mượn sách tại thư viện.</span>
+                        </div>
+                    </div>
+                    <a asp-controller="BorrowSlips" asp-action="Create" asp-route-bookId="@Model.Book?.Id" class="btn btn-sm btn-primary fw-bold text-nowrap px-3 py-2 mt-2 mt-md-0 shadow-sm" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                        <i class="bi bi-journal-bookmark me-1"></i> Mượn sách ngay
+                    </a>
+                </div>
+
+                <div class="text-center mb-4 pb-3 border-bottom">
+                    <h3 id="ebookChapterTitle" class="fw-bold text-dark">Chương 1: Mở đầu</h3>
+                    <p class="text-muted small">Tác phẩm: @Model.Book?.Title | Tác giả: @(Model.Book?.Author?.Name ?? "Đang cập nhật") | Thể loại: @(Model.Book?.Category?.Name ?? "Chung")</p>
+                </div>
+                <div id="ebookTextContent">
+                    <!-- Dynamic Chapter 1 Page Content Injected by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Reader Footer with Pagination & Progress -->
+            <div class="modal-footer d-flex justify-content-between align-items-center py-2 px-3 border-top">
+                <div class="d-flex align-items-center gap-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="btnPrevPage" onclick="changeEbookPage(-1)">
+                        <i class="bi bi-chevron-left me-1"></i> Trang trước
+                    </button>
+                    <span class="small fw-bold">Trang <span id="ebookCurrentPage">1</span> / <span id="ebookTotalPages">5</span> <span class="text-muted ms-1">(Chương 1)</span></span>
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="btnNextPage" onclick="changeEbookPage(1)">
+                        Trang sau <i class="bi bi-chevron-right ms-1"></i>
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border small px-2 py-1" id="readingProgressBadge">Tiến độ Chương 1: 20%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comment / Reply Popup Modal -->
+<div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content comment-modal-content border-0 shadow-lg">
+            <div class="modal-header comment-modal-header border-bottom py-3 px-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="comment-modal-icon-wrap">
+                        <i class="bi bi-chat-heart-fill fs-5" id="commentModalIcon"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-primary-heading" id="commentModalLabel">Viết bình luận</h5>
+                        <p class="small text-muted mb-0" id="commentModalBookSubtitle">Về cuốn sách: <strong>@Model.Book?.Title</strong></p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <!-- Replying Context Banner (shown when replying to a comment) -->
+                <div id="replyingToBanner" class="alert alert-info border-0 rounded-3 py-2 px-3 mb-3 d-none align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                        <i class="bi bi-reply-fill text-primary fs-5"></i>
+                        <span class="small">Đang trả lời: <strong id="replyingToAuthor" class="text-primary"></strong></span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="cancelReplyContextBtn" title="Hủy trả lời riêng">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                </div>
+
+                <input type="hidden" id="modalParentCommentId" value="" />
+
+                <div class="mb-3">
+                    <label for="modalCommentText" class="form-label fw-semibold small d-flex justify-content-between">
+                        <span>Chia sẻ cảm nghĩ hoặc trao đổi của bạn:</span>
+                        <span class="text-muted" id="commentCharCount">0 / 1000</span>
+                    </label>
+                    <textarea class="form-control comment-modal-textarea" id="modalCommentText" rows="4" maxlength="1000" placeholder="Viết bình luận văn minh, lịch sự, tôn trọng bản quyền và độc giả khác..."></textarea>
+                </div>
+
+                <div class="form-text small text-muted d-flex align-items-center gap-1">
+                    <i class="bi bi-shield-check text-success"></i>
+                    <span>Bình luận sẽ được kiểm duyệt từ ngữ văn minh tự động.</span>
+                </div>
+            </div>
+
+            <div class="modal-footer comment-modal-footer border-top py-3 px-4 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary px-4 fw-medium" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold d-inline-flex align-items-center gap-2" id="modalSubmitCommentBtn">
+                    <span class="spinner-border spinner-border-sm d-none" id="commentSubmitSpinner" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-send-fill" id="commentSubmitIcon"></i>
+                    <span id="commentSubmitText">Đăng bình luận</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/book-details.js" asp-append-version="true"></script>
+    <script>
+        function promptLoginForComment() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Đăng nhập để bình luận',
+                    text: 'Vui lòng đăng nhập tài khoản độc giả để cùng chia sẻ suy nghĩ và cảm nhận về tác phẩm này.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đăng nhập ngay',
+                    cancelButtonText: 'Để sau',
+                    confirmButtonColor: '#f59e0b',
+                    cancelButtonColor: '#64748b',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
+                    }
+                });
+            } else {
+                window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
+            }
+        }
+
+        let currentEbookBookId = @(Model.Book?.Id ?? 0);
+        let currentEbookPage = 1;
+        const totalChapterPages = 5; // Giới hạn chỉ đọc thử 1 chap đầu (5 trang)
+        let ebookFontSize = 17;
+        const bookTitle = "@(Model.Book?.Title?.Replace("\"", "\\\"") ?? "")";
+        const bookDesc = `@Html.Raw(Model.Book?.Description?.Replace("`", "\\`") ?? "")`;
+
+        function getChapter1Content(page) {
+            const titleLower = bookTitle.toLowerCase();
+
+            // 1. SỐ ĐỎ - VŨ TRỌNG PHỤNG
+            if (titleLower.includes('số đỏ') || titleLower.includes('so do')) {
+                switch(page) {
+                    case 1:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Xuân Tóc Đỏ bị tống cổ khỏi sân quần và cơ duyên đổi đời</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.1. Xuất thân từ đáy bùn xã hội của Xuân Tóc Đỏ</h5>
+                            <p>Xuân Tóc Đỏ vốn là một đứa trẻ mồ côi đầu đường xó chợ, lăn lóc kiếm sống ở các vỉa hè Hà Nội bằng đủ thứ nghề hạ lưu: từ trèo me móc sấu, bán thuốc lậu đến lượm banh ở sân quần vợt (tennis) của các bậc ông lớn thượng lưu.</p>
+                            <p>Nhờ cái tài láu cá bẩm sinh, miệng lưỡi dẻo quẹo và sự quan sát tinh quái, Xuân thấu hiểu mọi thói hư tật xấu, những điệu bộ rởm đời của đám quý tộc tư sản mới phất thời bấy giờ.</p>
+                            <p class="fst-italic text-secondary border-start border-4 border-warning ps-3 my-3">"Ở cái đất Hà thành nhố nhăng này, kẻ có học thì nghèo kiết xác, còn phường vô lại nếu biết chớp thời cơ thì lại thành bậc phong lưu quyền quý."</p>
+                        `;
+                    case 2:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Xuân Tóc Đỏ bị tống cổ khỏi sân quần</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.2. Vụ tai tiếng tại sân banh và biến cố bị đuổi việc</h5>
+                            <p>Một buổi chiều nọ, tại sân quần vợt của câu lạc bộ quý tộc, Xuân Tóc Đỏ tò mò nhìn trộm cô đầm trẻ tuổi đang thay đồ trong buồng tắm. Hành vi bị bắt quả tang. Chủ sân quần nổi trận lôi đình, chửi bới thậm tệ và đuổi thẳng cổ Xuân ra khỏi sân banh.</p>
+                            <p>Không một xu dính túi, bụng đói cồn cào, Xuân lang thang khắp phố phường Hà Nội với nỗi uất hận dâng trào. Nhưng hắn không hề hay biết rằng, chính cái biến cố nhục nhã này lại mở toang cánh cửa dẫn hắn bước vào chốn phồn hoa đô hội bậc nhất.</p>
+                        `;
+                    case 3:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Xuân Tóc Đỏ gặp bà Phó Đoan</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.3. Cuộc hội ngộ định mệnh với bà Phó Đoan dâm đãng</h5>
+                            <p>Giữa lúc cùng quẫn, Xuân gặp bà Phó Đoan - một góa phụ tư sản giàu có nức tiếng Hà thành, người luôn tự xưng là "tiết hạnh khả phong" nhưng bên trong lại cháy bỏng dục vọng và thèm khát những kẻ trai trẻ lực lưỡng.</p>
+                            <p>Nhìn thấy vẻ ngổ ngáo, mái tóc đỏ quạch cùng sự bộc trực xấc xược của Xuân, bà Phó Đoan lập tức say mê. Bà đưa Xuân về tiệm may Âu Hóa của vợ chồng Văn Minh để làm nhân viên quảng cáo cải cách trang phục.</p>
+                        `;
+                    case 4:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Bước chân đầu tiên vào xã hội thượng lưu</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.4. Khúc dạo đầu của phong trào Âu hóa lố bịch</h5>
+                            <p>Tại tiệm may Âu Hóa, Xuân Tóc Đỏ được khoác lên mình bộ âu phục lộng lẫy và bắt đầu học những câu chào hỏi văn minh kiểu Pháp. Bằng bản năng xảo quyệt, hắn nhanh chóng hòa mình vào thế giới của những ông TYPN, cậu Phước "Em chả", cụ cố Hồng hay ho và cô Tuyết ngây thơ.</p>
+                            <p>Chương 1 khép lại bằng nụ cười đắc chí của Xuân khi nhận ra rằng, chỉ cần mồm mép và sự liều lĩnh, hắn hoàn toàn có thể cưỡi trên đầu trên cổ toàn bộ cái xã hội thượng lưu rởm này.</p>
+                        `;
+                    case 5:
+                        return `
+                            <div class="text-center py-4">
+                                <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                                <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 tiểu thuyết Số Đỏ</h3>
+                                <p class="text-secondary mb-4 mx-auto" style="max-width: 620px; line-height: 1.8;">
+                                    Tác phẩm văn học hiện thực trào phúng kiệt xuất của nhà văn Vũ Trọng Phụng. Bạn có thể mượn trọn bộ cuốn sách nguyên bản miễn phí ngay tại thư viện để theo dõi tiếp các chương trào phúng đỉnh cao như "Hạnh phúc của một tang gia".
+                                </p>
+                                <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                    <i class="bi bi-journal-bookmark me-2"></i> Mượn sách đọc trọn bộ tại thư viện
+                                </a>
+                            </div>
+                        `;
+                }
+            }
+
+            // 2. TẮT ĐÈN - NGÔ TẤT TỐ
+            if (titleLower.includes('tắt đèn') || titleLower.includes('tat den')) {
+                switch(page) {
+                    case 1:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Tiếng trống thúc sưu rùng rợn tại làng Đông Xá</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.1. Không khí ngột ngạt ngày mùa sưu thuế</h5>
+                            <p>Tiếng trống thúc sưu từ đình làng Đông Xá dội ra từng hồi giục giã, đổ dồn như sấm sét giữa trưa hè oi ả. Cả làng chìm trong bầu không khí ngột ngạt, hoảng loạn. Bọn cai lệ, lính dõng tay lăm lăm roi song, tay thước xông xáo vào từng ngõ xóm để lùng sục những kẻ còn thiếu sưu.</p>
+                            <p>Những tiếng la hét, tiếng gào khóc ai oán của đàn bà con trẻ quyện cùng tiếng chó sủa ran tạo nên cảnh tượng hãi hùng của một địa ngục trần gian.</p>
+                            <p class="fst-italic text-secondary border-start border-4 border-warning ps-3 my-3">"Đến hẹn nộp sưu, mạng sống của con người ở chốn thôn quê bỗng trở nên rẻ rúng hơn cỏ rác trước sự tàn bạo của chế độ thực dân."</p>
+                        `;
+                    case 2:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Tiếng trống thúc sưu rùng rợn</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.2. Gia cảnh bần hàn cùng cực của gia đình Chị Dậu</h5>
+                            <p>Trong túp lều tranh xiêu vẹo rách nát đầu làng, anh Dậu đang nằm co quắp trên chiếc chõng tre ọp ẹp vì cơn sốt rét rừng hành hạ. Mặt anh xanh như tàu lá chuối, chân tay run lẩy bẩy không nhấc nổi mình dậy.</p>
+                            <p>Chị Dậu ngồi bên cạnh chồng, mắt trũng sâu vì những đêm thức trắng lo nghĩ. Gia đình chị thuộc hạng cùng đinh nhất làng, trong nhà chẳng còn lấy một hạt thóc, chiếc nồi đồng duy nhất cũng đã đem cầm cố lấy vài hào nộp tiền bách phân.</p>
+                        `;
+                    case 3:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Nỗi đau đớn cùng đường của người phụ nữ nông dân</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.3. Tai ương ập đến: Món nợ sưu của người em trai đã chết</h5>
+                            <p>Không chỉ phải lo suất sưu hai đồng bảy hào của anh Dậu, bọn lý dịch làng Đông Xá còn tàn nhẫn bắt gia đình chị phải gánh luôn suất sưu của chú Hợi - người em trai đã chết từ năm ngoái. Một người đã nằm dưới ba tấc đất vẫn bị bóc lột đến tận xương tủy!</p>
+                            <p>Bọn cai lệ xộc vào nhà, chửi bới tục tĩu và trói nghiến anh Dậu lôi ra đình làng tra tấn. Tiếng thét đau đớn của chồng như xé rách tâm can chị Dậu.</p>
+                        `;
+                    case 4:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Quyết định đau đớn xé lòng</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.4. Bát cháo loãng và giọt nước mắt chia ly</h5>
+                            <p>Đứng trước lằn ranh sinh tử của chồng, chị Dậu không còn con đường nào khác ngoài việc cắn răng nghĩ đến chuyện bán đi đàn chó con mới đẻ và đứa con gái đầu lòng - cái Tý mới bảy tuổi đầu, cho nhà cụ Nghị Quế để lấy tiền chuộc mạng chồng.</p>
+                            <p>Khép lại Chương 1 là hình ảnh chị Dậu ôm lấy bầy con thơ dại khóc nấc trong bóng tối mịt mùng, chuẩn bị bước vào chuỗi ngày bi kịch đau thương khôn xiết.</p>
+                        `;
+                    case 5:
+                        return `
+                            <div class="text-center py-4">
+                                <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                                <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 tác phẩm Tắt Đèn</h3>
+                                <p class="text-secondary mb-4 mx-auto" style="max-width: 620px; line-height: 1.8;">
+                                    Tác phẩm hiện thực phê phán mẫu mực của nhà văn Ngô Tất Tố. Mượn sách miễn phí tại thư viện để đọc trọn vẹn tinh thần quật khởi phản kháng áp bức của Chị Dậu!
+                                </p>
+                                <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                    <i class="bi bi-journal-bookmark me-2"></i> Mượn sách đọc trọn bộ tại thư viện
+                                </a>
+                            </div>
+                        `;
+                }
+            }
+
+            // 3. CHÍ PHÈO - NAM CAO
+            if (titleLower.includes('chí phèo') || titleLower.includes('chi pheo')) {
+                switch(page) {
+                    case 1:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Tiếng chửi của Chí Phèo và bi kịch kẻ bị tha hóa</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.1. Hắn vừa đi vừa chửi...</h5>
+                            <p>Hắn vừa đi vừa chửi. Bao giờ cũng thế, cứ rượu xong là hắn chửi. Bắt đầu hắn chửi trời. Có hề gì? Trời có của riêng nhà nào? Rồi hắn chửi đời. Thế cũng chẳng sao: đời là tất cả nhưng chẳng là ai.</p>
+                            <p>Tức mình hắn chửi ngay tất cả làng Vũ Đại. Nhưng cả làng Vũ Đại ai cũng nhủ: "Chắc nó trừ mình ra!". Không ai lên tiếng cả. Mẹ kiếp! Thế thì có phí rượu không? Thế thì có khổ hắn không? Không biết đứa chết mẹ nào đẻ ra thân hắn cho hắn khổ đến nông nỗi này?</p>
+                            <p class="fst-italic text-secondary border-start border-4 border-warning ps-3 my-3">"Tiếng chửi ấy là tiếng kêu tuyệt vọng của một linh hồn bị gạt ra ngoài rìa xã hội loài người, thèm khát được giao tiếp mà chỉ nhận lại sự im lặng rợn người."</p>
+                        `;
+                    case 2:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Tiếng chửi của Chí Phèo</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.2. Thân phận đứa trẻ bị bỏ rơi bên lò gạch cũ</h5>
+                            <p>Hắn chẳng biết cha mẹ hắn là ai. Người ta nhặt được hắn trần truồng và xám ngắt trong một cái váy đụp vứt xó bên cái lò gạch cũ bỏ không đầu làng. Một anh thả ống lươn rước lấy hắn đem về cho một bác phó cối không con nuôi nấng.</p>
+                            <p>Lớn lên, Chí đi làm canh điền cho nhà lý trưởng Bá Kiến. Hắn là một thanh niên khỏe mạnh, chất phác, lương thiện và giàu lòng tự trọng. Hắn từng mơ ước về một gia đình nhỏ giản dị: chồng cuốc mướn cày thuê, vợ dệt vải, nuôi một con lợn làm vốn liếng.</p>
+                        `;
+                    case 3:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Cơn ghen tuông của Bá Kiến và nhà tù thực dân</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.3. Cạm bẫy tù đày hủy hoại một kiếp người</h5>
+                            <p>Nhưng thói đời trớ trêu, bà ba nhà Bá Kiến - một ả đàn bà lẳng lơ - thường hay bắt Chí vào bóp chân. Cơn ghen tuông mù quáng của lão cáo già Bá Kiến đã đẩy anh canh điền hiền lành vào chốn lao tù thực dân suốt bảy, tám năm trời ròng rã.</p>
+                            <p>Ngày Chí Phèo trở về làng Vũ Đại, hắn không còn là anh thanh niên thuần hậu năm xưa. Nhà tù thực dân tàn bạo đã đập nát nhân hình lẫn nhân tính của hắn.</p>
+                        `;
+                    case 4:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Hình dạng con quỷ dữ của làng Vũ Đại</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.4. Cái đầu cạo trọc lốc và những vết sẹo rạch mặt</h5>
+                            <p>Hắn về làng hôm trước thì hôm sau đã thấy ngồi ở quán rượu nhắm với thịt chó. Trông hắn gớm chết: cái đầu trọc lốc, cái răng cạo trắng hớn, cái mặt thì đen mà rất câng câng, hai con mắt gườm gườm!</p>
+                            <p>Hắn mặc cái quần nái đen với cái áo tây vàng, ngực phanh đầy những hình xăm rồng phượng ghê rợn. Hắn trở thành tay sai đắc lực chuyên đâm thuê chém mướn, rạch mặt ăn vạ cho cụ bá, gieo rắc kinh hoàng khắp nẻo làng quê.</p>
+                        `;
+                    case 5:
+                        return `
+                            <div class="text-center py-4">
+                                <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                                <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 kiệt tác Chí Phèo</h3>
+                                <p class="text-secondary mb-4 mx-auto" style="max-width: 620px; line-height: 1.8;">
+                                    Đỉnh cao của văn học hiện thực Việt Nam thế kỷ 20 của Nam Cao. Hãy mượn sách tại thư viện để đọc trọn vẹn cuộc hạnh ngộ lay động lòng người giữa Chí Phèo và Thị Nở cùng bát cháo hành ấm áp tình người.
+                                </p>
+                                <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                    <i class="bi bi-journal-bookmark me-2"></i> Mượn sách đọc trọn bộ tại thư viện
+                                </a>
+                            </div>
+                        `;
+                }
+            }
+
+            // 4. TRUYỆN KIỀU - NGUYỄN DU
+            if (titleLower.includes('truyện kiều') || titleLower.includes('truyen kieu')) {
+                switch(page) {
+                    case 1:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Khúc dạo đầu nhân sinh & Bức họa Chị em Thúy Kiều</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.1. Lời tựa triết lý nhân quả ngàn đời</h5>
+                            <p class="fst-italic" style="line-height: 2;">
+                                Trăm năm trong cõi người ta,<br>
+                                Chữ tài chữ mệnh khéo là ghét nhau.<br>
+                                Trải qua một cuộc bể dâu,<br>
+                                Những điều trông thấy mà đau đớn lòng.<br>
+                                Lạ gì bỉ sắc tư phong,<br>
+                                Trời xanh quen thói má hồng đánh ghen.
+                            </p>
+                            <p>Đại thi hào Nguyễn Du mở đầu khúc tráng ca bằng cái nhìn chiêm nghiệm sâu sắc về mối quan hệ giữa "Tài" và "Mệnh", về thân phận mong manh của người phụ nữ tài sắc trong xã hội phong kiến phong ba bão táp.</p>
+                        `;
+                    case 2:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Gia thế gia đình họ Vương</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.2. Mái ấm thanh bình của hai ả tố nga</h5>
+                            <p class="fst-italic" style="line-height: 2;">
+                                Đầu lòng hai ả tố nga,<br>
+                                Thúy Kiều là chị, em là Thúy Vân.<br>
+                                Mai cốt cách, tuyết tinh thần,<br>
+                                Mỗi người một vẻ, mười phân vẹn mười.<br>
+                                Vân xem trang trọng khác vời,<br>
+                                Khuôn trăng đầy đặn, nét ngài nở nang.<br>
+                                Hoa cười ngọc thốt đoan trang,<br>
+                                Mây thua nước tóc, tuyết nhường màu da.
+                            </p>
+                            <p>Nguyễn Du khắc họa chân dung Thúy Vân đoan trang, phúc hậu, báo hiệu một cuộc đời êm đềm, bằng phẳng và viên mãn.</p>
+                        `;
+                    case 3:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Tuyệt sắc giai nhân Thúy Kiều</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.3. Nhan sắc nghiêng nước nghiêng thành và cung đàn bạc mệnh</h5>
+                            <p class="fst-italic" style="line-height: 2;">
+                                Kiều càng sắc sảo mặn mà,<br>
+                                So bề tài sắc lại là phần hơn.<br>
+                                Làn thu thủy, nét xuân sơn,<br>
+                                Hoa ghen thua thắm, liễu hờn kém xanh.<br>
+                                Một hai nghiêng nước nghiêng thành,<br>
+                                Sắc đành đòi một, tài đành họa hai.<br>
+                                Thông minh vốn sẵn tính trời,<br>
+                                Pha nghề thi họa đủ mùi ca ngâm.
+                            </p>
+                            <p>Vẻ đẹp của Kiều khiến "hoa ghen", "liễu hờn", dự báo trước một số phận đầy sóng gió, ba đào và những nỗi truân chuyên đoạt mệnh.</p>
+                        `;
+                    case 4:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Tiết thanh minh trong trẻo</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.4. Cảnh ngày xuân và lễ hội đạp thanh</h5>
+                            <p class="fst-italic" style="line-height: 2;">
+                                Ngày xuân con én đưa thoi,<br>
+                                Thiều quang chín chục đã ngoài sáu mươi.<br>
+                                Cỏ non xanh tận chân trời,<br>
+                                Cành lê trắng điểm một vài bông hoa.<br>
+                                Thanh minh trong tiết tháng ba,<br>
+                                Lễ là tảo mộ, hội là đạp thanh.<br>
+                                Gần xa nô nức yến anh,<br>
+                                Chị em sắm sửa bộ hành chơi xuân.
+                            </p>
+                            <p>Bức tranh thiên nhiên mùa xuân thanh khiết dẫn dắt hai chị em đến với nấm mồ vô chủ của nàng ca nhi Đạm Tiên - khúc dạo đầu cho định mệnh 15 năm lưu lạc.</p>
+                        `;
+                    case 5:
+                        return `
+                            <div class="text-center py-4">
+                                <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                                <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 kiệt tác Truyện Kiều</h3>
+                                <p class="text-secondary mb-4 mx-auto" style="max-width: 620px; line-height: 1.8;">
+                                    Đỉnh cao chói lọi nhất của thi ca và ngôn ngữ dân tộc Việt Nam. Toàn bộ tác phẩm được lưu trữ trọn vẹn và phục vụ mượn đọc miễn phí tại thư viện.
+                                </p>
+                                <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                    <i class="bi bi-journal-bookmark me-2"></i> Mượn sách đọc trọn bộ tại thư viện
+                                </a>
+                            </div>
+                        `;
+                }
+            }
+
+            // 5. HOÀNG TỬ BÉ - SAINT-EXUPÉRY
+            if (titleLower.includes('hoàng tử bé') || titleLower.includes('hoang tu be') || titleLower.includes('little prince')) {
+                switch(page) {
+                    case 1:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Bức tranh số 1 và cái nhìn của người lớn</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.1. Con trăn nuốt trọn con thú dữ</h5>
+                            <p>Khi tôi lên sáu tuổi, một lần nọ, tôi nhìn thấy một bức tranh tuyệt đẹp trong cuốn sách viết về rừng già nguyên sinh tên là "Những câu chuyện có thật". Đó là hình vẽ một con trăn khổng lồ đang nuốt chửng một con thú dữ.</p>
+                            <p>Tôi đã suy nghĩ rất nhiều về những cuộc phiêu lưu giữa rừng rậm nhiệt đới, và sau đó tôi dùng cây bút chì màu vẽ nên bức tranh đầu tiên trong đời mình - bức vẽ số 1.</p>
+                            <p class="fst-italic text-secondary border-start border-4 border-warning ps-3 my-3">"Tôi mang kiệt tác của mình cho những người lớn xem và hỏi họ có thấy sợ không. Nhưng họ lại đáp: 'Sợ cái gì? Một cái mũ thì có gì đáng sợ?'"</p>
+                        `;
+                    case 2:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Bức tranh số 2 và thế giới nội tâm</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.2. Mổ bụng con trăn để người lớn hiểu</h5>
+                            <p>Bức tranh của tôi đâu có vẽ một cái mũ! Đó là hình ảnh một con trăn đang nằm tiêu hóa một con voi to đùng trong bụng nó. Nhưng vì người lớn lúc nào cũng không thể tự hiểu được mọi chuyện nếu không được giải thích cặn kẽ, nên tôi đành phải vẽ tiếp bức tranh số 2: tôi vẽ rõ ruột gan bên trong con trăn.</p>
+                            <p>Nhưng người lớn chỉ khuyên tôi nên gạt các bức vẽ trăn mở bụng hay trăn kín bụng sang một bên, để tập trung vào môn địa lý, lịch sử, số học và ngữ pháp.</p>
+                        `;
+                    case 3:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Sự cô đơn giữa thế giới người lớn</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.3. Lớn lên và từ bỏ nghề họa sĩ</h5>
+                            <p>Thế là năm lên sáu tuổi, tôi đã phải từ bỏ một sự nghiệp hội họa đầy hứa hẹn. Tôi thất vọng vì sự thất bại của bức vẽ số 1 và bức vẽ số 2. Người lớn chẳng bao giờ tự mình hiểu được điều gì cả, và trẻ con thì thật mệt mỏi khi cứ phải giải thích đi giải thích lại cho họ suốt ngày.</p>
+                            <p>Tôi lớn lên, học lái máy bay và bay khắp chân trời góc bể. Tôi đã gặp rất nhiều người nghiêm túc, nhưng khi thử cho họ xem bức tranh số 1, họ vẫn luôn nói: "Đó là một cái mũ".</p>
+                        `;
+                    case 4:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Bước ngoặt giữa sa mạc Sahara</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.4. Tai nạn phi cơ và tiếng nói lạ lùng lúc bình minh</h5>
+                            <p>Tôi đã sống cô độc như thế, không có ai để thực sự trò chuyện giãi bày, cho đến một ngày máy bay của tôi gặp sự cố và rơi xuống giữa sa mạc Sahara mênh mông cát trắng. Một mình tôi giữa sa mạc, chỉ còn đủ nước uống cầm cự trong tám ngày.</p>
+                            <p>Và vào buổi sáng đầu tiên, khi ánh bình minh ló rạng, tôi bỗng giật mình tỉnh giấc bởi một giọng nói nhỏ bé lạ kỳ: <em>"Làm ơn... hãy vẽ cho tôi một con cừu!"</em></p>
+                        `;
+                    case 5:
+                        return `
+                            <div class="text-center py-4">
+                                <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                                <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 tác phẩm Hoàng Tử Bé</h3>
+                                <p class="text-secondary mb-4 mx-auto" style="max-width: 620px; line-height: 1.8;">
+                                    Tác phẩm văn học thiếu nhi và triết lý kinh điển bất hủ của Antoine de Saint-Exupéry. Mượn sách tại thư viện để cùng Hoàng Tử Bé ghé thăm các tiểu tinh cầu kỳ diệu và bông hoa hồng kiêu kỳ.
+                                </p>
+                                <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                    <i class="bi bi-journal-bookmark me-2"></i> Mượn sách đọc trọn bộ tại thư viện
+                                </a>
+                            </div>
+                        `;
+                }
+            }
+
+            // 6. IKIGAI
+            if (titleLower.includes('ikigai')) {
+                switch(page) {
+                    case 1:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Ikigai - Triết lý lẽ sống và bí quyết trường thọ</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.1. Nghệ thuật sống hạnh phúc của xứ sở hoa anh đào</h5>
+                            <p>Theo triết lý văn hóa truyền thống Nhật Bản, mỗi con người khi sinh ra đều sở hữu một <em>Ikigai</em> (生きがい) - đó chính là "lý do để thức dậy mỗi sớm mai", là nguồn cảm hứng nội tại nâng đỡ tâm hồn ta vượt qua mọi biến động của cuộc sống thường nhật.</p>
+                            <p>Một số người đã sớm tìm ra Ikigai của riêng mình và sống trọn vẹn từng khoảnh khắc với nó. Nhưng cũng có nhiều người đang mải miết tìm kiếm giữa nhịp sống hiện đại hối hả. Nhưng một khi bạn đã chạm tới Ikigai, cuộc sống sẽ trở nên thanh thản, tự tại và tràn đầy ý nghĩa đích thực.</p>
+                            <p class="fst-italic text-secondary border-start border-4 border-warning ps-3 my-3">"Chỉ cần bạn tìm ra lý do khiến mình mỉm cười khi mở mắt chào ngày mới, hành trình sống đã trở thành một tuyệt tác vô giá."</p>
+                        `;
+                    case 2:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Ikigai - Triết lý lẽ sống và bí quyết trường thọ</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.2. Bí mật từ ngôi làng bách niên Ogimi (Okinawa)</h5>
+                            <p>Để giải mã câu hỏi vì sao người dân Nhật Bản lại có tuổi thọ trung bình cao bậc nhất thế giới, hai tác giả Héctor García và Francesc Miralles đã dành nhiều tháng thực địa tại Ogimi - ngôi làng nhỏ bình dị nằm ở vùng núi phía bắc đảo Okinawa. Nơi đây được Tổ chức Y tế Thế giới công nhận là "Vùng Xanh" (Blue Zone) với tỷ lệ người sống trên trăm tuổi cao nhất hành tinh.</p>
+                            <p>Tại Ogimi, không một ai biết đến khái niệm "nghỉ hưu" theo nghĩa buông bỏ mọi hoạt động. Ngược lại, mỗi người cao tuổi đều cần mẫn chăm sóc mảnh vườn rau hữu cơ, tham gia các buổi nhảy múa truyền thống và giữ nụ cười hồn hậu khi tiếp đón từng người khách lạ.</p>
+                        `;
+                    case 3:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Ikigai - Triết lý lẽ sống và bí quyết trường thọ</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.3. Quy tắc ăn no 80% (Hara Hachi Bu) & Tình bằng hữu Moai</h5>
+                            <p>Một trong những nguyên tắc cốt tử giúp người Okinawa gìn giữ sức khỏe dẻo dai chính là lời răn cổ xưa: <strong>Hara Hachi Bu</strong> - nghĩa là chỉ ăn no đến 80% sức chứa của dạ dày. Việc không nạp thừa calo giúp hệ tiêu hóa nhẹ nhàng, giảm thiểu gốc tự do và làm chậm quá trình lão hóa tế bào.</p>
+                            <p>Song hành cùng chế độ ăn thanh đạm là sức mạnh của <strong>Moai</strong> - một mạng lưới cộng đồng gồm những người bạn thân thiết gắn bó keo sơn suốt đời. Trong vòng tròn Moai, các thành viên chia sẻ kinh nghiệm sống, động viên tinh thần và luôn dang rộng vòng tay tương trợ tài chính khi ai đó gặp khó khăn.</p>
+                        `;
+                    case 4:
+                        return `
+                            <h4 class="fw-bold mb-3 text-primary">Chương 1: Ikigai - Triết lý lẽ sống và bí quyết trường thọ</h4>
+                            <h5 class="fw-semibold text-dark mb-3">1.4. Mô hình giao thoa 4 vòng tròn Ikigai kinh điển</h5>
+                            <p>Một Ikigai trọn vẹn được kiến tạo từ điểm giao thoa giữa 4 câu hỏi nền tảng của đời người:</p>
+                            <div class="card p-3 my-3 bg-light border">
+                                <ul class="mb-0 ps-3" style="line-height: 2;">
+                                    <li><strong>1. Điều bạn yêu thích (What you love):</strong> Niềm đam mê thuần khiết, công việc khiến bạn quên cả thời gian.</li>
+                                    <li><strong>2. Điều bạn làm giỏi nhất (What you are good at):</strong> Năng khiếu và chuyên môn xuất sắc của bạn.</li>
+                                    <li><strong>3. Điều thế giới đang cần (What the world needs):</strong> Giá trị hữu ích mà bạn cống hiến cho xã hội.</li>
+                                    <li><strong>4. Điều giúp bạn có thu nhập (What you get paid for):</strong> Nguồn sinh kế bền vững nuôi dưỡng cuộc sống.</li>
+                                </ul>
+                            </div>
+                            <p>Khi bạn dung hòa được cả bốn yếu tố trên, tâm hồn bạn sẽ ngập tràn bình an và mỗi ngày trôi qua đều là một ngày đáng sống.</p>
+                        `;
+                    case 5:
+                        return `
+                            <div class="text-center py-4">
+                                <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                                <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 (Bản đọc thử miễn phí)</h3>
+                                <p class="text-secondary mb-4 mx-auto" style="max-width: 620px; line-height: 1.8;">
+                                    Chương 1 đã giúp bạn nắm bắt những nền tảng triết lý quý báu về Ikigai và bí quyết sống lâu của cư dân Okinawa.
+                                    Để tiếp tục khám phá trọn vẹn cuốn sách <strong>${bookTitle}</strong> cùng những phương pháp thực hành sâu hơn:
+                                </p>
+                                <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                    <i class="bi bi-journal-bookmark me-2"></i> Mượn sách để đọc trọn vẹn tại thư viện
+                                </a>
+                            </div>
+                        `;
+                }
+            }
+
+            // 7. GENERIC FALLBACK FOR ANY OTHER BOOK
+            switch(page) {
+                case 1:
+                    return `
+                        <h4 class="fw-bold mb-3 text-primary">Chương 1: Mở đầu tác phẩm ${bookTitle}</h4>
+                        <h5 class="fw-semibold text-dark mb-3">1.1. Luận điểm nền tảng và bối cảnh tác phẩm</h5>
+                        <p>${bookDesc}</p>
+                        <p>Tác phẩm <strong>${bookTitle}</strong> mang đến những giá trị tri thức sâu sắc và trải nghiệm đọc phong phú. Ngay từ những trang đầu của Chương 1, tác giả đã định hình những câu hỏi cốt lõi dẫn dắt toàn bộ tác phẩm.</p>
+                        <p class="fst-italic text-secondary border-start border-4 border-warning ps-3 my-3">"Đọc sách là trò chuyện với những bộ óc vĩ đại nhất của các thế kỷ đã qua."</p>
+                    `;
+                case 2:
+                    return `
+                        <h4 class="fw-bold mb-3 text-primary">Chương 1: Chiều sâu tư tưởng và phát kiến then chốt</h4>
+                        <h5 class="fw-semibold text-dark mb-3">1.2. Phân tích các luận điểm trung tâm</h5>
+                        <p>Trong phần tiếp nối của Chương 1, các luận cứ được bóc tách mạch lạc, kết hợp giữa nền tảng lý thuyết vững chắc và những câu chuyện thực tiễn sinh động.</p>
+                        <p>Tác giả khéo léo gợi mở những góc nhìn đột phá, phá vỡ những định kiến lối mòn và khơi gợi tư duy độc lập sáng tạo ở người đọc.</p>
+                    `;
+                case 3:
+                    return `
+                        <h4 class="fw-bold mb-3 text-primary">Chương 1: Ứng dụng thực tiễn và bài học giá trị</h4>
+                        <h5 class="fw-semibold text-dark mb-3">1.3. Phương pháp tiếp cận khoa học</h5>
+                        <p>Từng trang sách cung cấp các ví dụ thực tiễn giàu sức thuyết phục và bài học ứng dụng hữu ích trong đời sống, học tập và công việc hàng ngày.</p>
+                        <p>Văn phong lôi cuốn, tư duy sắc sảo khiến người đọc không thể rời mắt khỏi từng dòng chữ giàu hàm lượng thông tin.</p>
+                    `;
+                case 4:
+                    return `
+                        <h4 class="fw-bold mb-3 text-primary">Chương 1: Đúc kết mở đường cho các chương tiếp theo</h4>
+                        <h5 class="fw-semibold text-dark mb-3">1.4. Cánh cửa mở ra các chương tiếp theo</h5>
+                        <p>Khép lại các nội dung mở đầu của Chương 1, tác giả mở ra những hướng tiếp cận mới và chuẩn bị tâm thế vững vàng cho độc giả bước vào các chương sâu sắc phía sau.</p>
+                    `;
+                case 5:
+                    return `
+                        <div class="text-center py-4">
+                            <div class="mb-3"><i class="bi bi-bookmark-check-fill text-success" style="font-size: 52px;"></i></div>
+                            <h3 class="fw-bold mb-3 text-dark">Bạn đã hoàn thành Chương 1 (Bản đọc thử miễn phí)</h3>
+                            <p class="text-secondary mb-4 mx-auto" style="max-width: 600px; line-height: 1.8;">
+                                Bạn vừa hoàn thành Chương 1 bản đọc thử trực tuyến của <strong>${bookTitle}</strong>.
+                                Để đọc trọn vẹn toàn bộ các chương tiếp theo cùng đầy đủ tài liệu nguyên bản, hãy đăng ký Mượn sách ngay tại thư viện!
+                            </p>
+                            <a href="/BorrowSlips/Create?bookId=${currentEbookBookId}" class="btn btn-lg btn-primary fw-bold px-4 py-2 shadow" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; color: #1A1202 !important;">
+                                <i class="bi bi-journal-bookmark me-2"></i> Mượn sách đọc trọn bộ tại thư viện
+                            </a>
+                        </div>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        function startEbookReader(bookId, title) {
+            currentEbookBookId = bookId;
+            currentEbookPage = 1;
+            updateEbookUI();
+        }
+
+        function changeEbookPage(delta) {
+            const newPage = currentEbookPage + delta;
+            if (newPage < 1 || newPage > totalChapterPages) return;
+            currentEbookPage = newPage;
+            updateEbookUI();
+        }
+
+        function updateEbookUI() {
+            document.getElementById('ebookCurrentPage').innerText = currentEbookPage;
+            document.getElementById('ebookTotalPages').innerText = totalChapterPages;
+            const pct = Math.round((currentEbookPage / totalChapterPages) * 100);
+            document.getElementById('readingProgressBadge').innerText = 'Tiến độ Chương 1: ' + pct + '%';
+            document.getElementById('ebookChapterTitle').innerText = 'Chương 1: Bản đọc thử - Trang ' + currentEbookPage + ' / ' + totalChapterPages;
+            document.getElementById('btnPrevPage').disabled = currentEbookPage <= 1;
+            document.getElementById('btnNextPage').disabled = currentEbookPage >= totalChapterPages;
+
+            const textContent = document.getElementById('ebookTextContent');
+            if (textContent) {
+                const rawHtml = getChapter1Content(currentEbookPage);
+                textContent.innerHTML = (typeof rawHtml.normalize === 'function') ? rawHtml.normalize('NFC') : rawHtml;
+            }
+        }
+
+        function adjustEbookFontSize(delta) {
+            ebookFontSize = Math.max(14, Math.min(26, ebookFontSize + delta));
+            document.getElementById('ebookContentArea').style.fontSize = ebookFontSize + 'px';
+        }
+
+        function setEbookTheme(theme) {
+            const container = document.getElementById('ebookReaderContainer');
+            const content = document.getElementById('ebookContentArea');
+            $('#btnThemeLight, #btnThemeSepia, #btnThemeDark').removeClass('active');
+
+            if (theme === 'dark') {
+                container.style.backgroundColor = '#181A1B';
+                container.style.color = '#E8E6E3';
+                content.style.backgroundColor = '#181A1B';
+                content.style.color = '#E8E6E3';
+                $('#btnThemeDark').addClass('active');
+            } else if (theme === 'sepia') {
+                container.style.backgroundColor = '#FBF0D9';
+                container.style.color = '#5F4B32';
+                content.style.backgroundColor = '#FBF0D9';
+                content.style.color = '#5F4B32';
+                $('#btnThemeSepia').addClass('active');
+            } else {
+                container.style.backgroundColor = '#FFFFFF';
+                container.style.color = '#212529';
+                content.style.backgroundColor = '#FFFFFF';
+                content.style.color = '#212529';
+                $('#btnThemeLight').addClass('active');
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const isVerified = document.getElementById('isUserVerified') ? document.getElementById('isUserVerified').value === 'true' : true;
+            const borrowLink = document.querySelector('a[href*="BorrowSlips/Create"]');
+            const modalEl = document.getElementById('verificationModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const verificationModal = new bootstrap.Modal(modalEl);
+                if (borrowLink && !isVerified) {
+                    borrowLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (typeof window.hideLoading === 'function') window.hideLoading();
+                        const overlay = document.getElementById('loadingOverlay');
+                        if (overlay) {
+                            overlay.classList.remove('active');
+                            overlay.style.display = 'none';
+                        }
+                        verificationModal.show();
+                    });
+                }
+            }
+        });
+    </script>
+}
