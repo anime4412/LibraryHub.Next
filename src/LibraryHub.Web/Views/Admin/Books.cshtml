@@ -1,0 +1,222 @@
+@model AdminBooksViewModel
+@{
+    ViewData["Title"] = "Quản lý sách";
+    ViewData["AdminSection"] = "books";
+}
+<div class="admin-shell" data-can-emergency="@Model.CanEmergencyRecall.ToString().ToLowerInvariant()">
+    <partial name="_AdminNav" />
+    <section class="admin-main">
+        <div class="admin-heading">
+            <div><span class="eyebrow">Kho sách</span><h1>Quản lý sách</h1><p>@Model.Total đầu sách khớp bộ lọc.</p></div>
+            <div class="action-row">
+                <a class="button button-secondary" href="/admin/exports/books.csv">Xuất CSV</a>
+                <button class="button" id="new-book" type="button">+ Thêm sách</button>
+            </div>
+        </div>
+        <div id="admin-message" class="alert" hidden></div>
+        <form id="book-form" class="panel admin-form form-grid" hidden>
+            <input id="book-id" type="hidden" />
+            <div class="panel-head span-2"><h2 id="book-form-title">Thêm sách</h2><button class="icon-button" id="close-book-form" type="button" aria-label="Đóng biểu mẫu">×</button></div>
+            <label>ISBN<input name="isbn" required /></label><label>Tên sách<input name="title" required /></label>
+            <label class="span-2">Mô tả<textarea name="description" rows="3"></textarea></label>
+            <label>Ấn bản<input name="edition" /></label><label>Từ khóa<input name="keywords" /></label>
+            <label>Năm xuất bản<input name="publicationYear" type="number" min="0" /></label><label>Số trang<input name="pageCount" type="number" min="0" /></label>
+            <label>Ngôn ngữ<input name="language" /></label><label>Giá<input name="price" type="number" min="0" /></label>
+            <label>Tổng số bản vật lý<input name="totalQuantity" type="number" min="0" /></label><label>Số bản khả dụng<input name="availableQuantity" type="number" min="0" /></label>
+            <label>Độ tuổi tối thiểu<input name="minimumAge" type="number" min="0" /></label><label>Đường dẫn ảnh bìa<input name="coverImagePath" /></label>
+            <label class="span-2">Hoặc tải ảnh mới (JPEG/PNG/WebP, tối đa 5 MB)<input id="cover-file" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" /></label>
+            <label>Danh mục<select name="categoryId">@foreach(var x in Model.Categories){<option value="@x.Id">@x.Name</option>}</select></label>
+            <label>Tác giả<select name="authorId">@foreach(var x in Model.Authors){<option value="@x.Id">@x.Name</option>}</select></label>
+            <label>Nhà xuất bản<select name="publisherId">@foreach(var x in Model.Publishers){<option value="@x.Id">@x.Name</option>}</select></label>
+            <label>Kệ sách<select name="shelfId">@foreach(var x in Model.Shelves){<option value="@x.Id">@x.Code · @x.Name</option>}</select></label>
+            <p class="span-2 empty-inline">Trạng thái phục vụ được thay đổi bằng các thao tác “Ngừng phục vụ”, “Khôi phục” và “Hoàn tất bảo trì” để bảo toàn lịch sử.</p>
+            <div class="span-2 action-row"><button class="button" type="submit">Lưu sách</button><button class="button button-secondary" id="cancel-book" type="button">Hủy</button></div>
+        </form>
+        <div class="panel table-panel">
+            <form class="table-tools filter-form" method="get">
+                <input name="q" value="@Model.Query" placeholder="Tìm theo tên hoặc ISBN" />
+                <select name="state" aria-label="Lọc trạng thái phục vụ">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active" selected="@(Model.LifecycleState == "active")">Đang phục vụ</option>
+                    <option value="maintenance" selected="@(Model.LifecycleState == "maintenance")">Đang bảo trì</option>
+                    <option value="discontinued" selected="@(Model.LifecycleState == "discontinued")">Ngừng phục vụ</option>
+                    <option value="emergency" selected="@(Model.LifecycleState == "emergency")">Thu hồi khẩn cấp</option>
+                </select>
+                <button class="button button-small" type="submit">Lọc</button>
+            </form>
+            <div class="data-table-wrap book-management-wrap">
+                <table class="data-table book-management-table">
+                    <colgroup>
+                        <col class="book-column-main" />
+                        <col class="book-column-author" />
+                        <col class="book-column-quantity" />
+                        <col class="book-column-status" />
+                        <col class="book-column-actions" />
+                    </colgroup>
+                    <thead><tr><th>Sách</th><th>Tác giả</th><th>Khả dụng/Tổng số</th><th>Trạng thái</th><th class="actions-heading">Thao tác</th></tr></thead>
+                    <tbody>
+            @foreach (var book in Model.Books)
+            {
+                var isDiscontinued = book.Status == BookStatus.Discontinued;
+                var isMaintenance = book.Status == BookStatus.Maintenance;
+                var isEmergency = isDiscontinued && book.SuspensionType == BookSuspensionType.EmergencyRecall;
+                var publicAvailable = book.Status is BookStatus.Available or BookStatus.OutOfStock
+                    ? book.AvailableQuantity : 0;
+                var protectedFromPermanentDelete = Model.PermanentlyProtectedBookIds.Contains(book.Id);
+                <tr data-search="@($"{book.Title} {book.Isbn}".ToLowerInvariant())">
+                    <td class="book-primary-cell" data-label="Sách">
+                        <strong class="book-row-title">@book.Title</strong>
+                        <small class="book-row-meta">@book.Isbn · @book.Category?.Name</small>
+                    </td>
+                    <td class="book-author-cell" data-label="Tác giả"><span class="book-cell-value">@book.Author?.Name</span></td>
+                    <td class="book-quantity-cell" data-label="Khả dụng/Tổng số">
+                        <strong>@publicAvailable/@book.TotalQuantity</strong>
+                        <small>@(isDiscontinued ? "Ngừng phục vụ" : isMaintenance ? "Chờ kiểm tra" : "Bản khả dụng")</small>
+                    </td>
+                    <td class="book-status-cell" data-label="Trạng thái">
+                        <span class="status @(isEmergency ? "status-emergency" : null)">@(isEmergency ? "Thu hồi khẩn cấp" : book.Status.ToVietnamese())</span>
+                        @if (isDiscontinued && !string.IsNullOrWhiteSpace(book.SuspensionReason))
+                        {
+                            <small class="book-suspension-time" title="@book.SuspensionReason">Từ @(book.SuspendedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</small>
+                        }
+                    </td>
+                    <td class="book-row-actions-cell" data-label="Thao tác">
+                        <div class="row-actions book-row-actions">
+                        @if (!isDiscontinued)
+                        {
+                            <button class="button button-small button-secondary book-action book-action-edit edit-book" type="button"
+                                title="Sửa sách" aria-label="Sửa sách"
+                                data-id="@book.Id" data-isbn="@book.Isbn" data-title="@book.Title" data-description="@book.Description"
+                                data-edition="@book.Edition" data-keywords="@book.Keywords" data-publication-year="@book.PublicationYear"
+                                data-page-count="@book.PageCount" data-language="@book.Language" data-price="@book.Price"
+                                data-total-quantity="@book.TotalQuantity" data-available-quantity="@book.AvailableQuantity"
+                                data-minimum-age="@book.MinimumAge" data-cover-image-path="@book.CoverImagePath"
+                                data-category-id="@book.CategoryId" data-author-id="@book.AuthorId" data-publisher-id="@book.PublisherId"
+                                data-shelf-id="@book.ShelfId">
+                                <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16v4Z" />
+                                    <path d="m13.5 6.5 4 4" />
+                                </svg>
+                            </button>
+                        }
+                        @if (isMaintenance)
+                        {
+                            <button class="button button-small book-action book-action-maintenance complete-maintenance"
+                                title="Hoàn tất bảo trì" aria-label="Hoàn tất bảo trì"
+                                data-id="@book.Id" data-name="@book.Title"
+                                data-total="@book.TotalQuantity" data-available="@book.AvailableQuantity" type="button">
+                                <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <circle cx="12" cy="12" r="9" />
+                                    <path d="m8 12 2.5 2.5L16 9" />
+                                </svg>
+                            </button>
+                        }
+                        @if (!isDiscontinued)
+                        {
+                            <button class="button button-small danger-button book-action book-action-suspend suspend-book"
+                                title="Ngừng phục vụ" aria-label="Ngừng phục vụ"
+                                data-id="@book.Id" data-name="@book.Title" type="button">
+                                <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <circle cx="12" cy="12" r="9" />
+                                    <path d="M9.5 9v6M14.5 9v6" />
+                                </svg>
+                            </button>
+                        }
+                        else
+                        {
+                            <a class="button button-small button-secondary book-action book-action-view" href="/books/@book.Id"
+                                title="Xem chi tiết" aria-label="Xem chi tiết">
+                                <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                                    <circle cx="12" cy="12" r="2.5" />
+                                </svg>
+                            </a>
+                            <button class="button button-small book-action book-action-restore restore-book"
+                                title="Khôi phục sách" aria-label="Khôi phục sách"
+                                data-id="@book.Id" data-name="@book.Title" type="button">
+                                <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M4 8v5h5" />
+                                    <path d="M5.7 16.5A8 8 0 1 0 6 7.7L4 10" />
+                                </svg>
+                            </button>
+                            @if (Model.CanPermanentlyDelete && !protectedFromPermanentDelete)
+                            {
+                                <button class="button button-small danger-button book-action book-action-delete permanent-delete-book"
+                                    title="Xóa vĩnh viễn" aria-label="Xóa vĩnh viễn"
+                                    data-id="@book.Id" data-name="@book.Title" type="button">
+                                    <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+                                    </svg>
+                                </button>
+                            }
+                            else if (Model.CanPermanentlyDelete)
+                            {
+                                <button class="button button-small danger-button book-action book-action-disabled" type="button"
+                                    disabled title="Không thể xóa vĩnh viễn" aria-label="Không thể xóa vĩnh viễn">
+                                    <svg class="book-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+                                    </svg>
+                                </button>
+                            }
+                        }
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (Model.Books.Count == 0)
+            {
+                <tr><td colspan="5"><p class="empty-inline">Không tìm thấy sách phù hợp với bộ lọc hiện tại.</p></td></tr>
+            }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <partial name="_Pager" model="@(new PagerModel(Model.Page, Model.TotalPages, Context.Request.QueryString.Value ?? ""))" />
+    </section>
+</div>
+
+<dialog id="suspend-book-dialog" class="library-dialog lifecycle-dialog" aria-labelledby="suspend-dialog-title">
+    <form id="suspend-book-form" class="dialog-card">
+        <h2 id="suspend-dialog-title">Ngừng phục vụ sách</h2>
+        <p id="suspend-book-name"></p>
+        <div class="lifecycle-impact" aria-live="polite">
+            <span><strong id="impact-active-borrowers">0</strong> độc giả đang mượn</span>
+            <span><strong id="impact-pending-borrows">0</strong> yêu cầu đang chờ</span>
+            <span><strong id="impact-held-reservations">0</strong> bản/lượt đang giữ chỗ</span>
+        </div>
+        <label>Loại ngừng phục vụ
+            <select id="suspension-type" name="type">
+                <option value="0">Thông thường</option>
+                @if (Model.CanEmergencyRecall) { <option value="1">Thu hồi / ngừng phục vụ khẩn cấp</option> }
+            </select>
+        </label>
+        <label>Lý do<textarea id="suspension-reason" name="reason" rows="4" maxlength="500" required></textarea></label>
+        <label id="early-recall-option" class="check-row" hidden><input id="request-early-return" type="checkbox" /> Yêu cầu độc giả trả sớm</label>
+        <label id="recall-deadline-row" hidden>Hạn trả sớm<input id="recall-deadline" type="datetime-local" /></label>
+        <p id="suspension-warning" class="alert alert-warning">Các yêu cầu chưa giao và đặt trước đang hoạt động sẽ bị hủy; không trừ kho và không tạo phạt.</p>
+        <div class="dialog-actions"><button class="button button-secondary dialog-cancel" type="button">Hủy</button><button class="button danger-button" id="confirm-suspension" type="submit">Ngừng phục vụ</button></div>
+    </form>
+</dialog>
+
+<dialog id="restore-book-dialog" class="library-dialog lifecycle-dialog" aria-labelledby="restore-dialog-title">
+    <form id="restore-book-form" class="dialog-card">
+        <h2 id="restore-dialog-title">Khôi phục sách</h2>
+        <p id="restore-book-name"></p>
+        <label>Lý do khôi phục<textarea id="restore-reason" rows="4" maxlength="500" required></textarea></label>
+        <p class="empty-inline">Sách sẽ chuyển sang “Đang bảo trì / chờ kiểm tra”, chưa được cho mượn ngay.</p>
+        <div class="dialog-actions"><button class="button button-secondary dialog-cancel" type="button">Hủy</button><button class="button" id="confirm-restore" type="submit">Khôi phục</button></div>
+    </form>
+</dialog>
+
+<dialog id="maintenance-book-dialog" class="library-dialog lifecycle-dialog" aria-labelledby="maintenance-dialog-title">
+    <form id="maintenance-book-form" class="dialog-card">
+        <h2 id="maintenance-dialog-title">Hoàn tất bảo trì</h2>
+        <p id="maintenance-book-name"></p>
+        <label>Tổng số bản vật lý thực tế<input id="maintenance-total" type="number" min="0" required /></label>
+        <label>Số bản đạt yêu cầu và khả dụng<input id="maintenance-available" type="number" min="0" required /></label>
+        <p class="empty-inline">Bản mất hoặc hư hỏng không được tính vào số khả dụng.</p>
+        <div class="dialog-actions"><button class="button button-secondary dialog-cancel" type="button">Hủy</button><button class="button" id="confirm-maintenance" type="submit">Hoàn tất kiểm tra</button></div>
+    </form>
+</dialog>
+
+@section Scripts { <script src="~/js/admin-books.js" asp-append-version="true"></script> }

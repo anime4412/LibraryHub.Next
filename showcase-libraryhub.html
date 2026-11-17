@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>LibraryHub · Không Gian Tri Thức & Sách 3D Tinh Tế</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Hệ thống quản lý thư viện hiện đại với giao diện Scholastic Luxury và trải nghiệm 3D tương tác.">
+
+  <!-- Typography: Newsreader (Editorial Serif) & Plus Jakarta Sans / Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,300;1,6..72,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    /* ==========================================================================
+       1. DESIGN TOKENS - SCHOLASTIC LUXURY & HIGH REFINEMENT
+       ========================================================================== */
+    :root {
+      --bg: #0b0f0e;
+      --bg-surface: rgba(18, 26, 23, 0.72);
+      --bg-surface-elevated: rgba(24, 36, 32, 0.88);
+      --ink: #f5f7f5;
+      --ink-muted: #9aa8a3;
+      --ink-dim: #5c6c66;
+      --brand: #0f614d;
+      --brand-glow: rgba(15, 97, 77, 0.4);
+      --brand-bright: #148369;
+      --gold: #d4af37;
+      --gold-soft: #f3e5b8;
+      --gold-glow: rgba(212, 175, 55, 0.28);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-highlight: rgba(255, 255, 255, 0.16);
+      --shadow-soft: 0 12px 40px -10px rgba(0, 0, 0, 0.45);
+      --shadow-lift: 0 24px 60px -15px rgba(0, 0, 0, 0.65);
+      --sans: "Plus Jakarta Sans", system-ui, sans-serif;
+      --serif: "Newsreader", "Times New Roman", serif;
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+      --spring-easing: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg: #f9f7f2;
+      --bg-surface: rgba(255, 255, 255, 0.85);
+      --bg-surface-elevated: #ffffff;
+      --ink: #11221e;
+      --ink-muted: #536b63;
+      --ink-dim: #8b9e97;
+      --brand: #0a4f3e;
+      --brand-glow: rgba(10, 79, 62, 0.18);
+      --brand-bright: #0f6c55;
+      --gold: #b38b1d;
+      --gold-soft: #d9aa32;
+      --gold-glow: rgba(179, 139, 29, 0.18);
+      --line: rgba(17, 34, 30, 0.09);
+      --line-highlight: rgba(17, 34, 30, 0.16);
+      --shadow-soft: 0 12px 35px -8px rgba(22, 45, 39, 0.08);
+      --shadow-lift: 0 24px 50px -12px rgba(22, 45, 39, 0.14);
+    }
+
+    /* Reset & Base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; background: none; border: none; cursor: pointer; color: inherit; }
+
+    .container { width: min(1280px, calc(100% - 48px)); margin-inline: auto; }
+
+    /* ==========================================================================
+       2. REFINED HEADER - FROSTED GLASS & TACTILE CONTROLS
+       ========================================================================== */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(18px) saturate(180%);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      border-bottom: 1px solid var(--line);
+      transition: border-color 0.3s ease;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand-bright), var(--brand));
+      color: #fff;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 14px var(--brand-glow);
+      font-size: 1.1rem;
+      font-style: italic;
+    }
+    .brand-edition {
+      font-size: 0.68rem;
+      font-family: var(--sans);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      background: rgba(212, 175, 55, 0.12);
+      color: var(--gold);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      font-weight: 600;
+      transform: translateY(-1px);
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      font-size: 0.92rem;
+      color: var(--ink-muted);
+      font-weight: 500;
+      transition: color 0.2s var(--spring-easing), transform 0.2s;
+      position: relative;
+    }
+    .nav-links a:hover { color: var(--ink); transform: translateY(-1px); }
+    .nav-links a.active { color: var(--gold); font-weight: 600; }
+    .nav-links a.active::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--gold);
+      border-radius: 2px;
+      box-shadow: 0 0 8px var(--gold);
+    }
+    .header-actions { display: flex; align-items: center; gap: 14px; }
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--bg-surface);
+      color: var(--ink-muted);
+      display: grid;
+      place-items: center;
+      transition: all 0.25s var(--spring-easing);
+    }
+    .theme-toggle:hover {
+      color: var(--ink);
+      border-color: var(--line-highlight);
+      transform: rotate(15deg) scale(1.05);
+    }
+    .btn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: var(--radius-full);
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.25s var(--spring-easing);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand-bright), var(--brand));
+      color: #fff;
+      box-shadow: 0 6px 20px var(--brand-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px var(--brand-glow);
+      filter: brightness(1.08);
+    }
+    .btn-primary:active { transform: scale(0.97); }
+
+    /* ==========================================================================
+       3. LUXURY HERO SECTION WITH 3D INTERACTIVE BOOK
+       ========================================================================== */
+    .hero {
+      position: relative;
+      min-height: calc(100vh - 76px);
+      display: flex;
+      align-items: center;
+      padding-block: 40px;
+      overflow: hidden;
+    }
+    /* Subtle background ambient light */
+    .hero-glow-1 {
+      position: absolute;
+      top: 15%;
+      right: 10%;
+      width: 550px;
+      height: 550px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--brand-glow) 0%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatGlow 14s ease-in-out infinite alternate;
+    }
+    .hero-glow-2 {
+      position: absolute;
+      bottom: 10%;
+      left: 5%;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 70%);
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes floatGlow {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-40px, 30px) scale(1.15); }
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      align-items: center;
+      gap: 40px;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+    }
+
+    /* Left Copy Column */
+    .hero-copy { max-width: 600px; }
+    .badge-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface);
+      border: 1px solid var(--line-highlight);
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 24px;
+    }
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+      animation: pulseGold 2s infinite ease-in-out;
+    }
+    @keyframes pulseGold {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.5); opacity: 1; }
+    }
+
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(3.2rem, 5.5vw, 5.2rem);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      font-weight: 400;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--gold-soft);
+      font-weight: 300;
+      text-shadow: 0 0 35px var(--gold-glow);
+    }
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--ink-muted);
+      line-height: 1.7;
+      margin-bottom: 32px;
+      max-width: 520px;
+    }
+
+    /* Search Bar with Spring Feedback */
+    .hero-search {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-full);
+      padding: 6px 8px 6px 20px;
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 36px;
+      transition: all 0.3s var(--spring-easing);
+    }
+    .hero-search:focus-within {
+      border-color: var(--gold);
+      box-shadow: 0 8px 30px var(--gold-glow), 0 0 0 1px var(--gold);
+      transform: translateY(-2px);
+    }
+    .hero-search input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+    .hero-search input::placeholder { color: var(--ink-dim); }
+    .hero-search .search-kbd {
+      font-size: 0.72rem;
+      color: var(--ink-dim);
+      border: 1px solid var(--line);
+      padding: 3px 6px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.04);
+      margin-right: 6px;
+    }
+    .hero-search button {
+      background: linear-gradient(135deg, var(--brand-bright), var(--brand));
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s var(--spring-easing);
+    }
+    .hero-search button:hover { filter: brightness(1.1); transform: scale(1.02); }
+    .hero-search button:active { transform: scale(0.97); }
+
+    /* Live Stats Row */
+    .hero-stats {
+      display: flex;
+      gap: 36px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .stat-item { display: flex; flex-direction: column; }
+    .stat-number {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Right 3D Stage Column */
+    .hero-3d-stage {
+      position: relative;
+      width: 100%;
+      height: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+    }
+    .stage-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+      overflow: visible !important;
+    }
+    .stage-wrapper:active { cursor: grabbing; }
+    #webglCanvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      outline: none;
+    }
+    .stage-controls {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 7px 16px;
+      background: var(--bg-surface);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--line-highlight);
+      border-radius: var(--radius-full);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      z-index: 10;
+      pointer-events: auto;
+    }
+    .btn-reset-view {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--ink);
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.08);
+      transition: all 0.2s var(--spring-easing);
+    }
+    .btn-reset-view:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+    .stage-hint { font-size: 0.75rem; color: var(--ink-muted); white-space: nowrap; }
+
+    /* ==========================================================================
+       4. BENTO CATALOG & CARD 3D TILT WITH SPRING PHYSICS
+       ========================================================================== */
+    .section-catalogue {
+      padding-block: 80px;
+      position: relative;
+    }
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .section-title {
+      font-family: var(--serif);
+      font-size: 2.6rem;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .section-subtitle {
+      color: var(--ink-muted);
+      font-size: 0.95rem;
+      margin-top: 6px;
+    }
+
+    /* Filter Pills */
+    .filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--line);
+    }
+    .filter-btn {
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      transition: all 0.25s var(--spring-easing);
+    }
+    .filter-btn:hover { color: var(--ink); }
+    .filter-btn.active {
+      background: var(--brand);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--brand-glow);
+    }
+
+    /* Grid of 3D Tilt Cards */
+    .book-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 28px;
+    }
+    .tilt-card {
+      position: relative;
+      background: var(--bg-surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      transition: border-color 0.3s, transform 0.4s var(--spring-easing), box-shadow 0.4s var(--spring-easing);
+      transform-style: preserve-3d;
+      will-change: transform;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+    }
+    .tilt-card:hover {
+      border-color: var(--gold);
+      box-shadow: var(--shadow-lift), 0 0 20px var(--gold-glow);
+    }
+
+    .card-cover-wrap {
+      position: relative;
+      aspect-ratio: 3 / 4.1;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 14px;
+      background: #141c19;
+      transform: translateZ(25px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    }
+    .card-cover-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s var(--spring-easing);
+    }
+    .tilt-card:hover .card-cover-wrap img {
+      transform: scale(1.06);
+    }
+    /* Dynamic glare sweep */
+    .card-glare {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .tilt-card:hover .card-glare { opacity: 1; }
+
+    .card-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      backdrop-filter: blur(8px);
+    }
+    .badge-available {
+      background: rgba(20, 131, 105, 0.85);
+      color: #e5fbf4;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .badge-borrowed {
+      background: rgba(40, 50, 48, 0.85);
+      color: #9aa8a3;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card-body { transform: translateZ(15px); display: flex; flex-direction: column; flex: 1; }
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .card-title {
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      line-height: 1.25;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+    .card-author {
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      margin-bottom: 16px;
+    }
+    .card-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .btn-action-small {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      transition: all 0.2s var(--spring-easing);
+    }
+    .btn-action-small:hover {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand-bright);
+      transform: translateY(-1px);
+    }
+    .btn-action-small:active { transform: scale(0.96); }
+
+    /* ==========================================================================
+       5. STAGGERED ENTRANCE ANIMATIONS (EMIL KOWALSKI STANDARD)
+       ========================================================================== */
+    .rise {
+      opacity: 0;
+      transform: translateY(18px);
+      animation: riseIn 0.85s var(--spring-easing) forwards;
+    }
+    .hero-copy > :nth-child(1) { animation-delay: 0.08s; }
+    .hero-copy > :nth-child(2) { animation-delay: 0.16s; }
+    .hero-copy > :nth-child(3) { animation-delay: 0.24s; }
+    .hero-copy > :nth-child(4) { animation-delay: 0.32s; }
+    .hero-copy > :nth-child(5) { animation-delay: 0.40s; }
+    @keyframes riseIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-3d-stage { height: 460px; }
+      .book-cards-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .book-cards-grid { grid-template-columns: 1fr; }
+      .hero-title { font-size: 2.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Header Navigation -->
+  <header class="header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-mark">L</div>
+        <span>LibraryHub</span>
+        <span class="brand-edition">Next v2</span>
+      </div>
+
+      <nav class="nav-links">
+        <a href="#catalogue" class="active">Khám Phá</a>
+        <a href="#3d">Sách 3D</a>
+        <a href="#spaces">Không Gian Đọc</a>
+        <a href="#about">Về Thư Viện</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Chuyển chế độ sáng tối">
+          <i class="fa-solid fa-circle-half-stroke"></i>
+        </button>
+        <button class="btn-pill btn-primary">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>Vào Không Gian Đọc</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Hero Section with Interactive 3D Floating Book -->
+  <main>
+    <section class="hero" id="3d">
+      <div class="hero-glow-1"></div>
+      <div class="hero-glow-2"></div>
+
+      <div class="container hero-grid">
+        <!-- Left: Refined Scholastic Copy -->
+        <div class="hero-copy">
+          <div class="badge-eyebrow rise">
+            <span class="badge-dot"></span>
+            <span>Bộ Sưu Tập Tác Phẩm Tuyển Chọn</span>
+          </div>
+
+          <h1 class="hero-title rise">
+            Mỗi Trang Sách,<br>
+            <em>Một Chân Trời Mới.</em>
+          </h1>
+
+          <p class="hero-desc rise">
+            Hệ thống quản lý và tra cứu thư viện thế hệ mới. Trải nghiệm không gian học thuật thanh lịch, khám phá sách với mô hình 3D xoay 360° chân thực từng chi tiết.
+          </p>
+
+          <div class="hero-search rise">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--ink-dim);"></i>
+            <input type="text" placeholder="Tìm theo tên sách, tác giả, thể loại hoặc ISBN…">
+            <span class="search-kbd">⌘ K</span>
+            <button type="button">Tìm Kiếm</button>
+          </div>
+
+          <div class="hero-stats rise">
+            <div class="stat-item">
+              <span class="stat-number">5.200+</span>
+              <span class="stat-label">Đầu sách lưu trữ</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">1.450+</span>
+              <span class="stat-label">Độc giả tin dùng</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">14 Ngày</span>
+              <span class="stat-label">Thời hạn mượn</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Real-time 3D Floating Book (Three.js) -->
+        <div class="hero-3d-stage">
+          <div class="stage-wrapper" id="stageWrapper">
+            <canvas id="webglCanvas"></canvas>
+            <div class="stage-controls">
+              <button class="btn-reset-view" id="resetAngleBtn">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Đặt lại góc 3D</span>
+              </button>
+              <span class="stage-hint">Kéo chuột xoay 360° · Cuộn để thu phóng</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Catalogue Grid with 3D Tilt Cards -->
+    <section class="section-catalogue" id="catalogue">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Tác Phẩm Được Đọc Nhiều Nhất</h2>
+            <p class="section-subtitle">Tuyển tập những cuốn sách có ảnh hưởng lớn được độc giả mượn đọc nhiều trong tuần</p>
+          </div>
+
+          <div class="filter-pills">
+            <button class="filter-btn active">Tất cả</button>
+            <button class="filter-btn">Văn học</button>
+            <button class="filter-btn">Công nghệ</button>
+            <button class="filter-btn">Triết học</button>
+          </div>
+        </div>
+
+        <div class="book-cards-grid">
+          <!-- Card 1 -->
+          <article class="tilt-card" data-tilt>
+            <div class="card-cover-wrap">
+              <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80" alt="Bìa sách">
+              <div class="card-glare"></div>
+              <span class="card-badge badge-available">Còn 4 bản</span>
+            </div>
+            <div class="card-body">
+              <div class="card-meta"><span>TRIẾT HỌC & TƯ TƯỞNG</span><span>★ 4.9</span></div>
+              <h3 class="card-title">The Architecture of Thought</h3>
+              <p class="card-author">Marcus Aurelius · Dịch giả Minh Tâm</p>
+              <div class="card-footer">
+                <span style="font-size: 0.8rem; color: var(--ink-dim);">Kệ A2 · Tầng 2</span>
+                <button class="btn-action-small">
+                  <i class="fa-solid fa-plus"></i>
+                  <span>Mượn sách</span>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 2 -->
+          <article class="tilt-card" data-tilt>
+            <div class="card-cover-wrap">
+              <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80" alt="Bìa sách">
+              <div class="card-glare"></div>
+              <span class="card-badge badge-available">Còn 7 bản</span>
+            </div>
+            <div class="card-body">
+              <div class="card-meta"><span>CÔNG NGHỆ THÔNG TIN</span><span>★ 5.0</span></div>
+              <h3 class="card-title">Clean Architecture & Modern Monolith</h3>
+              <p class="card-author">Robert C. Martin</p>
+              <div class="card-footer">
+                <span style="font-size: 0.8rem; color: var(--ink-dim);">Kệ B1 · Tầng 1</span>
+                <button class="btn-action-small">
+                  <i class="fa-solid fa-plus"></i>
+                  <span>Mượn sách</span>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 3 -->
+          <article class="tilt-card" data-tilt>
+            <div class="card-cover-wrap">
+              <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80" alt="Bìa sách">
+              <div class="card-glare"></div>
+              <span class="card-badge badge-borrowed">Đã mượn hết</span>
+            </div>
+            <div class="card-body">
+              <div class="card-meta"><span>THIẾT KẾ ĐỒ HỌA</span><span>★ 4.8</span></div>
+              <h3 class="card-title">Typography & Minimalist Grid Systems</h3>
+              <p class="card-author">Josef Müller-Brockmann</p>
+              <div class="card-footer">
+                <span style="font-size: 0.8rem; color: var(--ink-dim);">Kệ C3 · Tầng 3</span>
+                <button class="btn-action-small" style="background: rgba(212,175,55,0.15); color: var(--gold); border-color: rgba(212,175,55,0.3);">
+                  <i class="fa-solid fa-clock"></i>
+                  <span>Đặt trước</span>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 4 -->
+          <article class="tilt-card" data-tilt>
+            <div class="card-cover-wrap">
+              <img src="https://images.unsplash.com/photo-1532012164546-f432f2e3777f?auto=format&fit=crop&w=600&q=80" alt="Bìa sách">
+              <div class="card-glare"></div>
+              <span class="card-badge badge-available">Còn 2 bản</span>
+            </div>
+            <div class="card-body">
+              <div class="card-meta"><span>LỊCH SỬ THẾ GIỚI</span><span>★ 4.9</span></div>
+              <h3 class="card-title">Sapiens: Lược Sử Loài Người</h3>
+              <p class="card-author">Yuval Noah Harari</p>
+              <div class="card-footer">
+                <span style="font-size: 0.8rem; color: var(--ink-dim);">Kệ D1 · Tầng 2</span>
+                <button class="btn-action-small">
+                  <i class="fa-solid fa-plus"></i>
+                  <span>Mượn sách</span>
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==========================================================================
+       6. THREE.JS 3D ENGINE & EMIL KOWALSKI CARD TILT SCRIPT
+       ========================================================================== -->
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    // Theme Switcher
+    const themeBtn = document.getElementById('themeToggle');
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+    });
+
+    // --- 3D BOOK ENGINE (100% Anti-Clipping Bounding Sphere) ---
+    const wrapper = document.getElementById('stageWrapper');
+    const canvas = document.getElementById('webglCanvas');
+    const resetBtn = document.getElementById('resetAngleBtn');
+
+    if (wrapper && canvas) {
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, wrapper.clientWidth / wrapper.clientHeight, 0.1, 100);
+
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+
+      // Lights
+      scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+      const keyLight = new THREE.DirectionalLight(0xfff6eb, 2.6);
+      keyLight.position.set(4, 5, 5);
+      scene.add(keyLight);
+
+      const rimLight = new THREE.DirectionalLight(0x7590ff, 2.2);
+      rimLight.position.set(-4, 3, -4);
+      scene.add(rimLight);
+
+      const warmPoint = new THREE.PointLight(0xd4af37, 1.4, 8);
+      warmPoint.position.set(1, -2, 2);
+      scene.add(warmPoint);
+
+      // Procedural Textures
+      function createCoverCanvas(isBack = false) {
+        const c = document.createElement('canvas');
+        c.width = 1024; c.height = 1440;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#101614'; ctx.fillRect(0, 0, c.width, c.height);
+
+        // Texture noise
+        const imgData = ctx.getImageData(0, 0, c.width, c.height);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const n = (Math.random() - 0.5) * 12;
+          d[i] = Math.min(255, Math.max(0, d[i] + n));
+          d[i+1] = Math.min(255, Math.max(0, d[i+1] + n));
+          d[i+2] = Math.min(255, Math.max(0, d[i+2] + n));
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        const gold = ctx.createLinearGradient(100, 100, 924, 1340);
+        gold.addColorStop(0, '#f5e4b3');
+        gold.addColorStop(0.3, '#d4af37');
+        gold.addColorStop(0.7, '#c59b27');
+        gold.addColorStop(1, '#f7ecc9');
+
+        ctx.strokeStyle = gold; ctx.lineWidth = 3;
+        ctx.strokeRect(60, 60, 904, 1320);
+
+        if (!isBack) {
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(212, 175, 55, 0.75)'; ctx.font = '500 20px "Plus Jakarta Sans"';
+          ctx.fillText('LIBRARY ARCHIVAL MONOGRAPH', 512, 280);
+
+          ctx.fillStyle = gold; ctx.font = 'italic 400 76px "Newsreader", serif';
+          ctx.fillText('LIBRARYHUB', 512, 420);
+
+          ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(512, 680, 150, 0, Math.PI * 2); ctx.stroke();
+
+          ctx.fillStyle = '#a0a0a8'; ctx.font = '400 22px "Plus Jakarta Sans"';
+          ctx.fillText('EDITION 2026 · ARCHIVE № 01', 512, 1200);
+        }
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+
+      function createPageTexture() {
+        const c = document.createElement('canvas');
+        c.width = 512; c.height = 512;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#f5f1e4'; ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = '#dfd8c2';
+        for (let y = 0; y < 512; y += 3) {
+          if (Math.random() > 0.3) ctx.fillRect(0, y, 512, 1.2);
+        }
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+
+      // Geometries & Group
+      const bookW = 2.0, bookH = 2.9, coverThick = 0.04, pageW = 1.9, pageH = 2.78, pageD = 0.42;
+
+      const coverMat = new THREE.MeshPhysicalMaterial({ map: createCoverCanvas(false), roughness: 0.35, metalness: 0.18, clearcoat: 0.35 });
+      const backMat = new THREE.MeshPhysicalMaterial({ map: createCoverCanvas(true), roughness: 0.35, metalness: 0.18, clearcoat: 0.35 });
+      const pagesMat = new THREE.MeshStandardMaterial({ map: createPageTexture(), roughness: 0.85 });
+
+      const bookGroup = new THREE.Group();
+      const front = new THREE.Mesh(new THREE.BoxGeometry(bookW, bookH, coverThick), coverMat);
+      front.position.z = (pageD / 2) + (coverThick / 2);
+      bookGroup.add(front);
+
+      const back = new THREE.Mesh(new THREE.BoxGeometry(bookW, bookH, coverThick), backMat);
+      back.position.z = -((pageD / 2) + (coverThick / 2));
+      bookGroup.add(back);
+
+      const pages = new THREE.Mesh(new THREE.BoxGeometry(pageW, pageH, pageD), pagesMat);
+      pages.position.x = 0.05;
+      bookGroup.add(pages);
+
+      // Ribbon Bookmark
+      const ribbonMat = new THREE.MeshPhysicalMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.65, clearcoat: 0.4 });
+      const ribbonCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.2, (pageH / 2) - 0.05, 0.05),
+        new THREE.Vector3(0.35, (pageH / 2) + 0.15, 0.18),
+        new THREE.Vector3(0.48, (pageH / 2) - 0.2, 0.32),
+        new THREE.Vector3(0.42, 0, 0.35),
+        new THREE.Vector3(0.46, -((pageH / 2) + 0.35), 0.36),
+        new THREE.Vector3(0.52, -((pageH / 2) + 0.65), 0.42)
+      ]);
+      const ribbon = new THREE.Mesh(new THREE.TubeGeometry(ribbonCurve, 32, 0.035, 8, false), ribbonMat);
+      bookGroup.add(ribbon);
+
+      // Centering Center of Mass
+      const box = new THREE.Box3().setFromObject(bookGroup);
+      const center = box.getCenter(new THREE.Vector3());
+      bookGroup.position.sub(center);
+
+      const floatingPivot = new THREE.Group();
+      const rotationPivot = new THREE.Group();
+      floatingPivot.add(bookGroup);
+      rotationPivot.add(floatingPivot);
+      scene.add(rotationPivot);
+
+      // Floating Dust Particles
+      const particleCount = 80;
+      const particleGeo = new THREE.BufferGeometry();
+      const particlePos = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        particlePos[i] = (Math.random() - 0.5) * 6;
+        particlePos[i+1] = (Math.random() - 0.5) * 6;
+        particlePos[i+2] = (Math.random() - 0.5) * 4;
+      }
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+      const particles = new THREE.Points(particleGeo, new THREE.PointsMaterial({
+        color: 0xd4af37, size: 0.022, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending
+      }));
+      scene.add(particles);
+
+      // Safe Camera Anti-Clipping Function
+      function updateCameraSafeDistance() {
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const fovRad = (camera.fov * Math.PI) / 180;
+        let safeDistance = (sphere.radius * 1.38) / Math.sin(fovRad / 2);
+        if (camera.aspect < 1.0) safeDistance = safeDistance / camera.aspect;
+        camera.position.set(0, 0, safeDistance);
+        camera.lookAt(0, 0, 0);
+        camera.updateProjectionMatrix();
+      }
+      updateCameraSafeDistance();
+
+      // 360° Drag & Inertia
+      let isDragging = false;
+      let prevX = 0, prevY = 0;
+      let targetRotX = 0.2, targetRotY = -0.65;
+      let currentRotX = targetRotX, currentRotY = targetRotY;
+
+      wrapper.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        prevX = e.clientX; prevY = e.clientY;
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - prevX;
+        const dy = e.clientY - prevY;
+        targetRotY += dx * 0.008;
+        targetRotX += dy * 0.008;
+        prevX = e.clientX; prevY = e.clientY;
+      });
+      window.addEventListener('pointerup', () => { isDragging = false; });
+
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          targetRotX = 0.2; targetRotY = -0.65;
+        });
+      }
+
+      // Animation Loop
+      const clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const t = clock.getElapsedTime();
+
+        currentRotX += (targetRotX - currentRotX) * 0.08;
+        currentRotY += (targetRotY - currentRotY) * 0.08;
+        rotationPivot.rotation.x = currentRotX;
+        rotationPivot.rotation.y = currentRotY;
+
+        if (!isDragging) {
+          floatingPivot.position.y = Math.sin(t * 1.5) * 0.12;
+          floatingPivot.rotation.z = Math.sin(t * 0.8) * 0.03;
+          targetRotY += 0.0015;
+        }
+
+        particles.rotation.y = t * 0.015;
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      const resizeObserver = new ResizeObserver(() => {
+        const w = wrapper.clientWidth, h = wrapper.clientHeight;
+        if (w === 0 || h === 0) return;
+        camera.aspect = w / h;
+        renderer.setSize(w, h);
+        updateCameraSafeDistance();
+      });
+      resizeObserver.observe(wrapper);
+    }
+
+    // --- CARD 3D TILT WITH SPRING PHYSICS (EMIL KOWALSKI CRAFT) ---
+    const cards = document.querySelectorAll('[data-tilt]');
+    cards.forEach(card => {
+      let bounds;
+      function rotateToMouse(e) {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        const leftX = mouseX - bounds.x;
+        const topY = mouseY - bounds.y;
+        const center = { x: leftX - bounds.width / 2, y: topY - bounds.height / 2 };
+        const distance = Math.sqrt(center.x ** 2 + center.y ** 2);
+
+        card.style.transform = `
+          scale3d(1.02, 1.02, 1.02)
+          rotateX(${center.y / -14}deg)
+          rotateY(${center.x / 14}deg)
+        `;
+      }
+
+      card.addEventListener('mouseenter', () => {
+        bounds = card.getBoundingClientRect();
+        card.style.transition = 'transform 0.1s ease-out';
+        document.addEventListener('mousemove', rotateToMouse);
+      });
+
+      card.addEventListener('mouseleave', () => {
+        document.removeEventListener('mousemove', rotateToMouse);
+        card.style.transition = 'transform 0.5s var(--spring-easing), box-shadow 0.5s var(--spring-easing)';
+        card.style.transform = 'scale3d(1, 1, 1) rotateX(0deg) rotateY(0deg)';
+      });
+    });
+  </script>
+</body>
+</html>

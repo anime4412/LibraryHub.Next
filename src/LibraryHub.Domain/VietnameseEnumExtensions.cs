@@ -1,0 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+
+namespace LibraryHub.Domain;
+
+public static class VietnameseEnumExtensions
+{
+    public static string ToVietnamese(this Enum value)
+    {
+        var member = value.GetType().GetMember(value.ToString()).FirstOrDefault();
+        return member?.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? value.ToString();
+    }
+}

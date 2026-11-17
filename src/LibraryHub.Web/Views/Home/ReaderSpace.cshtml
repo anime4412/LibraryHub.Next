@@ -1,0 +1,406 @@
+@model ReaderSpaceViewModel
+@{
+    ViewData["Title"] = Model.CurrentSection switch
+    {
+        "cart" => "Giỏ mượn",
+        "borrows" => "Phiếu mượn",
+        "reservations" => "Đặt trước",
+        "fines" => "Khoản phạt",
+        "history" => "Lịch sử đọc",
+        "favorites" => "Sách yêu thích",
+        "notifications" => "Thông báo",
+        "profile" => "Hồ sơ độc giả",
+        _ => "Tổng quan độc giả"
+    };
+    var activeBorrowCount = Model.Borrows
+        .Where(x => x.Status is BorrowStatus.Borrowing or BorrowStatus.Overdue or BorrowStatus.PendingExtension)
+        .Sum(x => x.Details.Sum(y => y.Quantity - y.ReturnedQuantity));
+    var dueSoonDeadline = DateTimeOffset.UtcNow.AddDays(3);
+    var urgentReturnCount = Model.Borrows
+        .Where(x => x.Status is BorrowStatus.Borrowing or BorrowStatus.Overdue or BorrowStatus.PendingExtension)
+        .Sum(x => x.Details.Where(d => d.ReturnedQuantity < d.Quantity && (x.Status == BorrowStatus.Overdue || (d.DueAt.HasValue && d.DueAt.Value <= dueSoonDeadline)))
+            .Sum(d => d.Quantity - d.ReturnedQuantity));
+    var overdueCount = Model.Borrows.Count(x => x.Status == BorrowStatus.Overdue);
+    var outstandingFine = Model.Fines
+        .Where(x => x.Status is not FineStatus.Paid and not FineStatus.Waived and not FineStatus.Cancelled)
+        .Sum(x => x.Amount - x.PaidAmount);
+    var reputationScore = Math.Clamp(
+        90 + Model.Reader.ConsecutiveLoginDays * 2 - overdueCount * 15 - (outstandingFine > 0 ? 15 : 0),
+        20,
+        100);
+
+    int StepIndex(BorrowStatus status) => status switch
+    {
+        BorrowStatus.PendingApproval => 1,
+        BorrowStatus.ApprovedAwaitingPickup => 2,
+        BorrowStatus.Borrowing or BorrowStatus.PendingExtension or BorrowStatus.Overdue => 3,
+        BorrowStatus.Returned or BorrowStatus.Completed => 4,
+        _ => 0
+    };
+}
+<section class="portal-hero">
+    <div class="shell profile-hero">
+        <div class="profile-avatar">
+            <span aria-hidden="true">@Model.Reader.FullName[..1].ToUpperInvariant()</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Reader.AvatarPath))
+            {
+                <img src="@Model.Reader.AvatarPath" alt="Ảnh đại diện của @Model.Reader.FullName" data-image-fallback />
+            }
+        </div>
+        <div class="profile-copy">
+            <span class="eyebrow">Mã độc giả @Model.Reader.ReaderCode · Chuỗi @Model.Reader.ConsecutiveLoginDays ngày</span>
+            <h1>@Model.Reader.FullName</h1>
+            <p>@(Model.Reader.Bio ?? $"Thẻ thư viện có hiệu lực đến {Model.Reader.ExpiresOn:dd/MM/yyyy}.")</p>
+        </div>
+        <a class="button button-light profile-edit-link" href="/me/profile">Chỉnh sửa hồ sơ</a>
+    </div>
+</section>
+<div class="shell portal-layout">
+    <aside class="side-nav" aria-label="Không gian độc giả">
+        <a class="@(Model.CurrentSection == "overview" ? "active" : null)" href="/me">Tổng quan</a>
+        <a class="@(Model.CurrentSection == "cart" ? "active" : null)" href="/me/cart">Giỏ mượn</a>
+        <a class="@(Model.CurrentSection == "borrows" ? "active" : null)" href="/me/borrows">Phiếu mượn</a>
+        <a class="@(Model.CurrentSection == "reservations" ? "active" : null)" href="/me/reservations">Đặt trước</a>
+        <a class="@(Model.CurrentSection == "fines" ? "active" : null)" href="/me/fines">Khoản phạt</a>
+        <a class="@(Model.CurrentSection == "history" ? "active" : null)" href="/me/history">Lịch sử đọc</a>
+        <a class="@(Model.CurrentSection == "favorites" ? "active" : null)" href="/me/favorites">Yêu thích</a>
+        <a class="@(Model.CurrentSection == "notifications" ? "active" : null)" href="/me/notifications">
+            Thông báo @if (Model.UnreadNotifications > 0) { <span class="nav-count">@Model.UnreadNotifications</span> }
+        </a>
+        <a class="@(Model.CurrentSection == "profile" ? "active" : null)" href="/me/profile">Hồ sơ</a>
+        <a href="/help">Hướng dẫn sử dụng</a>
+    </aside>
+    <section class="portal-content">
+        <div id="ui-message" class="alert" hidden></div>
+
+        @if (Model.CurrentSection == "overview")
+        {
+            <header class="page-intro">
+                <span class="eyebrow">Không gian của bạn</span>
+                <h2>Tổng quan hoạt động</h2>
+                <p>Theo dõi nhanh sách đang mượn, lịch trả, điểm uy tín và tiến trình xử lý phiếu mượn.</p>
+            </header>
+            <div class="bento-metrics">
+                <a class="metric bento-card metric-link" href="/me/borrows">
+                    <span>Sách đang mượn</span>
+                    <strong>@activeBorrowCount</strong>
+                    <small>cuốn sách đang theo dõi</small>
+                </a>
+                <a class="metric bento-card metric-link @(urgentReturnCount > 0 ? "bento-urgent" : null)" href="/me/borrows">
+                    <span>Sách cần trả gấp</span>
+                    <strong>@urgentReturnCount</strong>
+                    <small>@(urgentReturnCount > 0 ? "sắp đến hạn trong 3 ngày hoặc quá hạn" : "không có sách quá hạn")</small>
+                </a>
+                <div class="metric bento-card bento-reputation">
+                    <span>Điểm uy tín độc giả</span>
+                    <strong>@reputationScore<small class="score-cap">/100</small></strong>
+                    <small>chuỗi @Model.Reader.ConsecutiveLoginDays ngày đọc · @Model.UnreadNotifications thông báo mới</small>
+                </div>
+                <a class="metric bento-card metric-link @(outstandingFine > 0 ? "bento-warning" : null)" href="/me/fines">
+                    <span>Tiền phạt</span>
+                    <strong>@outstandingFine.ToString("N0")đ</strong>
+                    <small>@(outstandingFine > 0 ? "khoản phạt cần thanh toán" : "hồ sơ tài chính sạch")</small>
+                </a>
+            </div>
+            <div class="reader-dashboard-grid">
+                <section class="panel">
+                    <div class="panel-head"><div><span class="eyebrow">Lối tắt</span><h2>Bắt đầu nhanh</h2></div></div>
+                    <div class="quick-actions">
+                        <a href="/#catalog"><strong>Tìm sách mới</strong><span>Khám phá kho sách sẵn sàng cho mượn</span></a>
+                        <a href="/me/cart"><strong>Mở giỏ mượn</strong><span>Kiểm tra và gửi phiếu nhiều sách</span></a>
+                        <a href="/me/notifications"><strong>Hộp thông báo (@Model.UnreadNotifications mới)</strong><span>Xem cập nhật duyệt phiếu và nhắc hạn</span></a>
+                        <a href="/support"><strong>Nhờ hỗ trợ</strong><span>Trao đổi trực tiếp với thư viện</span></a>
+                    </div>
+                </section>
+                <section class="panel">
+                    <div class="panel-head"><div><span class="eyebrow">Gần đây</span><h2>Phiếu mượn mới nhất</h2></div><a href="/me/borrows">Xem tất cả</a></div>
+                    @foreach (var item in Model.Borrows.Take(4))
+                    {
+                        var step = StepIndex(item.Status);
+                        var isOverdue = item.Status == BorrowStatus.Overdue;
+                        var isAborted = item.Status is BorrowStatus.Cancelled or BorrowStatus.CanceledDueToTimeout or BorrowStatus.LostOrDamaged;
+                        <div class="loan-card-mini">
+                            <div class="loan-row">
+                                <div><strong>@item.Code</strong><span>@item.TotalBooks cuốn · @item.RequestedAt.ToLocalTime().ToString("dd/MM/yyyy")</span></div>
+                                <span class="status status-@item.Status.ToString().ToLowerInvariant()">@item.Status.ToVietnamese()</span>
+                            </div>
+                            <ol class="borrow-stepper @(isOverdue ? "is-overdue" : isAborted ? "is-aborted" : null)" aria-label="Tiến trình phiếu @item.Code">
+                                <li class="@(step >= 1 ? "done" : null) @(step == 1 ? "current" : null)"><span>Đã gửi yêu cầu</span></li>
+                                <li class="@(step >= 2 ? "done" : null) @(step == 2 ? "current" : null)"><span>Thủ thư đã duyệt</span></li>
+                                <li class="@(step >= 3 ? "done" : null) @(step == 3 ? "current" : null)"><span>Đang đọc</span></li>
+                                <li class="@(step >= 4 ? "done current" : null)"><span>Đã hoàn trả</span></li>
+                            </ol>
+                        </div>
+                    }
+                    @if (Model.Borrows.Count == 0)
+                    {
+                        <div class="empty-action">
+                            <p>Bạn chưa có phiếu mượn nào.</p>
+                            <a class="button button-small" href="/#catalog">Khám phá sách</a>
+                        </div>
+                    }
+                </section>
+            </div>
+        }
+
+        @if (Model.CurrentSection == "cart")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head">
+                    <div><span class="eyebrow">Mượn nhiều sách</span><h2>Giỏ mượn</h2></div>
+                    <button class="button button-small" id="submit-borrow" type="button" disabled>Gửi phiếu mượn</button>
+                </div>
+                <div id="borrow-cart-items" class="empty-inline">
+                    Chưa có sách trong giỏ. Chọn “Thêm vào giỏ mượn” tại trang chi tiết sách.
+                </div>
+                <label class="form-field">Ghi chú
+                    <textarea id="borrow-note" rows="3" placeholder="Ví dụ: mong muốn nhận sách vào buổi chiều"></textarea>
+                </label>
+                <div class="empty-action subtle-action"><a href="/#catalog">Tiếp tục chọn sách</a></div>
+            </section>
+        }
+
+        @if (Model.CurrentSection == "borrows")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head"><div><span class="eyebrow">Mượn và trả</span><h2>Phiếu mượn của tôi</h2></div><span>@Model.Borrows.Count phiếu</span></div>
+                @foreach (var item in Model.Borrows)
+                {
+                    var step = StepIndex(item.Status);
+                    var isOverdue = item.Status == BorrowStatus.Overdue;
+                    var isAborted = item.Status is BorrowStatus.Cancelled or BorrowStatus.CanceledDueToTimeout or BorrowStatus.LostOrDamaged;
+                    <details class="record-row" id="borrow-@item.Id" open>
+                        <summary>
+                            <div><strong>@item.Code</strong><span>@item.TotalBooks cuốn · @item.RequestedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+                            <span class="status status-@item.Status.ToString().ToLowerInvariant()">@item.Status.ToVietnamese()</span>
+                        </summary>
+                        <div class="record-details">
+                            <ol class="borrow-stepper @(isOverdue ? "is-overdue" : isAborted ? "is-aborted" : null)" aria-label="Tiến trình phiếu @item.Code">
+                                <li class="@(step >= 1 ? "done" : null) @(step == 1 ? "current" : null)"><span>Đã gửi yêu cầu</span></li>
+                                <li class="@(step >= 2 ? "done" : null) @(step == 2 ? "current" : null)"><span>Thủ thư đã duyệt</span></li>
+                                <li class="@(step >= 3 ? "done" : null) @(step == 3 ? "current" : null)"><span>Đang đọc</span></li>
+                                <li class="@(step >= 4 ? "done current" : null)"><span>Đã hoàn trả</span></li>
+                            </ol>
+                            @foreach (var detail in item.Details)
+                            {
+                                <div class="detail-line">
+                                    <div>
+                                        <strong>@detail.Book?.Title</strong>
+                                        <span>Đã trả @detail.ReturnedQuantity/@detail.Quantity · Hạn @(detail.DueAt?.ToLocalTime().ToString("dd/MM/yyyy") ?? "chưa xác định")</span>
+                                    </div>
+                                    @if (item.Status == BorrowStatus.Borrowing && detail.ReturnedQuantity < detail.Quantity)
+                                    {
+                                        <form class="inline-form api-form" data-endpoint="/api/v1/borrows/details/@detail.Id/extension" data-method="POST" data-success="Đã gửi yêu cầu gia hạn.">
+                                            <input name="days" type="number" min="1" value="3" aria-label="Số ngày gia hạn" />
+                                            <input name="reason" value="Cần thêm thời gian đọc" aria-label="Lý do gia hạn" />
+                                            <button class="button button-small" type="submit">Xin gia hạn</button>
+                                        </form>
+                                    }
+                                </div>
+                            }
+                            @if (item.Status == BorrowStatus.PendingApproval)
+                            {
+                                <div class="action-row" style="margin-top:.75rem">
+                                    <button class="button button-small danger-button cancel-borrow-btn" data-id="@item.Id" data-code="@item.Code" type="button">Hủy phiếu chờ duyệt</button>
+                                </div>
+                            }
+                        </div>
+                    </details>
+                }
+                @if (Model.Borrows.Count == 0)
+                {
+                    <div class="empty-action"><p>Bạn chưa có phiếu mượn.</p><a class="button button-small" href="/#catalog">Tìm sách để mượn</a></div>
+                }
+            </section>
+        }
+
+        @if (Model.CurrentSection == "reservations")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head"><div><span class="eyebrow">Giữ chỗ</span><h2>Sách đặt trước</h2></div><span>@Model.Reservations.Count mục</span></div>
+                @foreach (var row in Model.Reservations)
+                {
+                    <div class="loan-row" id="reservation-@row.Reservation.Id">
+                        <div><strong><a href="/books/@row.Book.Id">@row.Book.Title</a></strong><span>@row.Reservation.ReservedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+                        <div class="action-row">
+                            <span class="status">@row.Reservation.Status.ToVietnamese()</span>
+                            @if (row.Reservation.Status is ReservationStatus.Waiting or ReservationStatus.Approved)
+                            {
+                                <button class="button button-small danger-button cancel-reservation-btn" data-id="@row.Reservation.Id" data-title="@row.Book.Title" type="button">Hủy đặt trước</button>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (Model.Reservations.Count == 0)
+                {
+                    <div class="empty-action"><p>Bạn chưa đặt trước sách nào.</p><a class="button button-small" href="/#catalog">Khám phá danh mục</a></div>
+                }
+            </section>
+        }
+
+        @if (Model.CurrentSection == "fines")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head"><div><span class="eyebrow">Tài chính</span><h2>Khoản phạt</h2></div><span>@Model.Fines.Count khoản</span></div>
+                @foreach (var fine in Model.Fines)
+                {
+                    var remaining = fine.Amount - fine.PaidAmount;
+                    <div class="fine-row" id="fine-@fine.Id">
+                        <div>
+                            <strong>@fine.Code · @fine.Type.ToVietnamese()</strong>
+                            <span>@fine.Reason</span>
+                            <small>Đã thanh toán @fine.PaidAmount.ToString("N0")đ / @fine.Amount.ToString("N0")đ</small>
+                        </div>
+                        <span class="status">@fine.Status.ToVietnamese()</span>
+                        @if (remaining > 0 && fine.Status is not FineStatus.Waived and not FineStatus.Cancelled)
+                        {
+                            <form class="inline-form api-form payment-form" data-endpoint="/api/v1/fines/@fine.Id/pay" data-method="POST" data-success="Thanh toán mô phỏng đã được ghi nhận.">
+                                <input name="amount" type="number" min="1" max="@remaining" value="@remaining.ToString("0")" aria-label="Số tiền thanh toán" />
+                                <input name="transactionCode" required placeholder="Mã giao dịch mô phỏng" aria-label="Mã giao dịch mô phỏng" />
+                                <button class="button button-small" type="submit">Ghi nhận thanh toán</button>
+                            </form>
+                        }
+                    </div>
+                }
+                @if (Model.Fines.Count == 0)
+                {
+                    <div class="empty-action"><p>Bạn không có khoản phạt. Hãy tiếp tục giữ sách đúng hạn và nguyên vẹn.</p><a href="/me/borrows">Xem phiếu mượn</a></div>
+                }
+            </section>
+        }
+
+        @if (Model.CurrentSection == "history")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head"><div><span class="eyebrow">Tiến độ</span><h2>Lịch sử đọc</h2></div></div>
+                @foreach (var row in Model.ReadingHistory)
+                {
+                    var percent = row.History.TotalPages > 0 ? Math.Clamp(row.History.CurrentPage * 100 / row.History.TotalPages, 0, 100) : 0;
+                    <div class="history-row">
+                        <div><strong><a href="/books/@row.Book.Id">@row.Book.Title</a></strong><span>Trang @row.History.CurrentPage/@row.History.TotalPages · @row.History.LastReadAt.ToLocalTime().ToString("dd/MM/yyyy")</span></div>
+                        <div class="progress" aria-label="Đã đọc @percent phần trăm"><i style="width:@percent%"></i></div>
+                    </div>
+                }
+                @if (Model.ReadingHistory.Count == 0)
+                {
+                    <div class="empty-action"><p>Chưa có lịch sử đọc. Bạn có thể lưu tiến độ tại trang chi tiết sách.</p><a class="button button-small" href="/#catalog">Chọn một cuốn sách</a></div>
+                }
+            </section>
+        }
+
+        @if (Model.CurrentSection == "favorites")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head"><div><span class="eyebrow">Bộ sưu tập</span><h2>Sách yêu thích</h2></div></div>
+                <div class="compact-book-grid">
+                    @foreach (var book in Model.Favorites)
+                    {
+                        <a href="/books/@book.Id"><strong>@book.Title</strong><span>@(book.AvailableQuantity > 0 ? $"Còn {book.AvailableQuantity} cuốn" : "Hiện đã hết sách")</span></a>
+                    }
+                </div>
+                @if (Model.Favorites.Count == 0)
+                {
+                    <div class="empty-action"><p>Danh sách yêu thích đang trống.</p><a class="button button-small" href="/#catalog">Tìm sách yêu thích</a></div>
+                }
+            </section>
+        }
+
+        @if (Model.CurrentSection == "notifications")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head">
+                    <div><span class="eyebrow">Cập nhật</span><h2>Thông báo</h2></div>
+                    <button id="read-all" class="button button-small button-secondary" type="button" disabled="@(!Model.Notifications.Any(x => !x.IsRead))">Đánh dấu tất cả đã đọc</button>
+                </div>
+                @foreach (var notification in Model.Notifications)
+                {
+                    @if (string.IsNullOrWhiteSpace(notification.Link))
+                    {
+                        <div id="notification-@notification.Id" class="notification-row @(notification.IsRead ? "" : "unread")"><div><strong>@notification.Title</strong><p>@notification.Message</p></div><span>@notification.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</span></div>
+                    }
+                    else
+                    {
+                        <a id="notification-@notification.Id" class="notification-row @(notification.IsRead ? "" : "unread")" href="@notification.Link"><div><strong>@notification.Title</strong><p>@notification.Message</p></div><span>@notification.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</span></a>
+                    }
+                }
+                @if (Model.Notifications.Count == 0)
+                {
+                    <div class="empty-action"><p>Chưa có thông báo. Các cập nhật về mượn, trả và hỗ trợ sẽ xuất hiện tại đây.</p><a href="/me">Về tổng quan</a></div>
+                }
+            </section>
+        }
+
+        @if (Model.CurrentSection == "profile")
+        {
+            <section class="panel portal-section">
+                <div class="panel-head">
+                    <div><span class="eyebrow">Thông tin cá nhân</span><h2>Hồ sơ độc giả</h2></div>
+                    <div class="action-row">
+                        <a class="button button-small button-secondary" href="/readers/@Model.Reader.Id">Xem trang hồ sơ công khai</a>
+                        <span class="status">@Model.Reader.Type.ToVietnamese()</span>
+                    </div>
+                </div>
+                <form class="profile-form api-form" data-endpoint="/api/v1/me/profile" data-method="PUT" data-success="Hồ sơ đã được cập nhật.">
+                    <label>Họ và tên<input name="fullName" value="@Model.Reader.FullName" required maxlength="120" autocomplete="name" /></label>
+                    <label>Email<input value="@Model.Reader.Email" disabled /><small>Email đăng nhập không thay đổi tại đây.</small></label>
+                    <label>Số điện thoại<input name="phone" value="@Model.Reader.Phone" autocomplete="tel" /></label>
+                    <label>Địa chỉ<input name="address" value="@Model.Reader.Address" maxlength="300" autocomplete="street-address" /></label>
+                    <label class="span-2">Giới thiệu<textarea name="bio" rows="4" maxlength="500">@Model.Reader.Bio</textarea></label>
+                    <div class="profile-facts span-2">
+                        <span><small>Loại độc giả</small><strong>@Model.Reader.Type.ToVietnamese()</strong></span>
+                        <span><small>Ngày đăng ký</small><strong>@Model.Reader.RegisteredOn.ToString("dd/MM/yyyy")</strong></span>
+                        <span><small>Hạn thẻ</small><strong>@Model.Reader.ExpiresOn.ToString("dd/MM/yyyy")</strong></span>
+                        <span><small>Trạng thái email</small><strong>@(Model.Reader.EmailConfirmed ? "Đã xác thực" : "Chưa xác thực")</strong></span>
+                    </div>
+                    <button class="button span-2" type="submit">Lưu hồ sơ</button>
+                </form>
+            </section>
+
+            <section class="panel portal-section">
+                <div class="panel-head"><div><span class="eyebrow">Bảo mật</span><h2>Đổi mật khẩu</h2></div></div>
+                <form id="change-password-form" class="profile-form api-form" data-endpoint="/api/v1/me/password" data-method="POST" data-success="Đã đổi mật khẩu thành công.">
+                    <label class="span-2">Mật khẩu hiện tại
+                        <span class="password-field">
+                            <input name="currentPassword" type="password" required autocomplete="current-password" />
+                            <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                        </span>
+                    </label>
+                    <label>Mật khẩu mới
+                        <span class="password-field">
+                            <input name="newPassword" type="password" required minlength="8" autocomplete="new-password" />
+                            <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                        </span>
+                    </label>
+                    <label>Xác nhận mật khẩu mới
+                        <span class="password-field">
+                            <input name="confirmPassword" type="password" required minlength="8" autocomplete="new-password" />
+                            <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                        </span>
+                    </label>
+                    <button class="button button-secondary span-2" type="submit">Cập nhật mật khẩu</button>
+                </form>
+            </section>
+
+            @if (Model.AvailableBooksForShowcase is { Count: > 0 })
+            {
+                var selectedSet = (Model.FeaturedBookIds ?? []).ToHashSet();
+                <section class="panel portal-section">
+                    <div class="panel-head"><div><span class="eyebrow">Tủ sách cá nhân</span><h2>Sách nổi bật trên hồ sơ (tối đa 4 cuốn)</h2></div><span id="featured-count">@selectedSet.Count/4 đã chọn</span></div>
+                    <form id="featured-books-form">
+                        <div class="featured-picker-grid">
+                            @foreach (var b in Model.AvailableBooksForShowcase)
+                            {
+                                <label class="check-row featured-pick-item">
+                                    <input type="checkbox" name="featuredBookIds" value="@b.Id" checked="@selectedSet.Contains(b.Id)" />
+                                    <span>@b.Title</span>
+                                </label>
+                            }
+                        </div>
+                        <button class="button button-small" type="submit" style="margin-top:1rem">Lưu tủ sách nổi bật</button>
+                    </form>
+                </section>
+            }
+        }
+    </section>
+</div>
+@section Scripts { <script src="~/js/reader-space.js" asp-append-version="true"></script> }

@@ -1,0 +1,117 @@
+@model BookPageViewModel
+@{
+    ViewData["Title"] = Model.Book.Title;
+    var book = Model.Book;
+    var isServiceable = book.Status is BookStatus.Available or BookStatus.OutOfStock;
+    var publicAvailable = isServiceable ? book.AvailableQuantity : 0;
+}
+<section class="shell book-detail"
+         data-book-id="@book.Id"
+         data-book-title="@book.Title"
+         data-book-author="@book.Author?.Name"
+         data-book-category="@book.Category?.Name"
+         data-book-isbn="@book.Isbn"
+         data-book-cover="@book.CoverImagePath"
+         data-available-quantity="@publicAvailable">
+    <div class="detail-cover-column">
+        <div class="detail-cover">
+            <div class="detail-cover-media">
+                <span aria-hidden="true">@book.Title[..1]</span>
+                @if (!string.IsNullOrWhiteSpace(book.CoverImagePath))
+                {
+                    <img src="@book.CoverImagePath" alt="Bìa @book.Title" data-image-fallback />
+                }
+            </div>
+            <div id="detail-book3d-stage" class="detail-3d-stage" hidden>
+                <canvas aria-label="Mô hình 3D của @book.Title"></canvas>
+            </div>
+        </div>
+        <button id="toggle-detail-3d" class="button button-small button-secondary detail-3d-toggle" type="button" aria-pressed="false">Xem sách 3D</button>
+    </div>
+    <div class="detail-copy">
+        <div class="breadcrumbs"><a href="/">Khám phá</a><span>/</span><span>@book.Category?.Name</span></div>
+        <span class="eyebrow">@book.Category?.Name · @book.PublicationYear</span>
+        <h1>@book.Title</h1>
+        <p class="author">bởi <strong>@book.Author?.Name</strong></p>
+        <div class="rating"><strong>@Model.AverageRating.ToString("0.0")</strong><span>★★★★★</span><small>@Model.RatingCount đánh giá</small></div>
+        <p class="description">@book.Description</p>
+        <dl class="facts">
+            <div><dt>Ngôn ngữ</dt><dd>@book.Language</dd></div>
+            <div><dt>Số trang</dt><dd>@book.PageCount</dd></div>
+            <div><dt>Vị trí</dt><dd>@book.Shelf?.Code</dd></div>
+            <div><dt>ISBN</dt><dd>@book.Isbn</dd></div>
+        </dl>
+        <div id="book-message" class="alert" hidden></div>
+        @if (User.IsInRole("Staff") || User.IsInRole("Administrator"))
+        {
+            <p id="book-actions" class="empty-inline">Các thao tác mượn, yêu thích và đặt trước chỉ dành cho tài khoản độc giả.</p>
+        }
+        else
+        {
+            <div id="book-actions" class="action-row" tabindex="-1">
+                <form id="borrow-cart-add-form" method="post" asp-controller="BorrowCart" asp-action="Add">
+                    <input name="BookId" type="hidden" value="@book.Id" />
+                    <input name="ReturnUrl" type="hidden" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString + "#book-actions")" />
+                    <button class="button" id="add-to-borrow" type="submit" @(!isServiceable || publicAvailable <= 0 ? "disabled" : null)>Thêm vào giỏ mượn</button>
+                </form>
+                <button class="button button-secondary api-button" id="favorite-book" type="button" data-endpoint="/api/v1/books/@book.Id/favorite" data-method="POST">@(Model.IsFavorite ? "♥ Đã yêu thích" : "♡ Yêu thích")</button>
+                <button class="button button-secondary api-button" id="reserve-book" type="button" data-endpoint="/api/v1/reservations" data-method="POST" data-body='{"bookId":@book.Id,"note":"Đặt trước từ trang sách"}' @(!isServiceable ? "disabled" : null)>Đặt trước</button>
+                <button class="button button-secondary" id="share-book" type="button">Chia sẻ</button>
+            </div>
+        }
+        <p class="stock @(publicAvailable > 0 ? "is-available" : "is-out")">
+            <span class="@(publicAvailable > 0 ? "pulse-dot" : null)" aria-hidden="true"></span>
+            @publicAvailable / @book.TotalQuantity bản khả dụng/tổng số · @book.Status.ToVietnamese()
+        </p>
+    </div>
+</section>
+<section class="shell section comments">
+    <div class="section-heading"><div><span class="eyebrow">Cộng đồng</span><h2>Cảm nhận của độc giả</h2></div></div>
+    @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Staff") && !User.IsInRole("Administrator"))
+    {
+        <div class="community-tools">
+            <form id="rating-form" class="panel inline-form">
+                <label>Đánh giá<select name="stars">@for (var star = 1; star <= 5; star++) { <option value="@star" selected="@(Model.CurrentRating == star)">@star sao</option> }</select></label>
+                <label class="grow">Nhận xét<input name="review" maxlength="1000" /></label>
+                <button class="button button-small" type="submit">Lưu đánh giá</button>
+            </form>
+            <form id="reading-form" class="panel inline-form">
+                <label>Trang đang đọc<input name="currentPage" type="number" min="1" max="@Math.Max(1, book.PageCount)" value="@(Model.ReadingProgress?.CurrentPage ?? 1)" /></label>
+                <input name="totalPages" type="hidden" value="@Math.Max(1, book.PageCount)" />
+                <button class="button button-small button-secondary" type="submit">Lưu tiến độ</button>
+            </form>
+            <form id="comment-form" class="panel inline-form">
+                <label class="grow">Bình luận<textarea name="content" maxlength="2000" required rows="2"></textarea></label>
+                <input name="parentId" type="hidden" />
+                <button class="button button-small" type="submit">Đăng bình luận</button>
+            </form>
+        </div>
+    }
+    @if (Model.Comments.Count == 0)
+    {
+        <p class="empty-inline">Chưa có bình luận cho sách này.</p>
+    }
+    @foreach (var row in Model.Comments)
+    {
+        <div class="comment" id="comment-@row.Comment.Id">
+            <div class="avatar">@row.Reader.FullName[..1].ToUpperInvariant()</div>
+            <div class="comment-body">
+                <strong><a href="/readers/@row.Reader.Id">@row.Reader.FullName</a></strong>
+                <span> · @(row.Comment.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy"))</span>
+                <p>@row.Comment.Content</p>
+                <div class="comment-actions">
+                    <button class="comment-like-btn" type="button" data-comment-id="@row.Comment.Id">♡ <span>@row.LikeCount</span></button>
+                    @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Staff") && !User.IsInRole("Administrator"))
+                    {
+                        <button class="comment-report-btn" type="button" data-comment-id="@row.Comment.Id">Báo cáo vi phạm</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</section>
+@section Scripts {
+    <script src="~/js/borrow-cart.js" asp-append-version="true"></script>
+    <script src="~/js/book-page.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/catalog-effects.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LibraryHub.Domain/LibraryHub.Domain.csproj" />
+    <Project Path="src/LibraryHub.Application/LibraryHub.Application.csproj" />
+    <Project Path="src/LibraryHub.Infrastructure/LibraryHub.Infrastructure.csproj" />
+    <Project Path="src/LibraryHub.Web/LibraryHub.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LibraryHub.IntegrationTests/LibraryHub.IntegrationTests.csproj" />
+    <Project Path="tests/LibraryHub.UnitTests/LibraryHub.UnitTests.csproj" />
+  </Folder>
+</Solution>

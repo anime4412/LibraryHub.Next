@@ -1,0 +1,104 @@
+@model ReaderPublicProfileViewModel
+@{
+    ViewData["Title"] = $"Hồ sơ độc giả · {Model.Reader.FullName}";
+}
+<section class="portal-hero">
+    <div class="shell profile-hero">
+        <div class="profile-avatar">
+            <span aria-hidden="true">@Model.Reader.FullName[..1].ToUpperInvariant()</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Reader.AvatarPath))
+            {
+                <img src="@Model.Reader.AvatarPath" alt="@Model.Reader.FullName" data-image-fallback />
+            }
+        </div>
+        <div class="profile-copy">
+            <span class="eyebrow">Độc giả @Model.Reader.ReaderCode · Chuỗi @Model.Reader.ConsecutiveLoginDays ngày</span>
+            <h1>@Model.Reader.FullName</h1>
+            <p>@(Model.Reader.Bio ?? "Thành viên cộng đồng đọc sách LibraryHub.")</p>
+        </div>
+    </div>
+</section>
+
+<section class="shell section">
+    <div id="profile-public-msg" class="alert" hidden></div>
+    <div class="section-heading">
+        <div><span class="eyebrow">Tủ sách cá nhân</span><h2>Tủ sách nổi bật (@Model.FeaturedBooks.Count/4)</h2></div>
+    </div>
+    @if (Model.FeaturedBooks.Count == 0)
+    {
+        <p class="empty-inline">Độc giả chưa chọn sách nổi bật.</p>
+    }
+    else
+    {
+        <div class="book-grid book-grid-compact">
+            @foreach (var book in Model.FeaturedBooks)
+            {
+                <a class="book-card" href="/books/@book.Id">
+                    <div class="cover">
+                        <span>@book.Title[..1]</span>
+                        @if (!string.IsNullOrWhiteSpace(book.CoverImagePath))
+                        {
+                            <img src="@book.CoverImagePath" alt="Bìa @book.Title" loading="lazy" data-image-fallback />
+                        }
+                    </div>
+                    <div class="pp-book-info">
+                        <h3>@book.Title</h3>
+                        <p class="pp-book-author">@book.Author?.Name</p>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</section>
+
+<section class="shell section comments">
+    <div class="section-heading">
+        <div><span class="eyebrow">Lưu bút độc giả</span><h2>Lời nhắn trên tường hồ sơ</h2></div>
+    </div>
+    @if (Model.CanPost)
+    {
+        <form id="profile-comment-form" class="panel inline-form" data-owner-id="@Model.Reader.Id">
+            <label class="grow">Viết lời nhắn<textarea name="content" rows="2" maxlength="1000" required placeholder="Gửi lời chào hoặc gợi ý sách tới @Model.Reader.FullName..."></textarea></label>
+            <button class="button button-small" type="submit">Gửi lời nhắn</button>
+        </form>
+    }
+    @if (Model.Comments.Count == 0)
+    {
+        <p class="empty-inline">Chưa có lời nhắn nào trên hồ sơ này.</p>
+    }
+    @foreach (var row in Model.Comments)
+    {
+        <div class="comment">
+            <div class="avatar">@row.Author.FullName[..1].ToUpperInvariant()</div>
+            <div>
+                <strong><a href="/readers/@row.Author.Id">@row.Author.FullName</a></strong>
+                <span> · @row.Comment.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                <p>@row.Comment.Content</p>
+            </div>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script>
+      document.querySelector("#profile-comment-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const btn = form.querySelector("[type=submit]");
+        const msg = document.querySelector("#profile-public-msg");
+        if (!LibraryHub.setBusy(btn, true)) return;
+        try {
+          await LibraryHub.request(`/api/v1/readers/${form.dataset.ownerId}/profile-comments`, {
+            method: "POST",
+            body: JSON.stringify(LibraryHub.formBody(form))
+          });
+          LibraryHub.message(msg, "Đã đăng lời nhắn.");
+          setTimeout(() => location.reload(), 550);
+        } catch (err) {
+          LibraryHub.message(msg, err.message, true);
+        } finally {
+          LibraryHub.setBusy(btn, false);
+        }
+      });
+    </script>
+}

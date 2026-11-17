@@ -1,0 +1,206 @@
+@model AdminCirculationViewModel
+@{ ViewData["Title"] = "Mượn, trả & phạt"; ViewData["AdminSection"] = "circulation"; }
+<div class="admin-shell">
+    <partial name="_AdminNav" />
+    <section class="admin-main">
+        <div class="admin-heading">
+            <div><span class="eyebrow">Vận hành</span><h1>Mượn, trả & phạt</h1><p>Duyệt phiếu, giao sách, lập phiếu tại quầy, gia hạn và ghi nhận tình trạng trả theo từng cuốn.</p></div>
+            <div class="action-row">
+                <a class="button button-small button-secondary" href="/admin/exports/borrows.csv">Xuất phiếu CSV</a>
+                <a class="button button-small button-secondary" href="/admin/exports/fines.csv">Xuất phạt CSV</a>
+                <button class="button button-small" id="toggle-walkin-btn" type="button">+ Lập phiếu tại quầy</button>
+            </div>
+        </div>
+        <div id="admin-message" class="alert" hidden></div>
+        @if (Model.WalkInReaders is { Count: > 0 } && Model.WalkInBooks is { Count: > 0 })
+        {
+            <form id="walkin-form" class="panel admin-form form-grid portal-section" hidden>
+                <div class="panel-head span-2"><h2>Lập phiếu mượn tại quầy</h2><button class="icon-button" id="close-walkin-btn" type="button" aria-label="Đóng">×</button></div>
+                <label>Độc giả
+                    <select name="readerId" required>
+                        @foreach (var reader in Model.WalkInReaders)
+                        {
+                            <option value="@reader.Id">@reader.FullName (@reader.ReaderCode)</option>
+                        }
+                    </select>
+                </label>
+                <label>Sách mượn
+                    <select name="bookId" required>
+                        @foreach (var book in Model.WalkInBooks)
+                        {
+                            <option value="@book.Id">@book.Title (Còn @book.AvailableQuantity)</option>
+                        }
+                    </select>
+                </label>
+                <label>Số lượng<input name="quantity" type="number" min="1" max="5" value="1" required /></label>
+                <label>Ghi chú<input name="note" placeholder="Nhận trực tiếp tại quầy" /></label>
+                <label class="check-row span-2"><input name="deliverImmediately" type="checkbox" checked /> Giao sách ngay tại quầy (chuyển sang Đang mượn &amp; trừ tồn kho)</label>
+                <div class="span-2 action-row"><button class="button button-small" type="submit">Tạo phiếu mượn</button></div>
+            </form>
+        }
+        <form class="panel filter-form" method="get">
+            <label>Tìm kiếm<input name="q" value="@Model.Query" placeholder="Mã phiếu, tên độc giả hoặc tên sách" /></label>
+            <label>Phiếu mượn<select name="borrowStatus">
+                <option value="">Đang xử lý / hoạt động</option>
+                @foreach (var status in Enum.GetValues<BorrowStatus>())
+                {
+                    if (Model.BorrowStatus == status) { <option value="@((int)status)" selected>@status.ToVietnamese()</option> }
+                    else { <option value="@((int)status)">@status.ToVietnamese()</option> }
+                }
+            </select></label>
+            <label>Đặt trước<select name="reservationStatus">
+                <option value="">Đang xử lý / giữ chỗ</option>
+                @foreach (var status in Enum.GetValues<ReservationStatus>())
+                {
+                    if (Model.ReservationStatus == status) { <option value="@((int)status)" selected>@status.ToVietnamese()</option> }
+                    else { <option value="@((int)status)">@status.ToVietnamese()</option> }
+                }
+            </select></label>
+            <label>Khoản phạt<select name="fineStatus" asp-for="FineStatus" asp-items="Html.GetEnumSelectList<FineStatus>()"><option value="">Tất cả trạng thái</option></select></label>
+            <div class="filter-actions">
+                <button class="button button-small" type="submit">Lọc dữ liệu</button>
+                <a class="button button-small button-secondary" href="/admin/circulation">Đặt lại</a>
+            </div>
+        </form>
+        <div id="borrows" class="panel portal-section">
+            <div class="panel-head"><h2>Phiếu mượn</h2><span>@Model.Borrows.Total phiếu</span></div>
+            @foreach (var slip in Model.Borrows.Items)
+            {
+                <details class="record-row admin-record" data-slip-id="@slip.Id" @(slip.Status is BorrowStatus.PendingApproval or BorrowStatus.ApprovedAwaitingPickup or BorrowStatus.PendingExtension ? "open" : null)>
+                    <summary>
+                        <div>
+                            <strong>@slip.Code · @slip.Reader?.FullName</strong>
+                            <span>@slip.TotalBooks cuốn · Tạo @(slip.RequestedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))@(slip.DueAt.HasValue ? $" · Hạn trả {slip.DueAt.Value.ToLocalTime():dd/MM/yyyy}" : slip.PickupExpiresAt.HasValue ? $" · Nhận trước {slip.PickupExpiresAt.Value.ToLocalTime():dd/MM/yyyy}" : "")</span>
+                        </div>
+                        <span class="status status-@slip.Status.ToString().ToLowerInvariant()">@slip.Status.ToVietnamese()</span>
+                    </summary>
+                    <div class="record-details">
+                        @if (!string.IsNullOrWhiteSpace(slip.Note))
+                        {
+                            <p class="slip-note"><strong>Ghi chú:</strong> @slip.Note</p>
+                        }
+                        @foreach(var detail in slip.Details)
+                        {
+                            <div class="detail-line">
+                                <div>
+                                    <strong>@detail.Book?.Title</strong>
+                                    <span>Còn phải trả @(detail.Quantity - detail.ReturnedQuantity)/@detail.Quantity · giá @detail.BorrowPrice.ToString("N0")đ · hạn @(detail.DueAt?.ToLocalTime().ToString("dd/MM/yyyy") ?? "chưa giao")</span>
+                                    @if (slip.Status == BorrowStatus.PendingExtension && detail.RequestedExtensionDays.HasValue)
+                                    {
+                                        <small class="extension-reason">Xin gia hạn +@detail.RequestedExtensionDays ngày: @(detail.ExtensionReason ?? "Không có lý do")</small>
+                                    }
+                                </div>
+                                @if (slip.Status == BorrowStatus.PendingExtension && detail.RequestedExtensionDays.HasValue)
+                                {
+                                    <div class="action-row"><button class="button button-small circulation-action" data-endpoint="/api/v1/borrows/details/@detail.Id/extension/decision" data-body='{"approve":true}' type="button">Duyệt @detail.RequestedExtensionDays ngày</button><button class="button button-small button-secondary circulation-action" data-endpoint="/api/v1/borrows/details/@detail.Id/extension/decision" data-body='{"approve":false}' type="button">Từ chối</button></div>
+                                }
+                            </div>
+                        }
+                        <div class="action-row circulation-actions">
+                            @if (slip.Status == BorrowStatus.PendingApproval)
+                            {
+                                <button class="button button-small circulation-action" data-endpoint="/api/v1/borrows/@slip.Id/approve" type="button">Duyệt phiếu</button>
+                                <button class="button button-small danger-button circulation-action" data-endpoint="/api/v1/borrows/@slip.Id/reject" data-body='{"reason":"Không đáp ứng điều kiện mượn"}' type="button">Từ chối</button>
+                            }
+                            @if (slip.Status == BorrowStatus.ApprovedAwaitingPickup) { <button class="button button-small circulation-action" data-endpoint="/api/v1/borrows/@slip.Id/deliver" type="button">Giao sách</button> }
+                            @if (slip.Status is BorrowStatus.Borrowing or BorrowStatus.Overdue)
+                            {
+                                <button class="button button-small open-return" type="button">Ghi nhận trả sách</button>
+                            }
+                            <a class="button button-small button-secondary" href="/admin/circulation/print/@slip.Id" target="_blank" rel="noopener">In phiếu</a>
+                        </div>
+                        @if (slip.Status is BorrowStatus.Borrowing or BorrowStatus.Overdue)
+                        {
+                            <form class="admin-form return-form" hidden data-endpoint="/api/v1/borrows/@slip.Id/returns">
+                                <h3>Tình trạng từng cuốn</h3>
+                                @foreach(var detail in slip.Details.Where(x => x.ReturnedQuantity < x.Quantity))
+                                {
+                                    <div class="return-line" data-detail-id="@detail.Id">
+                                        <div>
+                                            <strong>@detail.Book?.Title</strong>
+                                            <small class="return-hint">Nguyên vẹn: hoàn kho, không phạt hư hỏng.</small>
+                                        </div>
+                                        <label>Số lượng<input class="return-quantity" type="number" min="1" max="@(detail.Quantity-detail.ReturnedQuantity)" value="@(detail.Quantity-detail.ReturnedQuantity)" required /></label>
+                                        <label>Tình trạng<select class="return-condition" asp-items="Html.GetEnumSelectList<ItemCondition>()"></select></label>
+                                        <label>Hư hỏng %<input class="return-damage" type="number" min="0" max="100" value="0" disabled /></label>
+                                        <label>Ghi chú<input class="return-note" placeholder="Tình trạng sách khi nhận" /></label>
+                                    </div>
+                                }
+                                <div class="action-row"><button class="button button-small" type="submit">Xác nhận trả</button><button class="button button-small button-secondary cancel-return" type="button">Hủy</button></div>
+                            </form>
+                        }
+                    </div>
+                </details>
+            }
+            @if (Model.Borrows.Items.Count == 0) { <p class="empty-inline">Không tìm thấy phiếu mượn đang xử lý phù hợp với bộ lọc hiện tại.</p> }
+            @await Html.PartialAsync("_Pager", new PagerModel(Model.Borrows.Page, Model.Borrows.TotalPages, Context.Request.QueryString.Value ?? "", "borrowPage"))
+        </div>
+        <div class="admin-grid circulation-secondary-grid">
+            <div id="reservations" class="panel portal-section"><div class="panel-head"><h2>Đặt trước</h2><span>@Model.Reservations.Total</span></div>
+            @foreach (var row in Model.Reservations.Items)
+            {
+                var transitions = ReservationPolicy.AllowedTransitions(row.Reservation.Status);
+                var resReader = Model.ReadersById is not null && Model.ReadersById.TryGetValue(row.Reservation.ReaderId, out var rInfo) ? rInfo : null;
+                <div class="loan-row">
+                    <div>
+                        <strong>@row.Book.Title</strong>
+                        <span>@(resReader is not null ? $"{resReader.FullName} ({resReader.ReaderCode}) · " : "")@(row.Reservation.ReservedAt.ToLocalTime().ToString("dd/MM")) · #@row.Reservation.Id</span>
+                        @if (row.Reservation.Status == ReservationStatus.ReadyToBorrow && row.Reservation.ExpiresAt.HasValue)
+                        {
+                            <small>Giữ đến @row.Reservation.ExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                        }
+                    </div>
+                    <div class="action-row reservation-controls">
+                        <select class="reservation-status" data-id="@row.Reservation.Id" data-current="@((int)row.Reservation.Status)" aria-label="Chuyển trạng thái đặt trước @row.Reservation.Id">
+                            <option value="@((int)row.Reservation.Status)" selected>@row.Reservation.Status.ToVietnamese()</option>
+                            @foreach (var status in transitions)
+                            {
+                                <option value="@((int)status)">@status.ToVietnamese()</option>
+                            }
+                        </select>
+                        @if (row.Reservation.Status == ReservationStatus.ReadyToBorrow)
+                        {
+                            <button class="button button-small circulation-action" data-endpoint="/api/v1/reservations/@row.Reservation.Id/deliver" type="button">Giao sách</button>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.Reservations.Items.Count == 0) { <p class="empty-inline">Không tìm thấy lượt đặt trước đang xử lý phù hợp với bộ lọc hiện tại.</p> }
+            @await Html.PartialAsync("_Pager", new PagerModel(Model.Reservations.Page, Model.Reservations.TotalPages, Context.Request.QueryString.Value ?? "", "reservationPage"))</div>
+            <div id="fines" class="panel portal-section"><div class="panel-head"><h2>Khoản phạt</h2><span>@Model.Fines.Total</span></div>
+            @foreach(var fine in Model.Fines.Items)
+            {
+                var fineReader = Model.ReadersById is not null && Model.ReadersById.TryGetValue(fine.ReaderId, out var fReader) ? fReader : null;
+                var remaining = Math.Max(0m, fine.Amount - fine.PaidAmount);
+                var canSettle = remaining > 0 && fine.Status is not FineStatus.Paid and not FineStatus.Waived and not FineStatus.Cancelled;
+                <div class="fine-row admin-fine-row" data-fine-id="@fine.Id">
+                    <div>
+                        <strong>@fine.Code · @fine.Type.ToVietnamese()</strong>
+                        @if (fineReader is not null)
+                        {
+                            <span>Độc giả: @fineReader.FullName (@fineReader.ReaderCode)</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(fine.Reason))
+                        {
+                            <span>@fine.Reason</span>
+                        }
+                        <small>Tổng @fine.Amount.ToString("N0")đ · Đã thu @fine.PaidAmount.ToString("N0")đ · Còn nợ @remaining.ToString("N0")đ</small>
+                    </div>
+                    <div class="fine-actions">
+                        <span class="status status-fine-@fine.Status.ToString().ToLowerInvariant()">@fine.Status.ToVietnamese()</span>
+                        @if (canSettle)
+                        {
+                            <div class="action-row">
+                                <button class="button button-small fine-collect" data-id="@fine.Id" data-code="@fine.Code" data-remaining="@remaining.ToString("0")" type="button">Thu đủ tại quầy</button>
+                                <button class="button button-small button-secondary fine-waive" data-id="@fine.Id" data-code="@fine.Code" type="button">Miễn phạt</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.Fines.Items.Count == 0) { <p class="empty-inline">Không tìm thấy khoản phạt phù hợp với bộ lọc hiện tại.</p> }
+            @await Html.PartialAsync("_Pager", new PagerModel(Model.Fines.Page, Model.Fines.TotalPages, Context.Request.QueryString.Value ?? "", "finePage"))</div>
+        </div>
+    </section>
+</div>
+@section Scripts { <script src="~/js/admin-circulation.js" asp-append-version="true"></script> }

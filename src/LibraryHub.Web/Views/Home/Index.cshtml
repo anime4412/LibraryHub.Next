@@ -1,0 +1,511 @@
+@using System.Text.Json
+@using Microsoft.EntityFrameworkCore
+@inject LibraryHub.Infrastructure.LibraryDbContext ArchiveDb
+@model CatalogPage
+@{
+    ViewData["Title"] = "Khám phá";
+    var isInternalUser = User.IsInRole("Staff") || User.IsInRole("Administrator");
+    var shelfBooks = await ArchiveDb.Books.AsNoTracking()
+        .Include(x => x.Author)
+        .Include(x => x.Category)
+        .Where(x => !x.IsDeleted && (x.Status == BookStatus.Available || x.Status == BookStatus.OutOfStock))
+        .OrderBy(x => x.PublicationYear)
+        .ThenBy(x => x.Id)
+        .Select(x => new
+        {
+            id = x.Id,
+            title = x.Title,
+            author = x.Author != null ? x.Author.Name : "Thư viện LibraryHub",
+            category = x.Category != null ? x.Category.Name : "Tổng hợp",
+            year = x.PublicationYear,
+            pages = x.PageCount > 0 ? x.PageCount : 200,
+            isbn = x.Isbn,
+            available = x.AvailableQuantity,
+            description = x.Description ?? "",
+            cover = x.CoverImagePath ?? ""
+        })
+        .ToListAsync();
+    var shelfBooksJson = JsonSerializer.Serialize(shelfBooks);
+
+    string CategoryIconSvg(int index) => (index % 8) switch
+    {
+        0 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18M3 12h18\"/></svg>",
+        1 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20\"/></svg>",
+        2 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"m8 9 3 3-3 3M13 15h3\"/><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/></svg>",
+        3 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4\"/></svg>",
+        4 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.65-7 10-7 10Z\"/></svg>",
+        5 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6\"/></svg>",
+        6 => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><polygon points=\"12 2 21 7 21 17 12 22 3 17 3 7 12 2\"/><path d=\"M12 22V12M21 7l-9 5-9-5\"/></svg>",
+        _ => "<svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M2 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4a2 2 0 0 1-2-2V5Z\"/><path d=\"M22 5a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6a2 2 0 0 0 2-2V5Z\"/></svg>"
+    };
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Noto+Sans+JP:wght@500;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="~/css/curved-shelf.css" asp-append-version="true" />
+
+<!-- FIRST BANNER: Curved 3D Archive Shelf Hero (Real LibraryHub Books) -->
+<section class="vhs-archive-hero" id="vhsArchiveHero" aria-label="Kệ sách 3D tương tác LibraryHub">
+    <div class="vhs-grain" aria-hidden="true"></div>
+
+    <!-- Top Archive Bar -->
+    <div class="vhs-topbar">
+        <div class="vhs-topbar-left">
+            <a class="vhs-lbl" href="/">LIBRARYHUB</a>
+            <span class="vhs-topbar-line" aria-hidden="true"></span>
+            <span class="vhs-lbl">BOOK ARCHIVE</span>
+        </div>
+        <div class="vhs-topbar-right">
+            <a class="vhs-lbl" href="#catalog">KHO SÁCH</a>
+            <a class="vhs-lbl" href="#categories">DANH MỤC</a>
+            <a class="vhs-lbl" href="/help">TRỢ GIÚP</a>
+        </div>
+    </div>
+
+    <!-- Giant Halftone Vertical Kanji -->
+    <div class="vhs-kanji vhs-kanji-left" aria-hidden="true">書架</div>
+    <div class="vhs-kanji vhs-kanji-right" aria-hidden="true">の記憶</div>
+
+    <!-- Soft Floor Shadow -->
+    <div class="vhs-floor-shadow" aria-hidden="true"></div>
+
+    <!-- Curved 3D Arc Shelf -->
+    <div class="vhs-shelf-viewport" id="vhsShelfViewport">
+        <div class="vhs-probe" id="vhsHeightProbe" aria-hidden="true"></div>
+        <div class="vhs-stage" id="vhs3DStage"></div>
+    </div>
+
+    <!-- Floating Play / Open Ring -->
+    <button type="button" class="vhs-play-ring" id="vhsPlayRing" aria-label="Mở chi tiết sách đang chọn" title="Xem chi tiết">
+        <svg viewBox="0 0 12 14" width="12" height="14" fill="currentColor" aria-hidden="true">
+            <path d="M1 1l10 6-10 6V1z" />
+        </svg>
+    </button>
+
+    <!-- Mask-Slide Caption & Cobalt Navigation Arrows -->
+    <div class="vhs-caption" id="vhsCaption">
+        <div class="vhs-mask-wrap" id="vhsTitleWrap">
+            <span class="vhs-mask-item vhs-title">@(shelfBooks.FirstOrDefault()?.title ?? "LibraryHub")</span>
+        </div>
+        <div class="vhs-mask-wrap" id="vhsSubWrap">
+            <span class="vhs-mask-item vhs-subtitle vhs-lbl">@(shelfBooks.FirstOrDefault()?.author ?? "ARCHIVE") / @(shelfBooks.FirstOrDefault()?.category ?? "SÁCH")</span>
+        </div>
+        <div class="vhs-rule" aria-hidden="true"></div>
+        <div class="vhs-mask-wrap" id="vhsYearWrap">
+            <span class="vhs-mask-item vhs-year-genre">@(shelfBooks.FirstOrDefault()?.year ?? 2026) — @(shelfBooks.FirstOrDefault()?.category ?? "THƯ VIỆN")</span>
+        </div>
+
+        <button type="button" class="vhs-arrow vhs-arrow-prev" id="vhsArrowPrev" aria-label="Sách trước">
+            <svg viewBox="0 0 24 12" width="24" height="12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                <path d="M6 1L1 6l5 5M1 6h23" />
+            </svg>
+        </button>
+        <button type="button" class="vhs-arrow vhs-arrow-next" id="vhsArrowNext" aria-label="Sách tiếp theo">
+            <svg viewBox="0 0 24 12" width="24" height="12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                <path d="M18 1l5 5-5 5M23 6H0" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Bottom Timeline Ruler -->
+    <div class="vhs-timeline" id="vhsTimeline" aria-label="Thước thời gian sách theo năm xuất bản">
+        <div class="vhs-timeline-line"></div>
+        <div class="vhs-timeline-dot" id="vhsTimelineDot"></div>
+        <div class="vhs-timeline-ticks" id="vhsTimelineTicks"></div>
+    </div>
+
+    <!-- Archive Footer Strip -->
+    <div class="vhs-hero-footer">
+        <span class="vhs-lbl">LIBRARYHUB · KỆ SÁCH 3D (@shelfBooks.Count CUỐN)</span>
+        <div class="vhs-hero-footer-right">
+            <span class="vhs-lbl" id="vhsBookCounter">1 / @Math.Max(1, shelfBooks.Count)</span>
+            <span class="vhs-lbl">· KÉO HOẶC BẤM MŨI TÊN ĐỂ DUYỆT</span>
+        </div>
+    </div>
+
+    <!-- Custom Interactive Cursor inside Hero -->
+    <div class="vhs-cursor" id="vhsCursor" aria-hidden="true">
+        <div class="vhs-cursor-ring"></div>
+        <div class="vhs-cursor-dot"></div>
+        <div class="vhs-cursor-label">
+            <span>OPEN</span>
+            <span class="vhs-cursor-sub">開く</span>
+        </div>
+    </div>
+
+    <!-- Full-Screen Ink-Bleed Detail Sheet -->
+    <div class="vhs-detail" id="vhsDetailSheet" aria-hidden="true">
+        <div class="vhs-detail-header">
+            <button type="button" class="vhs-box vhs-lbl vhs-detail-close" id="vhsDetailClose">CLOSE / 閉じる</button>
+            <div class="vhs-lbl vhs-detail-brand">LIBRARYHUB · CHI TIẾT TÁC PHẨM</div>
+        </div>
+        <div class="vhs-detail-body">
+            <div class="vhs-detail-info">
+                <div class="vhs-detail-mask"><span class="vhs-detail-anim vhs-detail-sub vhs-lbl" id="vhsDetailSub"></span></div>
+                <div class="vhs-detail-mask"><h2 class="vhs-detail-anim vhs-detail-title" id="vhsDetailTitle"></h2></div>
+                <div class="vhs-detail-mask"><div class="vhs-detail-anim vhs-detail-meta" id="vhsDetailMeta"></div></div>
+                <div class="vhs-detail-mask"><p class="vhs-detail-anim vhs-detail-synopsis" id="vhsDetailSynopsis"></p></div>
+                <div class="vhs-detail-mask"><div class="vhs-detail-anim vhs-detail-credit" id="vhsDetailCredit"></div></div>
+                <div class="vhs-detail-mask">
+                    <div class="vhs-detail-anim vhs-detail-actions">
+                        <a href="#" id="vhsDetailLink" class="vhs-detail-watch-btn vhs-lbl">XEM CHI TIẾT SÁCH</a>
+                        @if (!isInternalUser)
+                        {
+                            <button type="button" id="vhsDetailBorrowBtn" class="vhs-detail-borrow-btn vhs-lbl">+ THÊM VÀO GIỎ MƯỢN</button>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="vhs-detail-poster-col">
+                <svg class="vhs-poster-svg" viewBox="0 0 474 720" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <filter id="vhsInkFilter" x="-20%" y="-20%" width="140%" height="140%">
+                            <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="3" seed="7" result="noise" />
+                            <feDisplacementMap in="SourceGraphic" in2="noise" scale="120" xChannelSelector="R" yChannelSelector="G" />
+                        </filter>
+                        <mask id="vhsInkMask">
+                            <rect width="474" height="720" fill="black" />
+                            <g filter="url(#vhsInkFilter)">
+                                <circle id="vhsInkBlob0" cx="150" cy="330" r="0" fill="white" />
+                                <circle id="vhsInkBlob1" cx="340" cy="600" r="0" fill="white" />
+                                <circle id="vhsInkBlob2" cx="250" cy="120" r="0" fill="white" />
+                                <circle id="vhsInkBlob3" cx="90" cy="680" r="0" fill="white" />
+                                <circle id="vhsInkBlob4" cx="400" cy="250" r="0" fill="white" />
+                                <circle id="vhsInkBlob5" cx="260" cy="700" r="0" fill="white" />
+                                <circle id="vhsInkBlob6" cx="230" cy="470" r="0" fill="white" />
+                            </g>
+                        </mask>
+                        <clipPath id="vhsPosterClip">
+                            <rect width="474" height="720" rx="4" ry="4" />
+                        </clipPath>
+                    </defs>
+                    <g clip-path="url(#vhsPosterClip)">
+                        <image id="vhsPosterImg" x="0" y="0" width="474" height="720" mask="url(#vhsInkMask)" preserveAspectRatio="xMidYMid slice" />
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 4-PILLAR TRUST BAR (Page & Pine Style) -->
+<div class="shell pp-pillars-wrap">
+    <div class="pp-pillars-bar">
+        <div class="pp-pillar-item">
+            <span class="pp-pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            </span>
+            <div>
+                <strong>MƯỢN SÁCH MIỄN PHÍ</strong>
+                <span>@Model.BorrowPeriodDays ngày mượn tiêu chuẩn</span>
+            </div>
+        </div>
+        <div class="pp-pillar-item">
+            <span class="pp-pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg>
+            </span>
+            <div>
+                <strong>GIA HẠN DỄ DÀNG</strong>
+                <span>Thao tác trực tuyến tại /me</span>
+            </div>
+        </div>
+        <div class="pp-pillar-item">
+            <span class="pp-pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <div>
+                <strong>QUẢN LÝ MINH BẠCH</strong>
+                <span>Theo dõi phiếu &amp; lịch trả</span>
+            </div>
+        </div>
+        <div class="pp-pillar-item">
+            <span class="pp-pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </span>
+            <div>
+                <strong>ĐẶT TRƯỚC ƯU TIÊN</strong>
+                <span>Thông báo khi có bản khả dụng</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BROWSE BY CATEGORY: Dark Scrim Editorial Portrait Tiles -->
+@if (Model.Categories.Count > 0)
+{
+    <section id="categories" class="shell section pp-section">
+        <div class="section-heading pp-section-head">
+            <div>
+                <span class="eyebrow">KHÁM PHÁ THEO CHỦ ĐỀ</span>
+                <h2>Tìm Cuốn Sách Tiếp Theo</h2>
+            </div>
+            <a class="pp-view-all" href="#catalog">XEM TẤT CẢ SÁCH <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="category-grid">
+            @for (var idx = 0; idx < Model.Categories.Count; idx++)
+            {
+                var category = Model.Categories[idx];
+                <a class="category-card pp-cat-overlay" href="/?q=@Uri.EscapeDataString(category.Name)#catalog">
+                    <div class="category-thumb">
+                        <span class="category-monogram" aria-hidden="true">@category.Name[..Math.Min(1, category.Name.Length)]</span>
+                        @if (!string.IsNullOrWhiteSpace(category.ImagePath))
+                        {
+                            <img src="@category.ImagePath" alt="Minh họa danh mục @category.Name" loading="lazy" data-image-fallback />
+                        }
+                        <div class="pp-cat-scrim" aria-hidden="true"></div>
+                        <span class="pp-cat-icon-circle" aria-hidden="true">@Html.Raw(CategoryIconSvg(idx))</span>
+                    </div>
+                    <div class="category-card-body">
+                        <strong>@category.Name</strong>
+                        <span>@category.BookCount đầu sách</span>
+                    </div>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<!-- BESTSELLERS / FEATURED CATALOG GRID -->
+<div id="catalog-antiforgery" hidden>@Html.AntiForgeryToken()</div>
+
+<section id="catalog" class="shell section pp-section">
+    <div class="section-heading pp-section-head">
+        <div>
+            <span class="eyebrow">TỦ SÁCH NỔI BẬT</span>
+            <h2>@(string.IsNullOrWhiteSpace(Model.Query) ? "Độc Giả Yêu Thích Nhất" : $"Kết quả cho “{Model.Query}”")</h2>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.Query))
+        {
+            <a class="pp-view-all" href="/#catalog">XEM TOÀN BỘ SÁCH <span aria-hidden="true">→</span></a>
+        }
+        else
+        {
+            <a class="pp-view-all" href="#new-arrivals">XEM SÁCH MỚI <span aria-hidden="true">→</span></a>
+        }
+    </div>
+
+    <div class="catalog-toolbar">
+        <div class="hero-search-shell">
+            <form class="search hero-search" method="get" action="/#catalog">
+                <span class="search-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
+                <input id="hero-search-input" name="q" value="@Model.Query" autocomplete="off" placeholder="Tìm thông minh (không dấu, tên sách, tác giả, ISBN)…" aria-label="Tìm sách" />
+                <kbd class="search-kbd" aria-hidden="true">⌘K</kbd>
+                <button type="submit">Tìm kiếm</button>
+            </form>
+            <div id="hero-smart-dropdown" class="smart-dropdown" hidden></div>
+        </div>
+        <div class="hero-stats">
+            <span><strong>@Model.BookCount</strong> đầu sách</span>
+            <span><strong>@Model.ReaderCount</strong> độc giả</span>
+            <span><strong>@Model.BorrowPeriodDays ngày</strong> mượn mặc định</span>
+        </div>
+        @if (Model.Categories.Count > 0)
+        {
+            <div class="hero-quick-tags" aria-label="Tìm nhanh theo danh mục">
+                <span>Gợi ý nhanh:</span>
+                @foreach (var category in Model.Categories.Take(6))
+                {
+                    <a class="quick-chip @(string.Equals(Model.Query, category.Name, StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/?q=@Uri.EscapeDataString(category.Name)#catalog">@category.Name</a>
+                }
+            </div>
+        }
+    </div>
+
+    @if (Model.Books.Count == 0)
+    {
+        <div class="panel empty-panel">
+            <h3>Không tìm thấy sách phù hợp</h3>
+            <p>Hãy thử tìm bằng từ khóa ngắn hơn hoặc quay lại danh sách đầy đủ.</p>
+            <a class="button" href="/#catalog">Xem tất cả sách</a>
+        </div>
+    }
+    else
+    {
+        <div class="book-grid">
+            @foreach (var book in Model.Books)
+            {
+                var rating = Model.Ratings.TryGetValue(book.Id, out var r) ? r : 4.8m;
+                var isAvailable = book.Status == BookStatus.Available && book.AvailableQuantity > 0;
+                <article class="book-card"
+                         data-tilt-card
+                         data-book-id="@book.Id"
+                         data-book-title="@book.Title"
+                         data-book-author="@book.Author?.Name"
+                         data-book-category="@book.Category?.Name"
+                         data-book-year="@book.PublicationYear"
+                         data-book-isbn="@book.Isbn"
+                         data-book-description="@book.Description"
+                         data-book-available="@book.AvailableQuantity"
+                         data-book-cover="@book.CoverImagePath">
+                    <div class="cover-shell">
+                        <a class="cover" href="/books/@book.Id">
+                            <span aria-hidden="true">@book.Title[..Math.Min(1, book.Title.Length)]</span>
+                            @if (!string.IsNullOrWhiteSpace(book.CoverImagePath))
+                            {
+                                <img src="@book.CoverImagePath" alt="Bìa @book.Title" data-image-fallback />
+                            }
+                        </a>
+                        <div class="book-quick-actions">
+                            <button type="button" class="quick-btn js-quick-preview">Xem nhanh 3D</button>
+                        </div>
+                    </div>
+                    <div class="pp-book-info">
+                        <h3><a href="/books/@book.Id">@book.Title</a></h3>
+                        <p class="pp-book-author">@book.Author?.Name</p>
+                        <div class="pp-book-rating">
+                            <span class="pp-stars" aria-hidden="true">★★★★★</span>
+                            <span>@rating.ToString("0.0") (@book.ViewCount)</span>
+                        </div>
+                        <div class="pp-book-footer">
+                            <span class="pp-stock-label @(isAvailable ? "is-available" : "is-out")">
+                                <i class="pulse-dot" aria-hidden="true"></i>
+                                @(isAvailable ? $"Còn {book.AvailableQuantity} cuốn" : "Đặt trước")
+                            </span>
+                            @if (!isInternalUser && isAvailable)
+                            {
+                                <button type="button" class="pp-bag-btn js-quick-add-cart" data-book-id="@book.Id" aria-label="Thêm @book.Title vào giỏ mượn" title="Thêm vào giỏ mượn">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@if (Model.NewBooks.Count > 0)
+{
+    <section id="new-arrivals" class="shell section pp-section">
+        <div class="section-heading pp-section-head">
+            <div>
+                <span class="eyebrow">MỚI CẬP NHẬT</span>
+                <h2>Sách Mới Tại Thư Viện</h2>
+            </div>
+            <a class="pp-view-all" href="#catalog">XEM KHO SÁCH <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="book-grid book-grid-compact">
+            @foreach (var book in Model.NewBooks)
+            {
+                var rating = Model.Ratings.TryGetValue(book.Id, out var r) ? r : 4.8m;
+                var isAvailable = book.Status == BookStatus.Available && book.AvailableQuantity > 0;
+                <article class="book-card"
+                         data-tilt-card
+                         data-book-id="@book.Id"
+                         data-book-title="@book.Title"
+                         data-book-author="@book.Author?.Name"
+                         data-book-category="@book.Category?.Name"
+                         data-book-year="@book.PublicationYear"
+                         data-book-isbn="@book.Isbn"
+                         data-book-description="@book.Description"
+                         data-book-available="@book.AvailableQuantity"
+                         data-book-cover="@book.CoverImagePath">
+                    <div class="cover-shell">
+                        <a class="cover" href="/books/@book.Id">
+                            <span aria-hidden="true">@book.Title[..Math.Min(1, book.Title.Length)]</span>
+                            @if (!string.IsNullOrWhiteSpace(book.CoverImagePath))
+                            {
+                                <img src="@book.CoverImagePath" alt="Bìa @book.Title" data-image-fallback />
+                            }
+                        </a>
+                        <div class="book-quick-actions">
+                            <button type="button" class="quick-btn js-quick-preview">Xem nhanh 3D</button>
+                        </div>
+                    </div>
+                    <div class="pp-book-info">
+                        <h3><a href="/books/@book.Id">@book.Title</a></h3>
+                        <p class="pp-book-author">@book.Author?.Name</p>
+                        <div class="pp-book-rating">
+                            <span class="pp-stars" aria-hidden="true">★★★★★</span>
+                            <span>@rating.ToString("0.0") (@book.ViewCount)</span>
+                        </div>
+                        <div class="pp-book-footer">
+                            <span class="pp-stock-label @(isAvailable ? "is-available" : "is-out")">
+                                <i class="pulse-dot" aria-hidden="true"></i>
+                                @(isAvailable ? $"Còn {book.AvailableQuantity} cuốn" : "Đặt trước")
+                            </span>
+                            @if (!isInternalUser && isAvailable)
+                            {
+                                <button type="button" class="pp-bag-btn js-quick-add-cart" data-book-id="@book.Id" aria-label="Thêm @book.Title vào giỏ mượn" title="Thêm vào giỏ mượn">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+}
+
+<!-- DARK PINE COMMUNITY BANNER -->
+<section class="shell pp-community-wrap">
+    <div class="pp-community-banner">
+        <div class="pp-community-bg" style="background-image:url('/uploads/editorial/community-reading.jpg')" aria-hidden="true"></div>
+        <div class="pp-community-scrim" aria-hidden="true"></div>
+        <div class="pp-community-copy">
+            <span class="eyebrow">CỘNG ĐỒNG ĐỌC SÁCH LIBRARYHUB</span>
+            <h2>Nhận Gợi Ý Sách Hay &amp; Theo Dõi Hành Trình Đọc</h2>
+            <p>Khám phá sách mới mỗi tuần, lưu sách yêu thích, xem tiến độ đọc và trao đổi cảm nhận cùng cộng đồng.</p>
+            <form class="pp-community-form" method="get" action="/#catalog">
+                <input type="text" name="q" placeholder="Nhập chủ đề hoặc tên sách…" aria-label="Tìm sách theo chủ đề" />
+                <button type="submit">KHÁM PHÁ NGAY</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="pp-mini-trust">
+        <div>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>Tủ sách<br />tuyển chọn</span>
+        </div>
+        <div>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Tin dùng bởi<br />người yêu sách</span>
+        </div>
+        <div>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span>Chất lượng<br />đảm bảo</span>
+        </div>
+        <div>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.65-7 10-7 10Z"/></svg>
+            <span>Tri thức<br />còn mãi</span>
+        </div>
+    </div>
+</section>
+
+<dialog id="book-preview-dialog" class="library-dialog preview-dialog" aria-labelledby="preview-dialog-title">
+    <div class="preview-dialog-card">
+        <button class="preview-close icon-button" type="button" data-preview-close aria-label="Đóng xem nhanh">×</button>
+        <div class="preview-grid">
+            <div class="preview-3d-wrap" id="preview-book3d-stage">
+                <canvas aria-label="Xem sách 3D"></canvas>
+            </div>
+            <div class="preview-body">
+                <span class="eyebrow" data-preview-meta></span>
+                <h2 id="preview-dialog-title" data-preview-title></h2>
+                <p class="preview-author" data-preview-author></p>
+                <span class="availability is-available" data-preview-stock></span>
+                <p class="preview-desc" data-preview-description></p>
+                <div class="preview-actions">
+                    @if (!isInternalUser)
+                    {
+                        <button type="button" class="button" data-preview-add>Thêm vào giỏ mượn</button>
+                    }
+                    <a class="button button-secondary" href="#" data-preview-link>Xem chi tiết đầy đủ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+@section Scripts {
+    <script>
+        window.__LIBRARYHUB_SHELF_BOOKS__ = @Html.Raw(shelfBooksJson);
+    </script>
+    <script src="~/js/borrow-cart.js" asp-append-version="true"></script>
+    <script src="~/js/curved-shelf.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/catalog-effects.js" asp-append-version="true"></script>
+}

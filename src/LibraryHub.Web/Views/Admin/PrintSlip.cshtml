@@ -1,0 +1,94 @@
+@model AdminPrintSlipViewModel
+@{
+    ViewData["Title"] = $"In phiếu {Model.Slip.Code}";
+}
+<section class="shell section print-sheet-wrap">
+    <div class="print-actions no-print">
+        <button class="button" type="button" onclick="window.print()">In phiếu / Lưu PDF</button>
+        <a class="button button-secondary" href="/admin/circulation">Quay lại Mượn, trả &amp; phạt</a>
+    </div>
+    <article class="panel print-sheet">
+        <header class="print-sheet-head">
+            <div>
+                <span class="eyebrow">LibraryHub Archive</span>
+                <h1>Phiếu mượn trả sách</h1>
+                <p>Mã phiếu: <strong>@Model.Slip.Code</strong></p>
+            </div>
+            <div class="print-meta">
+                <p><strong>Trạng thái:</strong> @Model.Slip.Status.ToVietnamese()</p>
+                <p><strong>Ngày tạo:</strong> @Model.Slip.RequestedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                @if (Model.Slip.BorrowedAt.HasValue)
+                {
+                    <p><strong>Ngày giao:</strong> @Model.Slip.BorrowedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                }
+                @if (Model.Slip.DueAt.HasValue)
+                {
+                    <p><strong>Hạn trả:</strong> @Model.Slip.DueAt.Value.ToLocalTime().ToString("dd/MM/yyyy")</p>
+                }
+                @if (Model.Slip.ReturnedAt.HasValue)
+                {
+                    <p><strong>Ngày hoàn tất:</strong> @Model.Slip.ReturnedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                }
+            </div>
+        </header>
+
+        <section class="print-reader-box">
+            <div><strong>Độc giả:</strong> @Model.Slip.Reader?.FullName (@Model.Slip.Reader?.ReaderCode)</div>
+            <div><strong>Email:</strong> @Model.Slip.Reader?.Email</div>
+            <div><strong>SĐT:</strong> @(Model.Slip.Reader?.Phone ?? "Chưa cập nhật")</div>
+            @if (!string.IsNullOrWhiteSpace(Model.Slip.Note))
+            {
+                <div><strong>Ghi chú:</strong> @Model.Slip.Note</div>
+            }
+        </section>
+
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tên sách</th>
+                        <th>SL mượn</th>
+                        <th>Đã trả</th>
+                        <th>Hạn trả dòng</th>
+                        <th>Giá trị bìa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var detail in Model.Slip.Details)
+                    {
+                        <tr>
+                            <td><strong>@detail.Book?.Title</strong><small>@detail.Book?.Isbn</small></td>
+                            <td>@detail.Quantity</td>
+                            <td>@detail.ReturnedQuantity</td>
+                            <td>@(detail.DueAt?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@detail.BorrowPrice.ToString("N0")đ</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Fines.Count > 0)
+        {
+            <section class="print-fines-box">
+                <h2>Biên lai khoản phạt liên quan</h2>
+                @foreach (var fine in Model.Fines)
+                {
+                    <div class="fine-row">
+                        <div>
+                            <strong>@fine.Code · @fine.Type.ToVietnamese()</strong>
+                            <span>@fine.Reason</span>
+                            <small>Tổng: @fine.Amount.ToString("N0")đ · Đã thu: @fine.PaidAmount.ToString("N0")đ · Còn nợ: @Math.Max(0, fine.Amount - fine.PaidAmount).ToString("N0")đ</small>
+                        </div>
+                        <span class="status">@fine.Status.ToVietnamese()</span>
+                    </div>
+                }
+            </section>
+        }
+
+        <footer class="print-signatures">
+            <div><strong>Độc giả ký xác nhận</strong><span>(Ký và ghi rõ họ tên)</span></div>
+            <div><strong>Thủ thư lập phiếu</strong><span>(Ký và ghi rõ họ tên)</span></div>
+        </footer>
+    </article>
+</section>

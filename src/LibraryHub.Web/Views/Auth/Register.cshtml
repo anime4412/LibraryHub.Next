@@ -1,0 +1,48 @@
+@model RegisterInput
+@{ ViewData["Title"] = "Đăng ký"; }
+<section class="auth-shell shell">
+    <div class="auth-aside">
+        <span class="eyebrow">Thẻ thư viện số</span>
+        <h1>Một tài khoản cho mọi trải nghiệm đọc.</h1>
+        <p>Hồ sơ độc giả được tạo và liên kết trực tiếp với tài khoản đăng nhập.</p>
+    </div>
+    <form class="auth-card form-grid" method="post" asp-action="Register">
+        <h2>Tạo tài khoản</h2>
+        <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+        <input asp-for="ReturnUrl" type="hidden" />
+        <label class="span-2">Họ và tên<input asp-for="FullName" autocomplete="name" /></label>
+        <span asp-validation-for="FullName" class="field-error span-2"></span>
+        <label class="span-2">Email<input asp-for="Email" autocomplete="email" /></label>
+        <span asp-validation-for="Email" class="field-error span-2"></span>
+        <div class="password-help span-2">
+            <strong>Yêu cầu mật khẩu</strong>
+            <span>Dùng ít nhất 8 ký tự, gồm tối thiểu một chữ cái và một chữ số.</span>
+        </div>
+        <label>Mật khẩu
+            <span class="password-field">
+                <input asp-for="Password" autocomplete="new-password" />
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+            </span>
+        </label>
+        <label>Nhập lại mật khẩu
+            <span class="password-field">
+                <input asp-for="ConfirmPassword" autocomplete="new-password" />
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+            </span>
+        </label>
+        <span asp-validation-for="Password" class="field-error"></span>
+        <span asp-validation-for="ConfirmPassword" class="field-error"></span>
+        <label>Số điện thoại<input asp-for="Phone" autocomplete="tel" /></label>
+        <label>Kiểu độc giả
+            <select asp-for="ReaderType">
+                <option value="@ReaderType.Student">Sinh viên</option>
+                <option value="@ReaderType.Teacher">Giảng viên</option>
+                <option value="@ReaderType.Guest">Khách</option>
+            </select>
+        </label>
+        <span asp-validation-for="Phone" class="field-error"></span>
+        <label class="span-2">Địa chỉ<textarea asp-for="Address" rows="2"></textarea></label>
+        <button class="button span-2" type="submit">Tạo tài khoản</button>
+        <p class="span-2 auth-links">Đã có tài khoản? <a asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">Đăng nhập</a></p>
+    </form>
+</section>

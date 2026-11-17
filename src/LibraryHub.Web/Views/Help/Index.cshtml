@@ -1,0 +1,17 @@
+@model HelpCenterViewModel
+@{
+    ViewData["Title"] = "Hướng dẫn sử dụng";
+    ViewData["AdminSection"] = "help";
+}
+@if (Model.IsInternal)
+{
+    <div class="admin-shell">
+        <partial name="_AdminNav" />
+        <section class="admin-main help-center"><partial name="_HelpContent" model="Model" /></section>
+    </div>
+}
+else
+{
+    <section class="shell help-center"><partial name="_HelpContent" model="Model" /></section>
+}
+@section Scripts { <script src="~/js/help-center.js" asp-append-version="true"></script> }

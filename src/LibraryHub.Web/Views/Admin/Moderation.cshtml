@@ -1,0 +1,70 @@
+@model AdminModerationViewModel
+@{
+    ViewData["Title"] = "Kiểm duyệt bình luận";
+    ViewData["AdminSection"] = "moderation";
+}
+<div class="admin-shell">
+    <partial name="_AdminNav" />
+    <section class="admin-main">
+        <div class="admin-heading">
+            <div>
+                <span class="eyebrow">Cộng đồng</span>
+                <h1>Kiểm duyệt báo cáo vi phạm</h1>
+                <p>Xử lý báo cáo bình luận trên sách hoặc tường hồ sơ độc giả, ẩn nội dung vi phạm hoặc khóa bình luận tạm thời.</p>
+            </div>
+        </div>
+        <div id="admin-message" class="alert" hidden></div>
+        <div class="panel table-panel">
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nội dung bị báo cáo</th>
+                            <th>Người đăng</th>
+                            <th>Người báo cáo</th>
+                            <th>Lý do &amp; trạng thái</th>
+                            <th class="actions-heading">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Reports)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@(string.IsNullOrWhiteSpace(row.TargetContent) ? "(Nội dung đã được ẩn)" : row.TargetContent)</strong>
+                                    @if (row.BookId.HasValue)
+                                    {
+                                        <small><a href="/books/@row.BookId">Xem tại trang sách</a></small>
+                                    }
+                                    else
+                                    {
+                                        <small>Bình luận trên hồ sơ độc giả</small>
+                                    }
+                                </td>
+                                <td><strong>@row.ReportedUser.FullName</strong><small>@row.ReportedUser.ReaderCode</small></td>
+                                <td><strong>@row.Reporter.FullName</strong><small>@row.Report.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
+                                <td>
+                                    <strong>@row.Report.Reason</strong>
+                                    <small><span class="status">@row.Report.Status.ToVietnamese()</span>@(string.IsNullOrWhiteSpace(row.Report.Resolution) ? "" : $" · {row.Report.Resolution}")</small>
+                                </td>
+                                <td class="row-actions">
+                                    @if (row.Report.Status == ReportStatus.Pending)
+                                    {
+                                        <button class="button button-small danger-button mod-hide-lock" data-id="@row.Report.Id" type="button">Ẩn &amp; khóa 3 ngày</button>
+                                        <button class="button button-small mod-hide" data-id="@row.Report.Id" type="button">Ẩn bình luận</button>
+                                        <button class="button button-small button-secondary mod-reject" data-id="@row.Report.Id" type="button">Bỏ qua</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (Model.Reports.Count == 0)
+                        {
+                            <tr><td colspan="5"><p class="empty-inline">Chưa có báo cáo bình luận nào cần xử lý.</p></td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+@section Scripts { <script src="~/js/admin-moderation.js" asp-append-version="true"></script> }

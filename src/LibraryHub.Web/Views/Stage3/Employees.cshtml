@@ -1,0 +1,53 @@
+@model AdminEmployeesViewModel
+@{ ViewData["Title"] = "Nhân sự & chức vụ"; ViewData["AdminSection"] = "employees"; }
+<div class="admin-shell"><partial name="_AdminNav" /><section class="admin-main">
+    <div class="admin-heading"><div><span class="eyebrow">Nhân sự nội bộ</span><h1>Nhân viên & chức vụ</h1><p>@Model.Employees.Total hồ sơ khớp bộ lọc.</p></div><button id="new-employee" class="button" type="button">+ Nhân viên</button></div>
+    <div id="admin-message" class="alert" hidden></div>
+    <form class="panel table-tools filter-form" method="get"><input name="q" value="@Model.Query" placeholder="Tên, email hoặc mã nhân viên" /><select name="status" aria-label="Lọc trạng thái nhân viên"><option value="">Mọi trạng thái</option>@foreach (var status in Enum.GetValues<EmploymentStatus>()) { if (Model.Status == status) { <option value="@((int)status)" selected>@status.ToVietnamese()</option> } else { <option value="@((int)status)">@status.ToVietnamese()</option> } }</select><button class="button button-small" type="submit">Lọc</button></form>
+    <form id="employee-form" class="panel admin-form form-grid" hidden>
+        <input name="id" type="hidden" /><h2 id="employee-form-title">Nhân viên</h2>
+        <label>Mã nhân viên<input name="employeeCode" required /></label><label>Họ tên<input name="fullName" required /></label>
+        <label>Email<input name="email" type="email" required /></label><label>Số điện thoại<input name="phone" required /></label>
+        <label class="span-2">Địa chỉ<input name="address" required /></label><label>CCCD<input name="nationalId" required /></label>
+        <label>Giới tính<select name="gender" asp-items="Html.GetEnumSelectList<Gender>()"></select></label>
+        <label>Ngày sinh<input name="dateOfBirth" type="date" required /></label><label>Ngày vào làm<input name="hiredOn" type="date" required /></label>
+        <label>Chức vụ<select name="positionId">@foreach(var x in Model.Positions){<option value="@x.Id" data-salary="@x.SalaryAmount">@x.Name</option>}</select></label>
+        <label>Lương<input name="salary" type="number" min="0" required /></label>
+        <label>Trạng thái<select name="status" asp-items="Html.GetEnumSelectList<EmploymentStatus>()"></select></label>
+        <label>Vai trò<select name="roleId"><option value="">Chưa gán</option>@foreach(var x in Model.Roles){<option value="@x.Id">@x.Name</option>}</select></label>
+        <label>Lý do nghỉ<input name="leaveReason" /></label><label>Ngày bắt đầu nghỉ<input name="leaveStartedOn" type="date" /></label>
+        <label>Số ngày nghỉ không phép<input name="unexcusedDays" type="number" min="0" value="0" /></label>
+        <div class="span-2 action-row"><button class="button" type="submit">Lưu nhân viên</button><button id="cancel-employee" class="button button-secondary" type="button">Hủy</button></div>
+    </form>
+    <div class="panel table-panel"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Nhân viên</th><th>Chức vụ</th><th>Lương</th><th>Vai trò</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+    @foreach(var row in Model.Employees.Items)
+    {
+        var e = row.Employee;
+        <tr><td><strong>@e.FullName</strong><small>@e.EmployeeCode · @e.Email</small></td><td>@row.Position?.Name</td><td>@e.Salary.ToString("N0")đ</td><td>@(row.Role?.Name ?? "Chưa gán")</td><td><span class="status">@e.Status.ToVietnamese()</span></td>
+        <td class="row-actions"><button type="button" class="button button-small button-secondary edit-employee"
+            data-id="@e.Id" data-employee-code="@e.EmployeeCode" data-full-name="@e.FullName" data-email="@e.Email" data-phone="@e.Phone"
+            data-address="@e.Address" data-national-id="@e.NationalId" data-gender="@((int)e.Gender)" data-date-of-birth="@e.DateOfBirth.ToString("yyyy-MM-dd")"
+            data-hired-on="@e.HiredOn.ToString("yyyy-MM-dd")" data-position-id="@e.PositionId" data-salary="@e.Salary" data-status="@((int)e.Status)"
+            data-role-id="@e.RoleId" data-leave-reason="@e.LeaveReason" data-leave-started-on="@e.LeaveStartedOn?.ToString("yyyy-MM-dd")"
+            data-unexcused-days="@e.UnexcusedDays">Sửa</button><button type="button" class="button button-small danger-button delete-employee" data-id="@e.Id" data-name="@e.FullName">Xóa mềm</button></td></tr>
+    }
+    @if (Model.Employees.Items.Count == 0)
+    {
+        <tr><td colspan="6"><p class="empty-inline">Không tìm thấy nhân viên phù hợp với bộ lọc hiện tại.</p></td></tr>
+    }
+    </tbody></table></div></div>
+    <section class="panel portal-section"><div class="panel-head"><h2>Danh mục chức vụ</h2></div>
+        <form id="position-form" class="admin-form position-form-grid">
+            <input name="id" type="hidden" />
+            <label>Mã chức vụ<input name="code" placeholder="VD: LIBRARIAN" required /></label>
+            <label>Tên chức vụ<input name="name" placeholder="VD: Thủ thư" required /></label>
+            <label>Lương chuẩn<input name="salaryAmount" type="number" min="0" placeholder="12000000" required /></label>
+            <label class="check-row"><input name="allowSalaryOverride" type="checkbox" /> Cho sửa lương</label>
+            <div class="action-row"><button class="button button-small" type="submit">Lưu chức vụ</button><button id="cancel-position" class="button button-small button-secondary" type="button">Hủy</button></div>
+        </form>
+        @if (Model.Positions.Count == 0) { <p class="empty-inline">Chưa có chức vụ nào.</p> }
+        @foreach(var p in Model.Positions){<div class="catalog-row"><div><strong>@p.Code · @p.Name</strong><span>@p.SalaryAmount.ToString("N0")đ · @(p.AllowSalaryOverride ? "cho phép lương riêng" : "lương cố định")</span></div><button class="edit-position" type="button" data-id="@p.Id" data-code="@p.Code" data-name="@p.Name" data-salary="@p.SalaryAmount" data-override="@p.AllowSalaryOverride.ToString().ToLowerInvariant()">Sửa</button><button class="delete-position delete-catalog" type="button" data-id="@p.Id" data-name="@p.Code · @p.Name">Xóa mềm</button></div>}
+    </section>
+    <partial name="_Pager" model="@(new PagerModel(Model.Employees.Page, Model.Employees.TotalPages, Context.Request.QueryString.Value ?? ""))" />
+</section></div>
+@section Scripts { <script src="~/js/admin-employees.js" asp-append-version="true"></script> }

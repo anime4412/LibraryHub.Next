@@ -1,0 +1,14 @@
+@model PagerModel
+@if (Model.TotalPages > 1)
+{
+    <nav class="pager" aria-label="Phân trang">
+        @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+        {
+            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(Model.Query);
+            var values = query.ToDictionary(x => x.Key, x => x.Value.ToString());
+            values[Model.PageParameter] = pageNumber.ToString();
+            var href = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(ViewContext.HttpContext.Request.Path, values!);
+            <a class="@(pageNumber == Model.Page ? "active" : "")" href="@href">@pageNumber</a>
+        }
+    </nav>
+}

@@ -1,0 +1,29 @@
+@model NotificationCenterViewModel
+@{ ViewData["Title"] = "Trung tâm thông báo"; }
+<section class="shell section stage3-page">
+    <div class="admin-heading">
+        <div><span class="eyebrow">Cập nhật của bạn</span><h1>Trung tâm thông báo</h1><p><strong id="unread-count">@Model.UnreadCount</strong> thông báo chưa đọc.</p></div>
+        <button class="button button-secondary" id="read-all" type="button" disabled="@(Model.UnreadCount == 0)">Đánh dấu tất cả đã đọc</button>
+    </div>
+    <div id="notification-message" class="alert" hidden></div>
+    <div class="panel" id="notification-list">
+        @if (Model.Notifications.Count == 0) { <p class="empty-inline">Chưa có thông báo.</p> }
+        @foreach (var item in Model.Notifications)
+        {
+            <article class="notification-row @(!item.IsRead ? "unread" : "")" data-notification-id="@item.Id">
+                <div>
+                    <strong>@item.Title</strong><p>@item.Message</p>
+                    @if (!string.IsNullOrWhiteSpace(item.Link)) { <a href="@item.Link">Xem chi tiết</a> }
+                </div>
+                <div class="notification-actions">
+                    <span>@(item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</span>
+                    @if (!item.IsRead) { <button class="button button-small button-secondary read-one" type="button">Đã đọc</button> }
+                </div>
+            </article>
+        }
+    </div>
+</section>
+@section Scripts {
+    <script src="~/js/signalr-lite.js" asp-append-version="true"></script>
+    <script src="~/js/notifications.js" asp-append-version="true"></script>
+}

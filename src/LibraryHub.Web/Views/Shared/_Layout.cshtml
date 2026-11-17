@@ -1,0 +1,262 @@
+@{
+    var path = Context.Request.Path.Value ?? "/";
+    var isInternal = User.IsInRole("Staff") || User.IsInRole("Administrator");
+    var isAuth = User.Identity?.IsAuthenticated == true;
+}
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>@ViewData["Title"] · LibraryHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&display=swap" rel="stylesheet" />
+    <style>@@import url('@Url.Content("~/lib/bootstrap/dist/css/bootstrap.min.css")') layer(bootstrap);</style>
+    <link rel="stylesheet" href="~/css/design-system.css" asp-append-version="true" />
+</head>
+<body>
+    <div id="nav-progress-bar" class="nav-progress-bar" aria-hidden="true"></div>
+    <div class="pp-topbar">
+        <div class="shell pp-topbar-inner">
+            <span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                Mượn trả miễn phí tại quầy thư viện
+            </span>
+            <span class="pp-topbar-mid">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.9-5.3-2.8-5.3 2.8 1-5.9-4.2-4.1 5.9-.9Z"/></svg>
+                Những trang sách truyền cảm hứng, tri thức còn mãi
+            </span>
+            <span class="pp-topbar-right">
+                <a href="/support">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Hỗ trợ độc giả
+                </a>
+                <span class="pp-sep" aria-hidden="true">|</span>
+                <a href="/help">Hướng dẫn</a>
+            </span>
+        </div>
+    </div>
+
+    <header class="site-header-wrap">
+        <div class="site-header shell">
+            <a class="brand" href="/">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4a2 2 0 0 1-2-2V5Z"/><path d="M22 5a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6a2 2 0 0 0 2-2V5Z"/></svg>
+                </span>
+                <span class="brand-copy">
+                    <strong>LIBRARYHUB</strong>
+                    <small>BOOK ARCHIVE</small>
+                </span>
+            </a>
+
+            <button class="icon-button menu-toggle" id="menu-toggle" type="button" aria-label="Mở trình đơn" aria-controls="main-navigation" aria-expanded="false">☰</button>
+
+            <nav id="main-navigation" aria-label="Điều hướng chính">
+                <a class="@(path == "/" ? "active" : null)" href="/">TRANG CHỦ</a>
+                <a href="/#catalog">KHO SÁCH</a>
+                <a href="/#categories">DANH MỤC</a>
+                <a href="/#new-arrivals">SÁCH MỚI</a>
+                @if (isAuth && !isInternal)
+                {
+                    <a class="@(path.StartsWith("/me") ? "active" : null)" href="/me">TÀI KHOẢN</a>
+                }
+                @if (isInternal)
+                {
+                    <a class="@(path.StartsWith("/admin") ? "active" : null)" href="/admin">QUẢN TRỊ</a>
+                }
+                @if (isAuth)
+                {
+                    <a class="@(path.StartsWith("/notifications") ? "active" : null)" href="/notifications">THÔNG BÁO</a>
+                }
+                else
+                {
+                    <a class="@(path.StartsWith("/help") ? "active" : null)" href="/help">HƯỚNG DẪN</a>
+                }
+            </nav>
+
+            <div class="header-actions">
+                <button type="button" id="open-smart-search" class="pp-icon-action" aria-label="Tìm kiếm thông minh (Ctrl+K)" title="Tìm kiếm thông minh (Ctrl+K)">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                @if (isAuth)
+                {
+                    <a class="pp-icon-action" href="@(isInternal ? "/admin" : "/me")" aria-label="Tài khoản" title="@User.Identity?.Name">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+                    </a>
+                }
+                @if (!isInternal)
+                {
+                    <a class="cart-link" href="/me/cart" aria-label="Giỏ mượn sách" title="Giỏ mượn sách">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+                        <span class="cart-label">Giỏ mượn</span>
+                        <span id="header-cart-badge" class="cart-badge" hidden>0</span>
+                    </a>
+                }
+                <button class="icon-button theme-toggle-btn" id="theme-toggle" type="button" aria-label="Đổi giao diện Sáng/Tối" title="Đổi giao diện">◐</button>
+                @if (isAuth)
+                {
+                    <span class="user-chip">@User.Identity!.Name</span>
+                    <form method="post" asp-controller="Auth" asp-action="Logout">
+                        <button class="button button-small button-secondary" type="submit">Đăng xuất</button>
+                    </form>
+                }
+                else
+                {
+                    <div class="quick-login-wrap">
+                        <button type="button" id="quick-login-toggle" class="button button-small button-secondary pp-quick-btn" aria-expanded="false" aria-controls="quick-login-menu">
+                            Đăng nhập nhanh <span aria-hidden="true">▾</span>
+                        </button>
+                        <div id="quick-login-menu" class="quick-login-popover" hidden>
+                            <div class="quick-login-head">
+                                <strong>Đăng nhập nhanh (1 chạm)</strong>
+                                <small>Chọn 1 trong 3 vai trò chính</small>
+                            </div>
+                            <div class="quick-login-list">
+                                @foreach (var acct in new[]
+                                {
+                                    ("Quản trị viên · Nguyễn Hoàng Long", "admin@library.com", "Admin@123", "Quản trị viên"),
+                                    ("Thủ thư · Lê Văn Hùng", "librarian@library.com", "Librarian@123", "Thủ thư"),
+                                    ("Độc giả · Lê Phú An", "reader@library.com", "Reader@123", "Độc giả")
+                                })
+                                {
+                                    <form method="post" action="/login" class="quick-login-item-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="Email" value="@acct.Item2" />
+                                        <input type="hidden" name="Password" value="@acct.Item3" />
+                                        <input type="hidden" name="RememberMe" value="true" />
+                                        <input type="hidden" name="ReturnUrl" value="@(Context.Request.Path.Value?.StartsWith("/login") == true || Context.Request.Path.Value?.StartsWith("/register") == true ? Context.Request.Query["returnUrl"].ToString() : Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
+                                        <button type="submit" class="quick-login-option">
+                                            <span><strong>@acct.Item1</strong><small>@acct.Item2</small></span>
+                                            <em>@acct.Item4</em>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <a class="button button-small button-secondary pp-register-btn" href="/register">Đăng ký</a>
+                    <a class="button button-small" href="/login">Đăng nhập</a>
+                }
+            </div>
+        </div>
+    </header>
+
+    <main>@RenderBody()</main>
+
+    <footer class="pp-footer">
+        <div class="shell pp-footer-grid">
+            <div class="pp-footer-brand">
+                <a class="brand inverse" href="/">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4a2 2 0 0 1-2-2V5Z"/><path d="M22 5a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6a2 2 0 0 0 2-2V5Z"/></svg>
+                    </span>
+                    <span class="brand-copy">
+                        <strong>LIBRARYHUB</strong>
+                        <small>SCHOLASTIC ARCHIVE</small>
+                    </span>
+                </a>
+                <p>Chúng tôi tin rằng mỗi cuốn sách hay đều có sức mạnh mở rộng thế giới quan và nuôi dưỡng tâm hồn bền lâu.</p>
+                <div class="pp-socials" aria-label="Liên kết nhanh">
+                    <a href="/" aria-label="Trang chủ">⌂</a>
+                    <a href="/#catalog" aria-label="Kho sách">▤</a>
+                    <a href="/#categories" aria-label="Danh mục">◈</a>
+                    <a href="/help" aria-label="Hướng dẫn">?</a>
+                </div>
+            </div>
+
+            <div>
+                <h3>KHO SÁCH</h3>
+                <ul>
+                    <li><a href="/#catalog">Tất cả đầu sách</a></li>
+                    <li><a href="/#new-arrivals">Sách mới cập nhật</a></li>
+                    <li><a href="/#catalog">Độc giả yêu thích</a></li>
+                    <li><a href="/#categories">Danh mục chủ đề</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3>HỖ TRỢ</h3>
+                <ul>
+                    <li><a href="/help">Hướng dẫn mượn trả</a></li>
+                    <li><a href="/me/cart">Giỏ mượn sách</a></li>
+                    <li><a href="/me">Không gian độc giả</a></li>
+                    <li><a href="/support">Trung tâm hỗ trợ</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3>TÌM KIẾM NHANH</h3>
+                <p class="pp-footer-note">Tra cứu nhanh tên sách, tác giả hoặc chủ đề bạn đang quan tâm.</p>
+                <form class="pp-footer-form" method="get" action="/#catalog">
+                    <input type="text" name="q" placeholder="Tên sách hoặc tác giả…" aria-label="Tìm nhanh từ chân trang" />
+                    <button type="submit">TÌM SÁCH</button>
+                </form>
+                <div class="pp-footer-badges">
+                    <span>MIỄN PHÍ THẺ</span>
+                    <span>GIA HẠN ONLINE</span>
+                    <span>ĐẶT TRƯỚC</span>
+                </div>
+            </div>
+        </div>
+        <div class="shell pp-footer-bottom">
+            <span>© @DateTime.UtcNow.Year LibraryHub Archive. Phát triển trên ASP.NET Core .NET 10.</span>
+            <span><a href="/#catalog">Kho sách</a> · <a href="/help">Quy định thư viện</a> · <a href="/support">Liên hệ</a></span>
+        </div>
+    </footer>
+
+    <dialog id="smart-search-dialog" class="library-dialog smart-dialog" aria-labelledby="smart-search-title">
+        <div class="smart-dialog-card">
+            <h2 id="smart-search-title" class="visually-hidden">Tìm kiếm thông minh</h2>
+            <form id="smart-search-form" class="smart-input-bar" method="get" action="/#catalog">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input id="smart-search-input" name="q" autocomplete="off" placeholder="Tìm không dấu, theo tên sách, tác giả, thể loại hoặc ISBN…" aria-label="Nhập từ khóa tìm kiếm thông minh" />
+                <kbd class="search-kbd">ESC</kbd>
+                <button type="button" class="icon-button" data-smart-close aria-label="Đóng tìm kiếm">×</button>
+            </form>
+            <div id="smart-search-results" class="smart-results" role="region" aria-live="polite"></div>
+            <div class="smart-dialog-foot">
+                <span>Mẹo: Hỗ trợ gõ không dấu (vd: <em>tam ly</em>, <em>lap trinh</em>, <em>vien tuong</em>) và sửa lỗi chính tả nhẹ</span>
+                <span><kbd>↑</kbd> <kbd>↓</kbd> Chọn · <kbd>Enter</kbd> Mở</span>
+            </div>
+        </div>
+    </dialog>
+
+    <div id="lh-chatbot-root" class="lh-chatbot-root no-print">
+        <button id="lh-chat-fab" class="lh-chat-fab" type="button" aria-expanded="false" aria-controls="lh-chat-panel" aria-label="Mở trợ lý thư viện AI">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7c0 1.8.7 3.4 1.8 4.6L6 20l5.1-1.3c.3.1.6.1.9.1a7 7 0 0 0 7-7 7 7 0 0 0-7-7Z"/><circle cx="9.5" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
+            <span>Trợ lý AI</span>
+        </button>
+        <section id="lh-chat-panel" class="lh-chat-panel" role="dialog" aria-labelledby="lh-chat-title" hidden>
+            <header class="lh-chat-head">
+                <div>
+                    <span class="lh-chat-kicker">GEMINI LIBRARY ASSISTANT</span>
+                    <h2 id="lh-chat-title">Trợ lý Thư viện AI</h2>
+                </div>
+                <div class="lh-chat-head-actions">
+                    <button id="lh-chat-reset" type="button" class="lh-chat-icon-btn" title="Cuộc trò chuyện mới" aria-label="Xóa lịch sử trò chuyện">↺</button>
+                    <button id="lh-chat-close" type="button" class="lh-chat-icon-btn" title="Đóng" aria-label="Đóng hộp thoại">×</button>
+                </div>
+            </header>
+            <div id="lh-chat-messages" class="lh-chat-messages" aria-live="polite"></div>
+            <div id="lh-chat-starters" class="lh-chat-starters">
+                <button type="button" data-chat-prompt="Gợi ý cho mình vài cuốn sách hay hiện có">Gợi ý sách hay</button>
+                <button type="button" data-chat-prompt="Quy định mượn sách, thời hạn và phí phạt trả trễ thế nào?">Quy định mượn trả</button>
+                <button type="button" data-chat-prompt="Tìm giúp mình sách lập trình hoặc bảo mật">Tìm sách lập trình</button>
+                <button type="button" data-chat-prompt="Kiểm tra giúp mình tình trạng mượn sách và tiền phạt của tôi">Phiếu của tôi</button>
+            </div>
+            <form id="lh-chat-form" class="lh-chat-form">
+                <input id="lh-chat-input" type="text" maxlength="1000" autocomplete="off" placeholder="Hỏi về sách, mượn trả, gia hạn…" aria-label="Nhập câu hỏi cho trợ lý thư viện" />
+                <button id="lh-chat-send" type="submit" aria-label="Gửi câu hỏi">Gửi</button>
+            </form>
+        </section>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true" defer></script>
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/smart-search.js" asp-append-version="true"></script>
+    <script src="~/js/chatbot.js" asp-append-version="true" defer></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,49 +1,87 @@
-# SOF1022 - HỆ THỐNG QUẢN LÝ THƯ VIỆN ĐIỆN TỬ (POLYLIB)
-**Môn học:** SOF1022 - Dự án 1 (ASP.NET Core MVC)  
-**Lớp:** SD2003 | **Nhóm:** 1  
-**Cơ sở:** FPT Polytechnic  
+# LibraryHub.Next
 
----
+Bản viết lại hệ thống thư viện theo modular monolith trên .NET 10, ASP.NET Core MVC,
+EF Core 10/SQL Server, Identity, SignalR và API `/api/v1`.
 
-## 🌟 Tổng Quan Dự Án
-PolyLib là hệ thống quản trị và phục vụ độc giả thư viện điện tử toàn diện được xây dựng trên nền tảng **ASP.NET Core MVC (.NET 10)** kết hợp **Entity Framework Core**, **SQL Server** và công nghệ hiển thị **3D tương tác**.
+## Vì sao vẫn dùng .NET + Razor/MVC
 
-### Các Tính Năng Nổi Bật
-- **Giao diện độc giả cao cấp:** Thanh điều hướng Floating Pill Navbar chống tràn, hỗ trợ chế độ Dark/Light mode linh hoạt.
-- **Kệ Sách Tinh Hoa 3D:** Trải nghiệm duyệt sách trên không gian 3D cong nghệ thuật, xoay lật 360 độ và tra cứu trực quan.
-- **Hệ thống mượn trả tự động:** Đăng ký phiếu mượn online, giữ chỗ sách thực tế, quản lý tiền phạt, gia hạn và lịch sử đọc.
-- **Gợi ý sách thông minh:** Phân tích sở thích đọc để đề xuất tác phẩm phù hợp cho từng độc giả.
-- **Trang quản trị toàn diện:** Quản lý danh mục, đầu sách, tác giả, nhà xuất bản, độc giả, nhân viên, phân quyền RBAC và thống kê báo cáo chi tiết.
+Hệ thống là CRUD nghiệp vụ cỡ vừa, không cần scale độc lập frontend/backend. Một
+modular monolith giúp đội hiện tại phát triển nhanh, transaction mượn–trả nhất quán
+và chỉ có một pipeline deploy. Razor render nhanh, ít JavaScript; các vùng cần tương
+tác dùng API + SignalR. So với React/Vue + Web API, lựa chọn này giảm một repository,
+một hệ auth và chi phí đồng bộ contract, nhưng vẫn giữ khả năng tách SPA sau này vì
+mọi thao tác ghi đã nằm dưới `/api/v1`.
 
----
+## Cấu trúc
 
-## 🛠️ Công Nghệ Sử Dụng
-- **Backend:** C# ASP.NET Core MVC (.NET 10.0), Entity Framework Core
-- **Database:** Microsoft SQL Server
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+), Three.js (3D Book Viewer), Bootstrap 5, FontAwesome
-- **Bảo mật & Phân quyền:** Session, Cookie Authentication, Role-based Access Control (Admin / Staff / Reader)
-
----
-
-## 🚀 Hướng Dẫn Cài Đặt & Khởi Chạy
-
-### 1. Chuẩn bị
-- .NET 10.0 SDK trở lên
-- Microsoft SQL Server & SQL Server Management Studio (SSMS)
-
-### 2. Cài đặt Database
-- Mở file `SOF1022_NHOM1_SD2003_Ver2_Full_Database.sql` trong SSMS và thực thi để tạo cấu trúc bảng cùng dữ liệu mẫu ban đầu.
-- Cập nhật chuỗi kết nối trong `appsettings.json` nếu cần:
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=.;Database=SOF1022_NHOM1_SD2003_Ver2;Trusted_Connection=True;TrustServerCertificate=True;"
-}
+```text
+src/
+  LibraryHub.Domain/          Entity, enum, invariant
+  LibraryHub.Application/     Use case mượn/trả/phạt/quyền, interface
+  LibraryHub.Infrastructure/  EF Core, Identity, SMTP, persistence
+  LibraryHub.Web/             MVC, API v1, SignalR, worker, design system
+tests/LibraryHub.UnitTests/   Test nghiệp vụ trọng yếu
+docs/                         Kiến trúc, ERD, thay đổi và migration
+migration/                    SQL ETL + copy upload
 ```
 
-### 3. Chạy ứng dụng
-```bash
+## Chạy local
+
+Yêu cầu: .NET 10 SDK và một SQL Server local có database phát triển.
+
+Đặt connection string local trong .NET User Secrets; không ghi nó vào
+`appsettings*.json`, `.env.example` hoặc README:
+
+```powershell
+cd LibraryHub.Next
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "[CHUOI_KET_NOI_LOCAL]" --project src/LibraryHub.Web
 dotnet restore
-dotnet build
-dotnet run --project SOF1022_NHOM1_SD2003_Ver2
+dotnet ef database update --project src/LibraryHub.Infrastructure --startup-project src/LibraryHub.Web
+dotnet run --project src/LibraryHub.Web
 ```
-Truy cập ứng dụng tại: `http://localhost:3636`
+
+ASP.NET Core ánh xạ biến môi trường `ConnectionStrings__DefaultConnection` thành
+khóa cấu hình `ConnectionStrings:DefaultConnection`. Production phải cấp biến này;
+ứng dụng sẽ dừng với lỗi cấu hình an toàn nếu giá trị bị thiếu hoặc rỗng.
+
+Xem hướng dẫn tạo database, nhập dữ liệu mẫu và chuyển dữ liệu bằng file SQL tại
+`docs/SQL-EXPRESS-SETUP.md`.
+
+OAuth/SMTP chỉ được bật khi secret tồn tại. Ví dụ:
+
+```powershell
+dotnet user-secrets set "Email:Smtp:Host" "smtp.gmail.com" --project src/LibraryHub.Web
+dotnet user-secrets set "Email:Smtp:Port" "587" --project src/LibraryHub.Web
+dotnet user-secrets set "Authentication:Google:ClientId" "..." --project src/LibraryHub.Web
+dotnet user-secrets set "Authentication:Google:ClientSecret" "..." --project src/LibraryHub.Web
+dotnet user-secrets set "Email:Smtp:Username" "..." --project src/LibraryHub.Web
+dotnet user-secrets set "Email:Smtp:Password" "..." --project src/LibraryHub.Web
+dotnet user-secrets set "Email:Smtp:FromAddress" "..." --project src/LibraryHub.Web
+dotnet user-secrets set "Email:Smtp:FromName" "LibraryHub" --project src/LibraryHub.Web
+```
+
+Xem quy trình Gmail và cách xác minh thư thật trong `docs/EMAIL-SETUP.md`.
+
+Không seed tài khoản hoặc mật khẩu mặc định. Tạo tài khoản đầu tiên qua Identity API,
+xác thực email, sau đó gán role `Administrator` bằng quy trình quản trị có kiểm soát.
+
+## Kiểm chứng
+
+```powershell
+dotnet build LibraryHub.Next.slnx --configuration Release
+dotnet test tests/LibraryHub.UnitTests/LibraryHub.UnitTests.csproj --configuration Release
+dotnet test tests/LibraryHub.IntegrationTests/LibraryHub.IntegrationTests.csproj --configuration Release
+```
+
+Kết quả kiểm thử cuối và hướng dẫn demo nằm trong `docs/HANDOVER.md`.
+
+## Di trú
+
+1. Backup DB và `wwwroot/uploads`; thu hồi toàn bộ OAuth/SMTP secret cũ.
+2. Tạo DB mới bằng EF migration.
+3. Chỉnh tên DB nguồn/đích trong `migration/01-migrate-data.sql`, chạy trên bản sao.
+4. Chạy các truy vấn đối soát ở cuối script.
+5. Chạy `migration/02-copy-uploads.ps1` trước với `-WhatIf`, sau đó mới copy thật.
+6. Thực hiện UAT và cutover theo `docs/MIGRATION.md`.
+
+Không chạy ETL trực tiếp trên DB production ở lần đầu.

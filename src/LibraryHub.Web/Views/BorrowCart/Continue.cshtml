@@ -1,0 +1,21 @@
+@model BorrowCartContinuationViewModel
+@{
+    ViewData["Title"] = "Tiếp tục thêm vào giỏ mượn";
+}
+<section id="borrow-cart-continuation"
+         class="shell empty-state"
+         data-can-add="@Model.CanAdd.ToString().ToLowerInvariant()"
+         data-book-id="@Model.BookId"
+         data-book-title="@Model.Title"
+         data-available-quantity="@Model.AvailableQuantity"
+         data-return-url="@Model.ReturnUrl"
+         data-message="@Model.Message">
+    <span class="eyebrow">Giỏ mượn</span>
+    <h1>Đang tiếp tục thao tác của bạn…</h1>
+    <p>LibraryHub đang kiểm tra lại sách trước khi quay về trang trước.</p>
+</section>
+
+@section Scripts {
+    <script src="~/js/borrow-cart.js" asp-append-version="true"></script>
+    <script src="~/js/borrow-cart-continuation.js" asp-append-version="true"></script>
+}

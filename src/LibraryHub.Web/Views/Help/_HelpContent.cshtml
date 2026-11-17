@@ -1,0 +1,182 @@
+@model HelpCenterViewModel
+@{
+    var audienceName = Model.IsAdministrator ? "Quản trị viên" : Model.IsStaff ? "Nhân viên" : "Độc giả";
+}
+<header class="help-hero">
+    <div>
+        <span class="eyebrow">Trung tâm trợ giúp · @audienceName</span>
+        <h1>Hướng dẫn sử dụng LibraryHub</h1>
+        <p>Nội dung dưới đây chỉ gồm các chức năng đang hoạt động và phù hợp với quyền hiện tại của bạn.</p>
+    </div>
+    <label class="help-search">
+        <span>Tìm trong hướng dẫn</span>
+        <input id="help-search" type="search" placeholder="Ví dụ: gia hạn, khoản phạt, phân quyền…" autocomplete="off" />
+    </label>
+</header>
+<p id="help-search-status" class="help-search-status" aria-live="polite"></p>
+
+<nav class="help-toc panel" aria-label="Mục lục hướng dẫn">
+    <strong>Mục lục</strong>
+    @if (!Model.IsInternal)
+    {
+        <a href="#reader-account">Tài khoản</a>
+        <a href="#reader-catalog">Tìm và mượn sách</a>
+        <a href="#reader-borrows">Đặt trước, gia hạn và theo dõi</a>
+        <a href="#reader-community">Tương tác và hỗ trợ</a>
+    }
+    else if (Model.IsStaff)
+    {
+        @if (Model.Can(PermissionCodes.BorrowApprove) || Model.Can(PermissionCodes.BorrowConfirmPickup) || Model.Can(PermissionCodes.BorrowConfirmReturn)) { <a href="#staff-circulation">Mượn, giao và trả sách</a> }
+        @if (Model.Can(PermissionCodes.ReservationManage) || Model.Can(PermissionCodes.BorrowApproveExtension)) { <a href="#staff-requests">Đặt trước, gia hạn và khoản phạt</a> }
+        @if (Model.Can(PermissionCodes.SupportClaim)) { <a href="#staff-support">Ticket hỗ trợ</a> }
+        <a href="#staff-statuses">Trạng thái nghiệp vụ</a>
+    }
+    else
+    {
+        <a href="#admin-catalog">Sách và danh mục</a>
+        <a href="#admin-people">Độc giả, nhân viên và phân quyền</a>
+        <a href="#admin-operations">Vận hành và cấu hình</a>
+        <a href="#admin-safety">An toàn quản trị</a>
+    }
+    <a href="#help-faq">Câu hỏi thường gặp</a>
+</nav>
+
+<div class="help-sections" id="help-sections">
+@if (!Model.IsInternal)
+{
+    <article class="help-section panel" id="reader-account" data-help-section>
+        <span class="help-kicker">Bắt đầu</span><h2>Tạo và xác thực tài khoản</h2>
+        <ol>
+            <li>Đăng ký bằng email thật, họ tên và loại độc giả phù hợp.</li>
+            <li>Mở email xác thực; nếu chưa nhận được, dùng chức năng gửi lại trên trang đăng nhập.</li>
+            <li>Sau khi đăng nhập, kiểm tra thông tin và hạn thẻ tại <a href="/me/profile">Hồ sơ độc giả</a>.</li>
+        </ol>
+    </article>
+    <article class="help-section panel" id="reader-catalog" data-help-section>
+        <span class="help-kicker">Khám phá</span><h2>Tìm sách, xem chi tiết và gửi giỏ mượn</h2>
+        <ol>
+            <li>Mở <a href="/">Danh mục công khai</a>, tìm theo tên sách, tác giả hoặc ISBN.</li>
+            <li>Mở chi tiết sách để xem kho, vị trí, đánh giá và bình luận.</li>
+            <li>Thêm sách có sẵn vào giỏ, kiểm tra số lượng rồi gửi yêu cầu tại <a href="/me/cart">Giỏ mượn</a>.</li>
+        </ol>
+    </article>
+    <article class="help-section panel" id="reader-borrows" data-help-section>
+        <span class="help-kicker">Theo dõi</span><h2>Đặt trước, gia hạn, phiếu mượn và khoản phạt</h2>
+        <ol>
+            <li>Khi sách chưa sẵn sàng, theo dõi yêu cầu tại <a href="/me/reservations">Đặt trước</a>.</li>
+            <li>Xem hạn trả và gửi yêu cầu gia hạn trên <a href="/me/borrows">Phiếu mượn</a>; yêu cầu chỉ có hiệu lực sau khi nhân viên duyệt.</li>
+            <li>Kiểm tra số tiền, trạng thái và mã giao dịch tại <a href="/me/fines">Khoản phạt</a>.</li>
+        </ol>
+    </article>
+    <article class="help-section panel" id="reader-community" data-help-section>
+        <span class="help-kicker">Kết nối</span><h2>Yêu thích, đánh giá, bình luận, thông báo và hỗ trợ</h2>
+        <ol>
+            <li>Dùng trang chi tiết sách để yêu thích, chấm sao hoặc bình luận; chỉ gửi nội dung liên quan đến sách.</li>
+            <li>Xem sách đã lưu tại <a href="/me/favorites">Yêu thích</a> và cập nhật mới tại <a href="/me/notifications">Thông báo</a>.</li>
+            <li>Tạo ticket, theo dõi phản hồi và trạng thái tại <a href="/support">Trung tâm hỗ trợ</a>.</li>
+        </ol>
+    </article>
+}
+else if (Model.IsStaff)
+{
+    @if (Model.Can(PermissionCodes.BorrowApprove) || Model.Can(PermissionCodes.BorrowConfirmPickup) || Model.Can(PermissionCodes.BorrowConfirmReturn))
+    {
+        <article class="help-section panel" id="staff-circulation" data-help-section>
+            <span class="help-kicker">Lưu thông</span><h2>Duyệt yêu cầu, giao và nhận sách</h2>
+            <ol>
+                @if (Model.Can(PermissionCodes.BorrowApprove)) { <li>Mở <a href="/admin/circulation">Mượn, trả & phạt</a>, kiểm tra độc giả, tồn kho và chi tiết trước khi duyệt hoặc từ chối.</li> }
+                @if (Model.Can(PermissionCodes.BorrowConfirmPickup)) { <li>Chỉ xác nhận giao sách sau khi đối chiếu đúng phiếu và số lượng thực tế.</li> }
+                @if (Model.Can(PermissionCodes.BorrowConfirmReturn)) { <li>Khi nhận sách, ghi số lượng, tình trạng và ghi chú; kiểm tra khoản phạt được tính trước khi xác nhận.</li> }
+            </ol>
+        </article>
+    }
+    @if (Model.Can(PermissionCodes.ReservationManage) || Model.Can(PermissionCodes.BorrowApproveExtension))
+    {
+        <article class="help-section panel" id="staff-requests" data-help-section>
+            <span class="help-kicker">Yêu cầu</span><h2>Đặt trước, gia hạn và khoản phạt</h2>
+            <ol>
+                @if (Model.Can(PermissionCodes.ReservationManage)) { <li>Kiểm tra tồn kho và thời hạn nhận trước khi cập nhật trạng thái đặt trước tại <a href="/admin/circulation">Lưu thông</a>.</li> }
+                @if (Model.Can(PermissionCodes.BorrowApproveExtension)) { <li>Đối chiếu hạn trả, số lần gia hạn và yêu cầu chờ trước khi duyệt gia hạn.</li> }
+                <li>Không sửa số tiền ngoài quy trình; khoản phạt phát sinh từ thao tác trả sách và cấu hình nghiệp vụ.</li>
+            </ol>
+        </article>
+    }
+    @if (Model.Can(PermissionCodes.SupportClaim))
+    {
+        <article class="help-section panel" id="staff-support" data-help-section>
+            <span class="help-kicker">Hỗ trợ</span><h2>Tiếp nhận và xử lý ticket</h2>
+            <ol>
+                <li>Mở <a href="/admin/support">Trung tâm hỗ trợ</a>, nhận ticket phù hợp và đọc toàn bộ lịch sử.</li>
+                <li>Trả lời rõ ràng, không đưa dữ liệu tài khoản nhạy cảm vào tin nhắn.</li>
+                <li>Chỉ đóng ticket khi yêu cầu đã được giải quyết hoặc có hướng xử lý cuối cùng.</li>
+            </ol>
+        </article>
+    }
+    <article class="help-section panel" id="staff-statuses" data-help-section>
+        <span class="help-kicker">Tra cứu</span><h2>Hiểu đúng trạng thái nghiệp vụ</h2>
+        <dl class="help-definitions">
+            <div><dt>Chờ duyệt</dt><dd>Yêu cầu mới, chưa được nhân viên chấp nhận.</dd></div>
+            <div><dt>Đã duyệt, chờ nhận</dt><dd>Sách đã được giữ; cần giao trước khi hết cửa sổ nhận.</dd></div>
+            <div><dt>Đang mượn / Quá hạn</dt><dd>Phiếu đã giao; quá hạn cần xử lý khi nhận trả.</dd></div>
+            <div><dt>Chờ gia hạn</dt><dd>Độc giả đã gửi yêu cầu, chưa thay đổi hạn trả cho đến khi được duyệt.</dd></div>
+        </dl>
+    </article>
+}
+else
+{
+    <article class="help-section panel" id="admin-catalog" data-help-section>
+        <span class="help-kicker">Danh mục</span><h2>Quản lý sách và dữ liệu tra cứu</h2>
+        <ol>
+            <li>Quản lý đầu sách, tồn kho và ảnh bìa tại <a href="/admin/books">Kho sách</a>.</li>
+            <li>Cập nhật danh mục, tác giả, nhà xuất bản và kệ tại <a href="/admin/catalog">Tác giả & danh mục</a>.</li>
+            <li>Trước khi xóa mềm, đọc đúng tên đối tượng trong modal; dữ liệu lịch sử không bị xóa vật lý.</li>
+        </ol>
+    </article>
+    <article class="help-section panel" id="admin-people" data-help-section>
+        <span class="help-kicker">Con người</span><h2>Độc giả, nhân viên, chức vụ và phân quyền</h2>
+        <ol>
+            <li>Kiểm tra hồ sơ và trạng thái thẻ tại <a href="/admin/readers">Độc giả</a>.</li>
+            <li>Quản lý hồ sơ, chức vụ và vai trò tại <a href="/admin/employees">Nhân viên & chức vụ</a>.</li>
+            <li>Dùng <a href="/admin/rbac">Phân quyền</a> để gán quyền tối thiểu cần thiết; quyền từ chối của cá nhân có ưu tiên hơn quyền cho phép từ vai trò.</li>
+        </ol>
+    </article>
+    <article class="help-section panel" id="admin-operations" data-help-section>
+        <span class="help-kicker">Vận hành</span><h2>Circulation, thông báo, ticket và cấu hình</h2>
+        <ol>
+            <li>Theo dõi mượn, giao, trả, đặt trước, gia hạn và khoản phạt tại <a href="/admin/circulation">Mượn, trả & phạt</a>.</li>
+            <li>Xử lý trao đổi với độc giả tại <a href="/admin/support">Hỗ trợ</a> và xem cập nhật tại <a href="/notifications">Thông báo</a>.</li>
+            <li>Chỉ thay đổi giới hạn mượn, thời hạn và mức phạt tại <a href="/admin/settings">Cấu hình</a> sau khi có phê duyệt nghiệp vụ.</li>
+        </ol>
+    </article>
+    <article class="help-section panel help-warning" id="admin-safety" data-help-section>
+        <span class="help-kicker">Cảnh báo an toàn</span><h2>Trước khi chỉnh quyền</h2>
+        <ol>
+            <li>Đối chiếu người dùng, vai trò và mã quyền; không cấp quyền quản trị chỉ để xử lý lỗi tạm thời.</li>
+            <li>Tránh tự thu hồi quyền quản trị cuối cùng và luôn lưu lại lý do thay đổi.</li>
+            <li>Kiểm tra lại bằng tài khoản vai trò tương ứng; không dùng tài khoản Administrator cho công việc hằng ngày.</li>
+        </ol>
+    </article>
+}
+</div>
+
+<section class="help-faq panel" id="help-faq" data-help-section>
+    <span class="help-kicker">FAQ</span><h2>Câu hỏi thường gặp</h2>
+    @if (!Model.IsInternal)
+    {
+        <details><summary>Vì sao yêu cầu gia hạn chưa đổi hạn trả?</summary><p>Gia hạn chỉ có hiệu lực sau khi nhân viên duyệt. Hãy theo dõi trạng thái trên Phiếu mượn.</p></details>
+        <details><summary>Tại sao tôi không thể mượn thêm sách?</summary><p>Kiểm tra hạn thẻ, sách đang mượn, khoản phạt, tồn kho và giới hạn mượn của hồ sơ.</p></details>
+        <details><summary>Khi nào nên tạo ticket hỗ trợ?</summary><p>Tạo ticket khi thông tin phiếu, khoản phạt hoặc tài khoản cần nhân viên kiểm tra; không gửi mật khẩu trong ticket.</p></details>
+    }
+    else if (Model.IsStaff)
+    {
+        <details><summary>Vì sao tôi không thấy một chức năng quản trị?</summary><p>Menu và hướng dẫn được lọc theo quyền hiện tại. Hãy liên hệ quản trị viên nếu nhiệm vụ được giao nhưng quyền chưa phù hợp.</p></details>
+        <details><summary>Có thể sửa trực tiếp số tiền phạt không?</summary><p>Không. Hãy dùng đúng quy trình trả sách và trạng thái nghiệp vụ để hệ thống tính và ghi nhận.</p></details>
+        <details><summary>Khi nào được đóng ticket?</summary><p>Khi yêu cầu đã được giải quyết hoặc đã có câu trả lời cuối cùng rõ ràng cho độc giả.</p></details>
+    }
+    else
+    {
+        <details><summary>Thay đổi quyền có hiệu lực khi nào?</summary><p>Quyền được đọc lại trong các lần kiểm tra tiếp theo; nên đăng xuất và đăng nhập lại khi kiểm thử toàn bộ giao diện vai trò.</p></details>
+        <details><summary>Có nên dùng LocalDB ở production?</summary><p>Không. Production phải dùng SQL Server được vận hành, backup và giám sát phù hợp.</p></details>
+        <details><summary>Có thể bật Google/Facebook mà không có secret?</summary><p>Không. Nút chỉ xuất hiện khi cặp Client ID/Secret tương ứng được cấu hình đầy đủ bằng kênh bí mật.</p></details>
+    }
+</section>

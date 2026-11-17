@@ -1,0 +1,109 @@
+@model LoginInput
+@{ ViewData["Title"] = "Đăng nhập"; }
+<section class="auth-shell shell">
+    <div class="auth-aside">
+        <span class="eyebrow">Chào mừng trở lại</span>
+        <h1>Tiếp tục hành trình đọc của bạn.</h1>
+        <p>Quản lý phiếu mượn, gia hạn, khoản phạt và thông báo trong một nơi.</p>
+    </div>
+    <div class="auth-stack">
+        <form class="auth-card" method="post" asp-action="Login">
+            <h2>Đăng nhập</h2>
+            @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
+            @if (TempData["Notice"] is string notice) { <div class="alert alert-info">@notice</div> }
+            @if (TempData["Warning"] is string warning) { <div class="alert alert-warning">@warning</div> }
+            @if (TempData["Error"] is string error) { <div class="alert alert-error">@error</div> }
+            @if (TempData["DevelopmentUrl"] is string developmentUrl)
+            {
+                <div class="development-notice">
+                    <strong>Chế độ phát triển</strong>
+                    <span>SMTP chưa gửi được thư. Liên kết dưới đây chỉ dùng để kiểm thử trên máy cục bộ, không thay thế email ở production.</span>
+                    <a href="@developmentUrl">@(TempData["DevelopmentLinkLabel"] ?? "Mở liên kết kiểm thử")</a>
+                </div>
+            }
+            <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+            <input name="ReturnUrl" type="hidden" value="@Model.ReturnUrl" />
+            <label>Email<input asp-for="Email" autocomplete="email" /></label>
+            <span asp-validation-for="Email" class="field-error"></span>
+            <label>Mật khẩu
+                <span class="password-field">
+                    <input asp-for="Password" autocomplete="current-password" />
+                    <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                </span>
+            </label>
+            <span asp-validation-for="Password" class="field-error"></span>
+            <div class="form-options">
+                <label class="check-row"><input asp-for="RememberMe" /> Ghi nhớ đăng nhập</label>
+                <a href="/forgot-password">Quên mật khẩu?</a>
+            </div>
+            <button class="button" type="submit">Đăng nhập</button>
+            <div class="auth-links">Chưa có tài khoản? <a asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Đăng ký độc giả</a></div>
+        </form>
+        <section class="auth-card auth-card-compact quick-role-card" aria-labelledby="quick-role-title">
+            <div class="external-login-header">
+                <strong id="quick-role-title">Đăng nhập nhanh theo vai trò</strong>
+                <p>Bấm một lần để đăng nhập ngay bằng tài khoản hệ thống có sẵn.</p>
+            </div>
+            <div class="quick-role-grid">
+                @foreach (var role in new[]
+                {
+                    ("Quản trị viên (Nguyễn Hoàng Long)", "Quản trị viên", "admin@library.com", "Admin@123"),
+                    ("Thủ thư (Lê Văn Hùng)", "Thủ thư", "librarian@library.com", "Librarian@123"),
+                    ("Độc giả (Lê Phú An)", "Độc giả", "reader@library.com", "Reader@123")
+                })
+                {
+                    <button type="button" class="quick-role-btn js-quick-login-role"
+                            data-email="@role.Item3" data-password="@role.Item4">
+                        <span><strong>@role.Item1</strong><small>@role.Item3</small></span>
+                        <em>@role.Item2</em>
+                    </button>
+                }
+            </div>
+        </section>
+        <section class="auth-card auth-card-compact external-login-card" aria-labelledby="external-login-title">
+            <div class="external-login-header">
+                <strong id="external-login-title">Hoặc đăng nhập nhanh</strong>
+                @if (Model.ExternalProviders.Count > 0)
+                {
+                    <p>Chọn tài khoản Google hoặc Facebook đã được cấu hình.</p>
+                }
+                else
+                {
+                    <p id="external-login-status">Google và Facebook cần được quản trị viên cấu hình trước khi sử dụng.</p>
+                }
+            </div>
+            <div class="external-login-actions">
+                @foreach (var provider in Model.ExternalProviders)
+                {
+                    var providerClass = provider.Name.Equals("Facebook", StringComparison.OrdinalIgnoreCase)
+                        ? "facebook"
+                        : "google";
+                    var providerMark = providerClass == "facebook" ? "f" : "G";
+                    <form method="post" action="/external-login">
+                        @Html.AntiForgeryToken()
+                        <input name="Provider" type="hidden" value="@provider.Name" />
+                        <input name="ReturnUrl" type="hidden" value="@Model.ReturnUrl" />
+                        <button class="button external-provider-button" type="submit"
+                                aria-label="Tiếp tục đăng nhập với @provider.DisplayName">
+                            <span class="provider-mark provider-mark-@providerClass" aria-hidden="true">@providerMark</span>
+                            <span>Tiếp tục với @provider.DisplayName</span>
+                        </button>
+                    </form>
+                }
+            </div>
+        </section>
+        @if (Model.CanResendConfirmation)
+        {
+            <form class="auth-card auth-card-compact" method="post" action="/resend-confirmation">
+                @Html.AntiForgeryToken()
+                <input name="Email" type="hidden" value="@Model.Email" />
+                <input name="ReturnUrl" type="hidden" value="@Model.ReturnUrl" />
+                <div>
+                    <strong>Chưa nhận được email?</strong>
+                    <p>Kiểm tra thư rác trước khi gửi lại.</p>
+                </div>
+                <button class="button button-secondary" type="submit">Gửi lại email xác thực</button>
+            </form>
+        }
+    </div>
+</section>

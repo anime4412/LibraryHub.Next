@@ -1,25 +1,14 @@
-## Visual Studio / .NET
-[Bb]in/
-[Oo]bj/
+﻿bin/
+obj/
 .vs/
 *.user
-*.userosscache
-*.sln.docstates
-*.suo
-*.userprefs
+appsettings.Development.json
+TestResults/
+coverage/
+work/
+migration-data/
+src/LibraryHub.Web/wwwroot/uploads/*
+!src/LibraryHub.Web/wwwroot/uploads/.gitkeep
 
-## Sensitive configuration / secrets
-appsettings.Local.json
-appsettings.*.Local.json
-*.secrets.json
-appsettings.secrets.backup
+!src/LibraryHub.Web/wwwroot/uploads/*.jpg
 
-## Build / Publish outputs
-publish_release/
-[Pp]ublish/
-*.zip
-
-## Temporary / Logs
-*.log
-.DS_Store
-Thumbs.db

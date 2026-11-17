@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <!-- Workaround for RouteHandlerAnalyzer crash in locally installed 10.0.400-preview SDK. -->
+    <NoWarn>$(NoWarn);AD0001</NoWarn>
+    <UserSecretsId>LibraryHub.Next-Web-9f9e2bc0-57a8-456c-96c2-c9bcffae10bd</UserSecretsId>
+	  <TargetFramework>net10.0</TargetFramework>
+	  <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+	  <SelfContained>false</SelfContained>
+	  <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LibraryHub.Application/LibraryHub.Application.csproj" />
+    <ProjectReference Include="../LibraryHub.Infrastructure/LibraryHub.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

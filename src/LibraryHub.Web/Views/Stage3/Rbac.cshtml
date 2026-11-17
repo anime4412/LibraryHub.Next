@@ -1,0 +1,36 @@
+@model AdminRbacViewModel
+@{ ViewData["Title"] = "Phân quyền nhân viên"; ViewData["AdminSection"] = "rbac"; }
+<div class="admin-shell"><partial name="_AdminNav" /><section class="admin-main">
+    <div class="admin-heading"><div><span class="eyebrow">Phân quyền theo mã</span><h1>Phân quyền nhân viên</h1><p>Quyền theo vai trò và quyền ghi đè riêng được đối chiếu bằng mã quyền ổn định.</p></div></div>
+    <div id="admin-message" class="alert" hidden></div>
+    <div class="rbac-grid">
+    @foreach(var role in Model.Roles)
+    {
+        <form class="panel role-permission-form" data-role-id="@role.Role.Id">
+            <div class="panel-head"><h2>@role.Role.Name</h2><code>@role.Role.Code</code></div>
+            @foreach(var group in Model.Permissions.GroupBy(x => x.GroupName))
+            {
+                <fieldset><legend>@group.Key</legend>
+                @foreach(var permission in group){<label class="check-row"><input type="checkbox" name="permissionIds" value="@permission.Id" checked="@role.PermissionIds.Contains(permission.Id)" /><span><strong>@permission.Code</strong><small>@permission.DisplayName</small></span></label>}
+                </fieldset>
+            }
+            <button class="button button-small" type="submit">Lưu quyền vai trò</button>
+        </form>
+    }
+    </div>
+    <section class="panel portal-section"><div class="panel-head"><h2>Quyền ghi đè theo nhân viên</h2></div>
+        <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Nhân viên</th><th>Mã quyền</th><th>Hiệu lực</th><th></th></tr></thead><tbody>
+        @foreach(var employee in Model.Employees)
+        {
+            var overrideLabels = Model.Permissions
+                .Where(x => employee.Overrides.ContainsKey(x.Id))
+                .Select(x => $"{x.Code}: {employee.Overrides[x.Id].ToVietnamese()}");
+            <tr><td><strong>@employee.Employee.FullName</strong><small>@employee.Employee.EmployeeCode</small><small class="muted">@(overrideLabels.Any() ? string.Join(", ", overrideLabels) : "Đang kế thừa toàn bộ quyền từ vai trò")</small></td>
+                <td><select class="override-permission">@foreach(var p in Model.Permissions){<option value="@p.Id">@p.Code</option>}</select></td>
+                <td><select class="override-effect"><option value="">Không ghi đè (kế thừa vai trò)</option><option value="1">Cho phép</option><option value="0">Từ chối</option></select></td>
+                <td><button class="button button-small button-secondary save-override" data-employee-id="@employee.Employee.Id" type="button">Áp dụng</button></td></tr>
+        }
+        </tbody></table></div>
+    </section>
+</section></div>
+@section Scripts { <script src="~/js/admin-rbac.js" asp-append-version="true"></script> }

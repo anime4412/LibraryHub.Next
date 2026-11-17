@@ -1,0 +1,21 @@
+@{ var section = ViewData["AdminSection"] as string ?? ""; }
+<aside class="admin-nav">
+    <a class="brand inverse" href="/admin"><span class="brand-mark">L</span><span>LibraryHub</span></a>
+    <small>VẬN HÀNH</small>
+    <a class="@(section == "dashboard" ? "active" : "")" href="/admin">Tổng quan</a>
+    <a class="@(section == "books" ? "active" : "")" href="/admin/books">Kho sách</a>
+    <a class="@(section == "catalog" ? "active" : "")" href="/admin/catalog">Danh mục</a>
+    <a class="@(section == "circulation" ? "active" : "")" href="/admin/circulation">Mượn, trả & phạt</a>
+    <a class="@(section == "readers" ? "active" : "")" href="/admin/readers">Độc giả</a>
+    <a class="@(section == "employees" ? "active" : "")" href="/admin/employees">Nhân viên & chức vụ</a>
+    <a class="@(section == "support" ? "active" : "")" href="/admin/support">Hỗ trợ</a>
+    <a class="@(section == "moderation" ? "active" : "")" href="/admin/moderation">Kiểm duyệt</a>
+    <a class="@(section == "help" ? "active" : "")" href="/help">Hướng dẫn sử dụng</a>
+    @if (User.IsInRole("Administrator"))
+    {
+        <a class="@(section == "settings" ? "active" : "")" href="/admin/settings">Cấu hình</a>
+    }
+    <small>TÀI KHOẢN</small>
+    <a href="/">Trang công khai</a>
+    <form method="post" asp-controller="Auth" asp-action="Logout"><button type="submit">Đăng xuất</button></form>
+</aside>

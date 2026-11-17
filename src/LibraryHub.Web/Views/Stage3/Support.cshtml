@@ -1,0 +1,16 @@
+@model SupportCenterViewModel
+@{ ViewData["Title"] = Model.IsStaff ? "Trung tâm hỗ trợ" : "Hỗ trợ"; if(Model.IsStaff) ViewData["AdminSection"] = "support"; }
+@if (Model.IsStaff)
+{
+<div class="admin-shell"><partial name="_AdminNav" /><section class="admin-main">
+    <partial name="_SupportWorkspace" model="Model" />
+</section></div>
+}
+else
+{
+<section class="shell section stage3-page"><partial name="_SupportWorkspace" model="Model" /></section>
+}
+@section Scripts {
+    <script src="~/js/signalr-lite.js" asp-append-version="true"></script>
+    <script src="~/js/support.js" asp-append-version="true"></script>
+}

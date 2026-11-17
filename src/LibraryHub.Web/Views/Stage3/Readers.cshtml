@@ -1,0 +1,66 @@
+@model AdminReadersViewModel
+@{ ViewData["Title"] = "Quản lý độc giả"; ViewData["AdminSection"] = "readers"; }
+<div class="admin-shell"><partial name="_AdminNav" /><section class="admin-main">
+    <div class="admin-heading"><div><span class="eyebrow">Tài khoản độc giả</span><h1>Quản lý độc giả</h1><p>@Model.Readers.Total hồ sơ khớp bộ lọc.</p></div><a class="button button-secondary" href="/admin/exports/readers.csv">Xuất CSV</a></div>
+    <div id="admin-message" class="alert" hidden></div>
+    <div class="panel table-panel">
+        <form class="table-tools filter-form" method="get">
+            <input name="q" value="@Model.Query" placeholder="Tên, email hoặc mã độc giả" />
+            <select name="type" aria-label="Lọc loại độc giả">
+                <option value="">Mọi loại độc giả</option>
+                @foreach (var type in Enum.GetValues<ReaderType>())
+                {
+                    if (Model.Type == type) { <option value="@((int)type)" selected>@type.ToVietnamese()</option> }
+                    else { <option value="@((int)type)">@type.ToVietnamese()</option> }
+                }
+            </select>
+            <select name="verified" aria-label="Lọc trạng thái xác minh">
+                <option value="">Mọi trạng thái xác minh</option>
+                @if (Model.Verified == true) { <option value="true" selected>Đã xác minh</option> } else { <option value="true">Đã xác minh</option> }
+                @if (Model.Verified == false) { <option value="false" selected>Chưa xác minh</option> } else { <option value="false">Chưa xác minh</option> }
+            </select>
+            <button class="button button-small" type="submit">Tìm kiếm</button>
+        </form>
+        <div class="data-table-wrap"><table class="data-table readers-table"><thead><tr><th>Độc giả</th><th>Liên hệ</th><th>Loại</th><th>Thẻ</th><th>Xác minh</th><th class="actions-heading"></th></tr></thead><tbody>
+    @foreach(var reader in Model.Readers.Items)
+    {
+        <tr>
+            <td><strong>@reader.FullName</strong><small>@reader.ReaderCode</small></td>
+            <td class="cell-stack"><span>@reader.Email</span><small>@(string.IsNullOrWhiteSpace(reader.Phone) ? "Chưa có SĐT" : reader.Phone)</small></td>
+            <td class="nowrap-cell">@reader.Type.ToVietnamese()</td>
+            <td class="cell-stack"><span>@reader.ExpiresOn.ToString("dd/MM/yyyy")</span><small>Tối đa @reader.MaxBorrowBooks sách</small></td>
+            <td class="nowrap-cell"><span class="status @(reader.IsVerified ? "status-verified" : "status-unverified")">@(reader.IsVerified ? "Đã xác minh" : "Chưa xác minh")</span></td>
+            <td class="row-actions"><button class="button button-small button-secondary edit-reader" type="button"
+                data-id="@reader.Id" data-full-name="@reader.FullName" data-date-of-birth="@reader.DateOfBirth?.ToString("yyyy-MM-dd")"
+                data-phone="@reader.Phone" data-address="@reader.Address" data-identity-number="@reader.IdentityNumber"
+                data-expires-on="@reader.ExpiresOn.ToString("yyyy-MM-dd")" data-max-borrow-books="@reader.MaxBorrowBooks"
+                data-type="@((int)reader.Type)" data-gender="@((int)reader.Gender)" data-is-verified="@reader.IsVerified.ToString().ToLowerInvariant()"
+                data-comment-lock-mode="@((int)reader.CommentLockMode)" data-comment-blocked-until="@reader.CommentBlockedUntil?.ToString("yyyy-MM-ddTHH:mm")"
+                data-bio="@reader.Bio" data-active-badge="@reader.ActiveBadge" data-avatar-path="@reader.AvatarPath"
+                data-cover-image-path="@reader.CoverImagePath" data-background-path="@reader.FullPageBackgroundPath">Sửa hồ sơ</button></td>
+        </tr>
+    }
+    @if (Model.Readers.Items.Count == 0)
+    {
+        <tr><td colspan="6"><p class="empty-inline">Không tìm thấy độc giả phù hợp với bộ lọc hiện tại.</p></td></tr>
+    }
+    </tbody></table></div></div>
+    <form id="reader-form" class="panel admin-form form-grid" hidden>
+        <input name="id" type="hidden" /><h2>Cập nhật hồ sơ độc giả</h2>
+        <label>Họ tên<input name="fullName" required /></label><label>Ngày sinh<input name="dateOfBirth" type="date" /></label>
+        <label>Số điện thoại<input name="phone" /></label><label>CCCD/CMND<input name="identityNumber" /></label>
+        <label class="span-2">Địa chỉ<input name="address" /></label>
+        <label>Ngày hết hạn<input name="expiresOn" type="date" required /></label><label>Giới hạn sách mượn<input name="maxBorrowBooks" type="number" min="1" max="100" required /></label>
+        <label>Loại độc giả<select name="type" asp-items="Html.GetEnumSelectList<ReaderType>()"></select></label>
+        <label>Giới tính<select name="gender" asp-items="Html.GetEnumSelectList<Gender>()"></select></label>
+        <label class="check-row"><input name="isVerified" type="checkbox" /> Đã xác minh</label>
+        <label>Khóa bình luận<select name="commentLockMode" asp-items="Html.GetEnumSelectList<CommentLockMode>()"></select></label>
+        <label>Khóa đến<input name="commentBlockedUntil" type="datetime-local" /></label>
+        <label class="span-2">Giới thiệu<textarea name="bio" maxlength="1000"></textarea></label>
+        <label>Badge hiển thị<input name="activeBadge" /></label><label>Ảnh đại diện<input name="avatarPath" /></label>
+        <label>Ảnh cover<input name="coverImagePath" /></label><label>Nền trang cá nhân<input name="backgroundPath" /></label>
+        <div class="span-2 action-row"><button class="button" type="submit">Lưu</button><button class="button button-secondary" id="cancel-reader" type="button">Hủy</button></div>
+    </form>
+    <partial name="_Pager" model="@(new PagerModel(Model.Readers.Page, Model.Readers.TotalPages, Context.Request.QueryString.Value ?? ""))" />
+</section></div>
+@section Scripts { <script src="~/js/admin-readers.js" asp-append-version="true"></script> }

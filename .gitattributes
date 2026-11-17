@@ -1,11 +1,5 @@
-# GitHub Linguist language overrides
-# Chuyen toan bo Razor Views (.cshtml) sang C# de the hien dung ban chat du an ASP.NET Core
+﻿# GitHub Linguist language overrides
 *.cshtml linguist-language=C#
-
-# Bo qua cac thu vien ben thu ba khoi thong ke ngon ngu
-SOF1022_NHOM1_SD2003_Ver2/wwwroot/lib/** linguist-vendored
-SOF1022_NHOM1_SD2003_Ver2/wwwroot/lib/**/* linguist-vendored
-
-# Bo qua cac tep sinh tu dong va SQL database khoi ty le ngon ngu
+src/LibraryHub.Web/wwwroot/lib/** linguist-vendored
 *.Designer.cs linguist-generated
-*.sql linguist-vendored
+database/*.sql linguist-vendored

@@ -1,0 +1,31 @@
+@model ExternalLoginConfirmationInput
+@{ ViewData["Title"] = "Hoàn tất đăng nhập ngoài"; }
+<section class="auth-shell shell">
+    <div class="auth-aside">
+        <span class="eyebrow">@Model.ProviderDisplayName</span>
+        <h1>Hoàn tất hồ sơ độc giả.</h1>
+        <p>LibraryHub cần tên hiển thị và loại độc giả trước khi tạo tài khoản mới.</p>
+    </div>
+    <form class="auth-card auth-form" method="post" action="/external-login/confirm">
+        @Html.AntiForgeryToken()
+        <h2>Xác nhận thông tin</h2>
+        <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+        <input name="ReturnUrl" type="hidden" value="@Model.ReturnUrl" />
+        <div class="account-summary">
+            <span>Email từ @Model.ProviderDisplayName</span>
+            <strong>@Model.Email</strong>
+        </div>
+        <label>Họ và tên<input asp-for="DisplayName" autocomplete="name" /></label>
+        <span asp-validation-for="DisplayName" class="field-error"></span>
+        <label>Kiểu độc giả
+            <select asp-for="ReaderType">
+                <option value="@ReaderType.Student">Sinh viên</option>
+                <option value="@ReaderType.Teacher">Giảng viên</option>
+                <option value="@ReaderType.Guest">Khách</option>
+            </select>
+        </label>
+        <p class="form-note">Tài khoản mới sẽ được liên kết với @Model.ProviderDisplayName. LibraryHub không lưu access token của nhà cung cấp.</p>
+        <button class="button" type="submit">Tạo tài khoản và đăng nhập</button>
+        <a class="button button-secondary" href="/login">Hủy</a>
+    </form>
+</section>

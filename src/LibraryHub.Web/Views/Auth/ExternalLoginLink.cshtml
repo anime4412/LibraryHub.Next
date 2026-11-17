@@ -1,0 +1,29 @@
+@model ExternalLoginLinkInput
+@{ ViewData["Title"] = "Liên kết tài khoản"; }
+<section class="auth-shell shell">
+    <div class="auth-aside">
+        <span class="eyebrow">Bảo vệ tài khoản</span>
+        <h1>Email này đã có trên LibraryHub.</h1>
+        <p>LibraryHub không tự động liên kết chỉ dựa trên email do nhà cung cấp trả về.</p>
+    </div>
+    <form class="auth-card auth-form" method="post" action="/external-login/link">
+        @Html.AntiForgeryToken()
+        <h2>Liên kết @Model.ProviderDisplayName</h2>
+        <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+        <input name="ReturnUrl" type="hidden" value="@Model.ReturnUrl" />
+        <div class="account-summary">
+            <span>Tài khoản LibraryHub</span>
+            <strong>@Model.Email</strong>
+        </div>
+        <label>Mật khẩu LibraryHub
+            <span class="password-field">
+                <input asp-for="Password" autocomplete="current-password" />
+                <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+            </span>
+        </label>
+        <span asp-validation-for="Password" class="field-error"></span>
+        <p class="form-note">Mật khẩu chỉ dùng để xác nhận bạn sở hữu tài khoản hiện có. Nếu tài khoản không có mật khẩu, hãy đăng nhập bằng nhà cung cấp đã liên kết trước đó.</p>
+        <button class="button" type="submit">Xác nhận liên kết</button>
+        <a class="button button-secondary" href="/login">Hủy</a>
+    </form>
+</section>

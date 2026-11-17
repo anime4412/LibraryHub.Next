@@ -1,0 +1,65 @@
+@model SupportCenterViewModel
+<div class="admin-heading"><div><span class="eyebrow">Trao đổi thời gian thực</span><h1>Hỗ trợ thư viện</h1><p>@(Model.IsStaff ? "Tiếp nhận, chuyển trạng thái và trả lời yêu cầu từ độc giả." : "Gửi câu hỏi và trao đổi trực tiếp với nhân viên thư viện.")</p></div></div>
+<div id="support-message" class="alert" hidden></div>
+@if (!Model.IsStaff)
+{
+    <form id="new-ticket-form" class="panel inline-form support-new">
+        <label>Chủ đề<input name="subject" maxlength="200" required /></label>
+        <label>Nội dung<textarea name="message" maxlength="4000" required rows="2"></textarea></label>
+        <button class="button" type="submit">Tạo yêu cầu hỗ trợ</button>
+    </form>
+}
+else
+{
+    <form class="panel table-tools filter-form support-filter" method="get" action="/admin/support">
+        <input name="q" value="@Model.Query" placeholder="Mã yêu cầu, chủ đề, độc giả" />
+        <select name="status" aria-label="Lọc trạng thái yêu cầu hỗ trợ"><option value="">Mọi trạng thái</option>@foreach (var status in Enum.GetValues<SupportTicketStatus>()) { if (Model.Status == status) { <option value="@((int)status)" selected>@status.ToVietnamese()</option> } else { <option value="@((int)status)">@status.ToVietnamese()</option> } }</select>
+        <button class="button button-small" type="submit">Lọc</button>
+    </form>
+}
+<div class="support-layout" data-selected-ticket="@Model.Selected?.Ticket.Id" data-is-staff="@Model.IsStaff.ToString().ToLowerInvariant()">
+    <aside class="panel ticket-list">
+        @if (Model.Tickets.Count == 0) { <p class="empty-inline">Chưa có yêu cầu hỗ trợ.</p> }
+        @foreach (var row in Model.Tickets)
+        {
+            var target = Model.IsStaff ? $"/admin/support?ticketId={row.Ticket.Id}" : $"/support?ticketId={row.Ticket.Id}";
+            <a class="ticket-card @(Model.Selected?.Ticket.Id == row.Ticket.Id ? "active" : "")" href="@target">
+                <strong>@row.Ticket.Subject</strong><span>@row.Ticket.Code · @row.Reader.FullName</span>
+                <small>@row.Ticket.Status.ToVietnamese() · @(row.Ticket.LastMessageAt.ToLocalTime().ToString("dd/MM HH:mm"))</small>
+            </a>
+        }
+    </aside>
+    <section class="panel support-chat">
+        @if (Model.Selected is null) { <p class="empty-inline">Chọn một yêu cầu để xem nội dung trao đổi.</p> }
+        else
+        {
+            <div class="panel-head">
+                <div><h2>@Model.Selected.Ticket.Subject</h2><small>@Model.Selected.Ticket.Code · @Model.Selected.Reader.FullName</small></div>
+                @if (Model.IsStaff && Model.Selected.Ticket.Status != SupportTicketStatus.Closed)
+                {
+                    <div class="action-row"><button id="claim-ticket" class="button button-small button-secondary" type="button">Nhận xử lý</button><button id="close-ticket" class="button button-small danger-button" type="button">Đóng yêu cầu</button></div>
+                }
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                @foreach(var item in Model.Selected.Ticket.Messages.OrderBy(x => x.CreatedAt))
+                {
+                    <div class="chat-bubble sender-@item.SenderType.ToString().ToLowerInvariant()" data-message-id="@item.Id">
+                        <strong>@item.SenderType.ToVietnamese()</strong>
+                        <p>@item.Content</p><small>@(item.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm"))</small>
+                    </div>
+                }
+            </div>
+            @if (Model.Selected.Ticket.Status != SupportTicketStatus.Closed)
+            {
+                <form id="reply-form" class="inline-form support-reply">
+                    <textarea name="content" maxlength="4000" required placeholder="Nhập nội dung trả lời"></textarea>
+                    <button class="button" type="submit">Gửi</button>
+                </form>
+            }
+        }
+    </section>
+</div>
+@if (Model.IsStaff)
+{
+    <partial name="_Pager" model="@(new PagerModel(Model.Page, Model.TotalPages, Context.Request.QueryString.Value ?? ""))" />
+}

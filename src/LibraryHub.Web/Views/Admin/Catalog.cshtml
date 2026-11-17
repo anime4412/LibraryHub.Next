@@ -1,0 +1,60 @@
+@model AdminCatalogViewModel
+@{ ViewData["Title"] = "Danh mục sách"; ViewData["AdminSection"] = "catalog"; }
+<div class="admin-shell">
+    <partial name="_AdminNav" />
+    <section class="admin-main">
+        <div class="admin-heading"><div><span class="eyebrow">Dữ liệu tra cứu</span><h1>Quản lý danh mục</h1><p>Mọi biểu mẫu bên dưới ghi dữ liệu qua API có kiểm tra quyền truy cập.</p></div></div>
+        <div id="admin-message" class="alert" hidden></div>
+        <div class="catalog-grid">
+            <section class="panel catalog-module" data-endpoint="/api/v1/categories" data-label="danh mục">
+                <div class="panel-head"><h2>Thể loại</h2><button class="button button-small add-catalog" type="button">+ Thêm</button></div>
+                <form class="admin-form catalog-form" hidden>
+                    <input name="id" type="hidden" />
+                    <label>Tên<input name="name" required /></label>
+                    <label>Mô tả<textarea name="description"></textarea></label>
+                    <label>Đường dẫn ảnh minh họa<input name="imagePath" placeholder="/uploads/categories/..." /></label>
+                    <label>Hoặc tải ảnh minh họa lên (JPEG/PNG/WebP, tối đa 5 MB)
+                        <input class="catalog-image-file" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                    </label>
+                    <div class="catalog-image-preview" hidden>
+                        <img alt="Xem trước ảnh minh họa danh mục" />
+                    </div>
+                    <div class="action-row"><button class="button button-small" type="submit">Lưu</button><button class="button button-small button-secondary cancel-catalog" type="button">Hủy</button></div>
+                </form>
+                @foreach(var x in Model.Categories){
+                    <div class="catalog-row">
+                        <span class="catalog-row-thumb" aria-hidden="true">
+                            @if (!string.IsNullOrWhiteSpace(x.ImagePath))
+                            {
+                                <img src="@x.ImagePath" alt="" />
+                            }
+                            else
+                            {
+                                <span>@x.Name[..Math.Min(1, x.Name.Length)]</span>
+                            }
+                        </span>
+                        <div><strong>@x.Name</strong><span>@x.Description</span></div>
+                        <button class="edit-catalog" data-id="@x.Id" data-name="@x.Name" data-description="@x.Description" data-image-path="@x.ImagePath" type="button">Sửa</button>
+                        <button class="delete-catalog" data-id="@x.Id" data-name="@x.Name" type="button">Xóa</button>
+                    </div>
+                }
+            </section>
+            <section class="panel catalog-module" data-endpoint="/api/v1/authors" data-label="tác giả">
+                <div class="panel-head"><h2>Tác giả</h2><button class="button button-small add-catalog" type="button">+ Thêm</button></div>
+                <form class="admin-form catalog-form" hidden><input name="id" type="hidden" /><label>Tên<input name="name" required /></label><label>Ngày sinh<input name="dateOfBirth" type="date" /></label><label>Quốc tịch<input name="nationality" /></label><label>Tiểu sử<textarea name="biography"></textarea></label><div class="action-row"><button class="button button-small" type="submit">Lưu</button><button class="button button-small button-secondary cancel-catalog" type="button">Hủy</button></div></form>
+                @foreach(var x in Model.Authors){<div class="catalog-row"><div><strong>@x.Name</strong><span>@x.Nationality</span></div><button class="edit-catalog" data-id="@x.Id" data-name="@x.Name" data-date-of-birth="@x.DateOfBirth?.ToString("yyyy-MM-dd")" data-nationality="@x.Nationality" data-biography="@x.Biography" type="button">Sửa</button><button class="delete-catalog" data-id="@x.Id" data-name="@x.Name" type="button">Xóa</button></div>}
+            </section>
+            <section class="panel catalog-module" data-endpoint="/api/v1/publishers" data-label="nhà xuất bản">
+                <div class="panel-head"><h2>Nhà xuất bản</h2><button class="button button-small add-catalog" type="button">+ Thêm</button></div>
+                <form class="admin-form catalog-form" hidden><input name="id" type="hidden" /><label>Tên<input name="name" required /></label><label>Địa chỉ<input name="address" /></label><label>Điện thoại<input name="phone" /></label><label>Email<input name="email" type="email" /></label><label>Website<input name="website" /></label><div class="action-row"><button class="button button-small" type="submit">Lưu</button><button class="button button-small button-secondary cancel-catalog" type="button">Hủy</button></div></form>
+                @foreach(var x in Model.Publishers){<div class="catalog-row"><div><strong>@x.Name</strong><span>@x.Email</span></div><button class="edit-catalog" data-id="@x.Id" data-name="@x.Name" data-address="@x.Address" data-phone="@x.Phone" data-email="@x.Email" data-website="@x.Website" type="button">Sửa</button><button class="delete-catalog" data-id="@x.Id" data-name="@x.Name" type="button">Xóa</button></div>}
+            </section>
+            <section class="panel catalog-module" data-endpoint="/api/v1/shelves" data-label="kệ sách">
+                <div class="panel-head"><h2>Kệ sách</h2><button class="button button-small add-catalog" type="button">+ Thêm</button></div>
+                <form class="admin-form catalog-form" hidden><input name="id" type="hidden" /><label>Mã kệ<input name="code" required /></label><label>Tên<input name="name" required /></label><label>Mã vị trí<input name="locationCode" /></label><label>Khu vực<input name="area" /></label><label>Sức chứa<input name="capacity" type="number" min="0" /></label><label>Mô tả<textarea name="description"></textarea></label><div class="action-row"><button class="button button-small" type="submit">Lưu</button><button class="button button-small button-secondary cancel-catalog" type="button">Hủy</button></div></form>
+                @foreach(var x in Model.Shelves){<div class="catalog-row"><div><strong>@x.Code · @x.Name</strong><span>@x.Area · sức chứa @x.Capacity</span></div><button class="edit-catalog" data-id="@x.Id" data-code="@x.Code" data-name="@x.Name" data-location-code="@x.LocationCode" data-area="@x.Area" data-capacity="@x.Capacity" data-description="@x.Description" type="button">Sửa</button><button class="delete-catalog" data-id="@x.Id" data-name="@x.Code · @x.Name" type="button">Xóa</button></div>}
+            </section>
+        </div>
+    </section>
+</div>
+@section Scripts { <script src="~/js/admin-catalog.js" asp-append-version="true"></script> }

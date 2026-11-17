@@ -1,0 +1,67 @@
+@model AdminDashboard
+@{ ViewData["Title"] = "Quản trị"; ViewData["AdminSection"] = "dashboard"; }
+<div class="admin-shell">
+    <partial name="_AdminNav" />
+    <section class="admin-main">
+        <div class="admin-heading"><div><span class="eyebrow">Trung tâm vận hành</span><h1>Bảng điều khiển thư viện</h1><p>Dữ liệu được tổng hợp trực tiếp từ hệ thống hiện tại.</p></div><a class="button" href="/admin/circulation">Xử lý phiếu mượn</a></div>
+        <div class="metric-grid admin-metrics">
+            <div class="metric"><span>Đầu sách</span><strong>@Model.Books</strong><small>trong danh mục</small></div>
+            <div class="metric"><span>Độc giả</span><strong>@Model.Readers</strong><small>hồ sơ đang hoạt động</small></div>
+            <div class="metric"><span>Đang mượn</span><strong>@Model.Borrowing</strong><small>phiếu hoạt động</small></div>
+            <div class="metric warning"><span>Phạt còn nợ</span><strong>@Model.OpenFines.ToString("N0")đ</strong><small>sau khi trừ đã thanh toán</small></div>
+        </div>
+        <div class="admin-grid">
+            <div class="panel"><div class="panel-head"><h2>Phiếu mới nhất</h2><a href="/admin/circulation">Quản lý →</a></div>
+                @foreach(var item in Model.Recent){<div class="loan-row"><div><strong>@item.Code</strong><span>@item.Reader?.FullName · @item.TotalBooks cuốn · @(item.RequestedAt.ToLocalTime().ToString("dd/MM HH:mm"))</span></div><span class="status">@item.Status.ToVietnamese()</span></div>}
+                @if (Model.Recent.Count == 0) { <p class="empty-inline">Chưa có phiếu mượn.</p> }
+            </div>
+            <div class="panel attention"><span class="eyebrow">Cần chú ý</span><h2>@(Model.PendingApproval + Model.PendingExtension + Model.OpenTickets) việc đang chờ</h2>
+                <ul><li><strong>@Model.PendingApproval</strong> phiếu chờ duyệt</li><li><strong>@Model.PendingExtension</strong> yêu cầu gia hạn</li><li><strong>@Model.OpenTickets</strong> yêu cầu hỗ trợ đang mở</li><li><strong>@Model.ActiveReservations</strong> đặt trước hoạt động</li></ul>
+            </div>
+        </div>
+        <div class="admin-grid dashboard-rankings">
+            <div class="panel"><div class="panel-head"><h2>Sách mượn nhiều</h2></div>
+                @foreach (var row in Model.TopBooks) { <div class="rank-row"><a href="/books/@row.BookId">@row.Title</a><strong>@row.Borrowed</strong></div> }
+                @if (Model.TopBooks.Count == 0) { <p class="empty-inline">Chưa có dữ liệu lượt mượn sách.</p> }
+            </div>
+            <div class="panel"><div class="panel-head"><h2>Độc giả tích cực</h2></div>
+                @foreach (var row in Model.TopReaders) { <div class="rank-row"><span>@row.FullName</span><strong>@row.BorrowCount</strong></div> }
+                @if (Model.TopReaders.Count == 0) { <p class="empty-inline">Chưa có dữ liệu độc giả mượn sách.</p> }
+            </div>
+        </div>
+        @if (User.IsInRole("Administrator"))
+        {
+            <section class="panel portal-section admin-broadcast-card">
+                <div class="panel-head"><div><span class="eyebrow">Thông báo hàng loạt</span><h2>Phát thông báo tới toàn bộ độc giả</h2></div></div>
+                <div id="broadcast-message" class="alert" hidden></div>
+                <form id="broadcast-form" class="admin-form form-grid broadcast-form-grid">
+                    <label>Tiêu đề thông báo<input name="title" required maxlength="160" placeholder="VD: Thông báo lịch phục vụ lễ" /></label>
+                    <label>Liên kết đích (tùy chọn)<input name="link" maxlength="300" placeholder="/#catalog hoặc /help" /></label>
+                    <label class="span-2">Nội dung<textarea name="message" rows="2" required maxlength="1000" placeholder="Nhập nội dung gửi tới toàn bộ tài khoản độc giả..."></textarea></label>
+                    <div class="span-2"><button class="button button-small" type="submit">Gửi thông báo toàn hệ thống</button></div>
+                </form>
+            </section>
+            <script>
+              document.querySelector("#broadcast-form")?.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const btn = form.querySelector("[type=submit]");
+                const msg = document.querySelector("#broadcast-message");
+                if (!LibraryHub.setBusy(btn, true)) return;
+                try {
+                  const res = await LibraryHub.request("/api/v1/notifications/broadcast", {
+                    method: "POST",
+                    body: JSON.stringify(LibraryHub.formBody(form))
+                  });
+                  form.reset();
+                  LibraryHub.message(msg, `Đã phát thông báo tới ${res?.recipients ?? 0} độc giả.`);
+                } catch (err) {
+                  LibraryHub.message(msg, err.message, true);
+                } finally {
+                  LibraryHub.setBusy(btn, false);
+                }
+              });
+            </script>
+        }
+    </section>
+</div>

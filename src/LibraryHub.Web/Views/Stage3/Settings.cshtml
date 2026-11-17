@@ -1,0 +1,16 @@
+@model SystemSettings
+@{ ViewData["Title"] = "Cấu hình nghiệp vụ"; ViewData["AdminSection"] = "settings"; }
+<div class="admin-shell"><partial name="_AdminNav" /><section class="admin-main">
+    <div class="admin-heading"><div><span class="eyebrow">Quy tắc động</span><h1>Cấu hình nghiệp vụ</h1><p>Các thay đổi được kiểm tra cả trên trình duyệt và máy chủ trước khi lưu.</p></div></div>
+    <div id="admin-message" class="alert" hidden></div>
+    <form id="settings-form" class="panel admin-form form-grid">
+        <label>Số ngày gia hạn tối đa<input name="maxExtensionDays" type="number" min="1" max="60" value="@Model.MaxExtensionDays" required /></label>
+        <label>Số lần gia hạn tối đa<input name="maxExtensionCount" type="number" min="0" max="10" value="@Model.MaxExtensionCount" required /></label>
+        <label>Tiền phạt mỗi ngày trễ<input name="lateFeePerDay" type="number" min="0" max="10000000" value="@Model.LateFeePerDay.ToString("0")" required /></label>
+        <label>Số sách mượn tối đa<input name="maxBorrowBooks" type="number" min="1" max="100" value="@Model.MaxBorrowBooks" required /></label>
+        <label>Thời hạn mượn mặc định<input name="borrowPeriodDays" type="number" min="1" max="365" value="@Model.BorrowPeriodDays" required /></label>
+        <label>Thời gian đến lấy sách<input name="pickupWindowDays" type="number" min="1" max="30" value="@Model.PickupWindowDays" required /></label>
+        <div class="span-2"><button class="button" type="submit">Lưu cấu hình</button></div>
+    </form>
+</section></div>
+@section Scripts { <script src="~/js/admin-settings.js" asp-append-version="true"></script> }
